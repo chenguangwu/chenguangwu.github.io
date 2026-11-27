@@ -327,11 +327,16 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
+function __err(zh,en){var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());return '<p style="color:var(--danger)">⚠ '+(isEn?en:zh)+'</p>';}
+
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['xbar', 'mu', 's', 'n'],["样本均值 x̄", "假设均值 μ", "标准差 s", "样本量 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const xbar=num('xbar'),mu=num('mu'),s=num('s'),n=num('n');
+const xbar=readNum('xbar'),mu=readNum('mu'),s=readNum('s'),n=readNum('n');
+            if(isNaN(xbar)||isNaN(mu)){ToolBox.setResult('result',__err('「样本均值 x̄」与「假设均值 μ」必须是有限数值（0 合法）。','“Sample mean x̄” and “hypothesised μ” must be finite numbers (0 is valid).'));return;}
+            if(isNaN(s)||s<=0){ToolBox.setResult('result',__err('「标准差 s」必须是大于 0 的有限数值。','“Standard deviation s” must be a finite number greater than 0.'));return;}
+            if(isNaN(n)||n<2||Math.floor(n)!==n){ToolBox.setResult('result',__err('「样本量 n」必须是 ≥2 的整数，否则自由度 df=n−1 无效。','“Sample size n” must be an integer ≥2; otherwise df=n−1 is invalid.'));return;}
             const t=(xbar-mu)/(s/Math.sqrt(n));
             const __g2=dataGrid([
                 [t.toFixed(3),'t 统计量'],
@@ -349,10 +354,11 @@ calcTool();
 function __tsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __tsList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
 
+function __tsClear(){var ids=['tsTable','tsDiff','tsHist','tsChart'];for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}}
 function __tsExtras(){
     if (typeof TBKit === 'undefined') return;
     var xb=__tsNum('xbar'), mu=__tsNum('mu'), s=__tsNum('s'), n=__tsNum('n');
-    if(!isFinite(xb)||!isFinite(mu)||!isFinite(s)||!isFinite(n)||s<=0||n<2) return;
+    if(!isFinite(xb)||!isFinite(mu)||!isFinite(s)||!isFinite(n)||s<=0||n<2||Math.floor(n)!==n){__tsClear();return;}
     var en=TBKit.util.isEn();
     var se=s/Math.sqrt(n), df=n-1, t=(xb-mu)/se;
     var p=TBKit.util.tP2(t,df);

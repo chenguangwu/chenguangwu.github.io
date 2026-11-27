@@ -238,11 +238,11 @@
     </a>
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="api-sign-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">API 签名生成器</span><span class="rt-desc">生成带时间戳与随机数的接口签名</span></span>
+      <span class="rt-info"><span class="rt-name">API 签名生成器</span><span class="rt-desc">可选加入时间戳与随机数的接口签名</span></span>
     </a>
     <a href="ascii-tree-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
@@ -261,33 +261,71 @@
 <script>
   // IT-N217：支持 CSV 双引号包裹，形如 "a,b",c ⇒ 2 列 ["a,b","c"]；引号内 "" 表示一个字面引号。
   // 第783批：引号内首尾空格保留（quoted=true），未闭合引号返回 error；未加引号字段仍去首尾空白。
-  function parseCsvLine(line) {
+  function parseCsvLine(line, lineNo, isEn) {
     const s = String(line == null ? '' : line);
     const cells = [];
-    let cell = '', inQuote = false, quoted = false, error = '';
+    let cell = '', inQuote = false, quoted = false, closed = false, quoteStart = 0, error = '', errorEn = '';
+    const locZh = (i) => (lineNo ? '第 ' + lineNo + ' 行' : '') + '第 ' + (i + 1) + ' 列';
+    const locEn = (i) => (lineNo ? 'line ' + lineNo + ', ' : '') + 'column ' + (i + 1);
+    function fail(zh, en) {
+      if (!error) { error = zh; errorEn = en; }
+    }
     function pushCell() {
       cells.push({ value: quoted ? cell : cell.trim(), quoted: quoted });
-      cell = ''; quoted = false;
+      cell = ''; quoted = false; closed = false;
     }
     for (let i = 0; i < s.length; i += 1) {
       const ch = s.charAt(i);
       if (inQuote) {
         if (ch === '"') {
           if (s.charAt(i + 1) === '"') { cell += '"'; i += 1; }
-          else inQuote = false;
+          else { inQuote = false; closed = true; }
         } else cell += ch;
+      } else if (closed && ch !== ',') {
+        fail(locZh(i) + '：引号闭合后只能接逗号或行尾',
+             locEn(i) + ': a closing quote must be followed by a comma or the end of the line');
+        break;
       } else if (ch === '"' && cell.trim() === '') {
-        cell = ''; inQuote = true; quoted = true;
+        cell = ''; inQuote = true; quoted = true; quoteStart = i + 1;
+      } else if (ch === '"') {
+        fail(locZh(i) + '：未加引号的字段中不能出现引号',
+             locEn(i) + ': a quote appeared inside an unquoted field');
+        break;
       } else if (ch === ',') {
         pushCell();
       } else cell += ch;
     }
-    if (inQuote) error = '未闭合的双引号';
-    pushCell();
-    return { cells: cells, error: error };
+    if (inQuote && !error) {
+      error = locZh(quoteStart - 1) + '：未闭合的双引号';
+      errorEn = locEn(quoteStart - 1) + ': unclosed double quote';
+    }
+    if (!error) pushCell();
+    return { cells: cells, error: error, errorEn: errorEn };
   }
   function splitCsvRow(line) {
     return parseCsvLine(line).cells.map(c => c.value);
+  }
+
+  function splitCsvRecords(text) {
+    // 按引号状态扫描整段 CSV：引号内的换行属于单元格内容，不拆行；
+    // 支持 "" 转义，引号外换行才是记录分隔。
+    const s = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
+    const records = [];
+    let buf = '', inQuote = false;
+    for (let i = 0; i < s.length; i += 1) {
+      const ch = s.charAt(i);
+      if (ch === '"') {
+        if (inQuote && s.charAt(i + 1) === '"') { buf += '""'; i += 1; }
+        else { inQuote = !inQuote; buf += ch; }
+      } else if (ch === '\n' && !inQuote) {
+        records.push(buf); buf = '';
+      } else {
+        buf += ch;
+      }
+    }
+    if (buf !== '' || inQuote) records.push(buf);
+    while (records.length > 1 && records[records.length - 1] === '') records.pop();
+    return records.length ? records : [''];
   }
   function parseRow(line) {
     // 第805批：逗号定义的全部列位置都要保留，首列空值不能导致后续整体左移
@@ -308,17 +346,31 @@
     return ':---';
   }
 
+  function markdownEdgeWhitespace(ch) {
+    if (ch === ' ') return '&nbsp;';
+    if (ch === '\t') return '&#9;';
+    if (ch === '\u00a0') return '&nbsp;';
+    return '&#' + ch.codePointAt(0) + ';';
+  }
+
   function escapeMarkdown(text) {
     let s = String(text == null ? '' : text)
       // IT-N215：先转义反斜杠再转义竖线，否则输入 a\|b 会变成 a\\|b（GFM 把 \\ 当字面反斜杠、| 重新成为分隔符）
       .replace(/\\/g, '\\\\')
       .replace(/\|/g, '\\|')
-      .replace(/\r?\n/g, ' ');
-    // 第783批：Markdown 忽略单元格边缘空格；用 &nbsp; 明确表示，避免静默丢失。
-    const lead = s.match(/^ +/);
-    const tail = s.match(/ +$/);
-    s = (lead ? '&nbsp;'.repeat(lead[0].length) : '') + s.trim() + (tail ? '&nbsp;'.repeat(tail[0].length) : '');
-    return s;
+      // 单元格内换行标准 Markdown 无法直接表达，用 <br> 保留可读换行；CSV 导出仍用 raw 单元格换行。
+      .replace(/\r?\n/g, '<br>');
+    // 边缘空白逐个编码：纯空格单元格只编码一次，不再首尾两段重叠翻倍；
+    // 制表符/不换行空格等 Markdown 会 trim 掉的边界字符也按字符保留。
+    const lead = s.match(/^[ \t\u00a0\u3000]+/);
+    const leadLen = lead ? lead[0].length : 0;
+    const rest = s.slice(leadLen);
+    const tail = rest.match(/[ \t\u00a0\u3000]+$/);
+    const tailLen = tail ? tail[0].length : 0;
+    const leadText = lead ? Array.from(lead[0]).map(markdownEdgeWhitespace).join('') : '';
+    const tailText = tail ? Array.from(tail[0]).map(markdownEdgeWhitespace).join('') : '';
+    const core = tailLen ? rest.slice(0, rest.length - tailLen) : rest;
+    return leadText + core + tailText;
   }
 
   function makeRow(values) {
@@ -356,26 +408,49 @@
       if (spaceBox) spaceBox.style.display = 'none';
       return '';
     }
-    const rows = rr.value, cols = cc.value;
+    let rows = rr.value, cols = cc.value;
     const align = document.getElementById('align').value;
     const rowFill = document.getElementById('rowFill') ? document.getElementById('rowFill').value : 'blank';
-    const h = parseCsvLine(document.getElementById('headerLine').value);
+    const h = parseCsvLine(document.getElementById('headerLine').value, 1, en);
     const bodyText = String(document.getElementById('bodyLine').value || '');
-    let bodyLines = bodyText.split(/\r?\n/);
-    while (bodyLines.length > 1 && bodyLines[bodyLines.length - 1] === '') bodyLines.pop();
-    const parsedBody = bodyLines.map(parseCsvLine);
-    const parseErr = h.error || parsedBody.find(x => x.error);
-    if (parseErr && (parseErr.error || typeof parseErr === 'string')) {
-      const msg = h.error || parseErr.error;
-      if (errBox) { errBox.style.display = 'block'; errBox.textContent = (en ? 'CSV input error: ' : 'CSV 输入错误：') + msg + (en ? '. Fix the quotes before generating.' : '，请先补全引号再生成。'); }
+    const parsedBody = splitCsvRecords(bodyText).map((line, idx) => parseCsvLine(line, idx + 2, en));
+    const parseErr = h.error ? h : (parsedBody.find(x => x.error) || null);
+    if (parseErr) {
+      const msg = en ? (parseErr.errorEn || parseErr.error) : parseErr.error;
+      if (errBox) { errBox.style.display = 'block'; errBox.textContent = (en ? 'CSV input error: ' : 'CSV 输入错误：') + msg + (en ? '. Fix the quotes before generating.' : '，请修正引号后重试。'); }
       document.getElementById('output').value = '';
       lastTableModel = null;
       if (spaceBox) spaceBox.style.display = 'none';
       return '';
     }
     if (errBox) errBox.style.display = 'none';
-    const header = h.cells.slice(0, cols).map(c => c.value);
-    const bodySeeds = parsedBody.map(p => p.cells.slice(0, cols).map(c => c.value));
+    const expandNotes = [];
+    const headerCells = h.cells.map(c => c.value);
+    const bodyCellCounts = parsedBody.map(p => p.cells.length);
+    const requiredCols = Math.max(headerCells.length, ...bodyCellCounts, 1);
+    const requiredRows = Math.max(parsedBody.length, 1);
+    if (requiredCols > 20 || requiredRows > 50) {
+      const msg = en
+        ? `Input needs ${requiredCols} column(s) and ${requiredRows} row(s); the supported limit is 20 columns / 50 rows. Split or remove data before generating.`
+        : `输入需要 ${requiredCols} 列 / ${requiredRows} 行，超过支持上限 20 列 / 50 行；请先拆分或删减数据再生成。`;
+      if (errBox) { errBox.style.display = 'block'; errBox.textContent = '⚠ ' + msg; }
+      document.getElementById('output').value = '';
+      lastTableModel = null;
+      if (spaceBox) spaceBox.style.display = 'none';
+      return '';
+    }
+    if (requiredCols > cols) {
+      cols = requiredCols;
+      document.getElementById('cols').value = String(cols);
+      expandNotes.push(en ? `Columns auto-expanded to ${cols} to keep all input cells.` : `输入有 ${cols} 列，列数已自动扩展为 ${cols}，不再截断。`);
+    }
+    if (requiredRows > rows) {
+      rows = requiredRows;
+      document.getElementById('rows').value = String(rows);
+      expandNotes.push(en ? `Rows auto-expanded to ${rows} to keep all input rows.` : `输入有 ${rows} 行，行数已自动扩展为 ${rows}，不再截断。`);
+    }
+    const header = headerCells;
+    const bodySeeds = parsedBody.map(p => p.cells.map(c => c.value));
     const headerRaw = rawCells(cols, header);
     const bodyRaw = [];
     const fallback = bodySeeds.length ? bodySeeds[0] : [];
@@ -395,11 +470,15 @@
     const md = out.join('\n');
     document.getElementById('output').value = md;
     lastTableModel = { header: headerRaw, rows: bodyRaw, markdown: md };
-    const hadSpace = headerRaw.concat(bodyRaw.flat()).some(v => /^ | $/.test(v));
+    const allRaw = headerRaw.concat(bodyRaw.flat());
+    const hadSpace = allRaw.some(v => /^[ \t\u00a0\u3000]|[ \t\u00a0\u3000]$/.test(String(v)));
+    const hadNewline = allRaw.some(v => /\r?\n/.test(String(v)));
     const missingCols = Math.max(0, cols - header.length) + Math.max(0, cols - (bodySeeds[0] ? bodySeeds[0].length : 0));
     const extraBlank = rowFill === 'blank' && rows > bodySeeds.length;
     const notes = [];
-    if (hadSpace) notes.push(en ? 'Leading/trailing spaces inside quotes are kept as &nbsp; in Markdown and preserved in CSV export.' : '引号内的首尾空格在 Markdown 中以 &nbsp; 表示，CSV 导出会保留原始空格。');
+    expandNotes.forEach(n => notes.push(n));
+    if (hadSpace) notes.push(en ? 'Leading/trailing whitespace (space, tab, NBSP or ideographic space) is encoded as HTML entities in Markdown and kept raw in CSV export.' : '引号内的首尾空白（空格、制表符、不换行空格或全角空格）在 Markdown 中以 HTML 实体保留，CSV 导出保留原始字符。');
+    if (hadNewline) notes.push(en ? 'Line breaks inside quoted cells are shown as <br> in Markdown and preserved as real newlines in CSV export.' : '引号内单元格换行在 Markdown 中用 <br> 表示，CSV 导出保留真实换行。');
     if (missingCols) notes.push(en ? 'Some rows have fewer values than the column count; missing cells are kept empty.' : '部分行列数少于列数设置，缺失单元格已留空。');
     if (extraBlank) notes.push(en ? 'Rows after the provided content use blank cells (change “Extra rows” to repeat the first row).' : '超出内容行的部分使用空白单元格（可在「额外行」选择复制首行）。');
     if (spaceBox) {

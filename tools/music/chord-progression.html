@@ -386,7 +386,7 @@
     </a>
     <a href="generator-1.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器按大调、小调与五声音阶等调式生成对应音名序列并支持试听，适合乐理学习、即兴创作与乐器练习的…</span></span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">指定根音、调式与起始八度后生成按音级正确拼写的音名序列、十二平均律频率，并支持 Web Audio…</span></span>
     </a>
     <a href="bpm-converter.html" class="related-tool-card">
       <span class="rt-icon">🏎️</span>
@@ -397,8 +397,8 @@
       <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">输入原曲BPM与目标BPM，计算速度比例与新时长，给出提速/降速百分比，用于翻唱移调、练琴跟拍等音乐…</span></span>
     </a>
     <a href="audio-converter.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">音频转换</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">音频格式与容量估算</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
     </a>
     <a href="freq-note-converter.html" class="related-tool-card">
       <span class="rt-icon">📡</span>
@@ -531,7 +531,7 @@
   // 所有调式的根音索引
   const KEY_MAP = {
     'C':0,'C#':1,'D':2,'D#':3,'E':4,'F':5,'F#':6,'G':7,'G#':8,'A':9,'A#':10,'B':11,
-    'Bb':10,'Eb':2,'Ab':8,'Db':1,'Gb':6,
+    'Bb':10,'Eb':3,'Ab':8,'Db':1,'Gb':6,'Fm':5,'Bbm':10,'Ebm':3,'Abm':8,
     'Am':9,'Em':4,'Bm':11,'F#m':6,'C#m':1,'G#m':8,'Dm':2,'Gm':7,'Cm':0
   };
 
@@ -618,7 +618,8 @@
       degrees: [1, 3, 4, 4],
       desc: '贝多芬悲怆奏鸣曲风格，小调iv替代大调IV',
       scales: ['major'],
-      special: 'pathetique'
+      special: 'pathetique',
+      qualities: ['', 'm', '', 'm']
     }
   ];
 
@@ -631,6 +632,7 @@
   let playTimeout = null;
   let currentPlayIndex = -1;
   let scheduledOscillators = [];
+  let highlightTimeouts = [];
 
   // ============ 工具函数 ============
 
@@ -639,6 +641,25 @@
     var oct = Math.floor(midiNote / 12) - 1;
     var name = useFlat ? NOTE_NAMES_FLAT[idx] : NOTE_NAMES[idx];
     return name + oct;
+  }
+
+  var LETTERS = ['C','D','E','F','G','A','B'];
+  var LETTER_PC = [0,2,4,5,7,9,11];
+  var STEP_BY_SEMITONE = {0:0,1:1,2:1,3:2,4:2,5:3,6:4,7:4,8:4,9:5,10:6,11:6};
+  function spellChordNote(rootName, rootPc, semitone) {
+    var letter = (rootName.charAt(0) || 'C').toUpperCase();
+    var acc = rootName.charAt(1) === '#' ? 1 : (rootName.charAt(1) === 'b' ? -1 : 0);
+    var li = LETTERS.indexOf(letter);
+    var base = ((semitone % 12) + 12) % 12;
+    var step = STEP_BY_SEMITONE[base];
+    if (step === undefined) step = 0;
+    var targetLetter = LETTERS[(li + step) % 7];
+    var natural = LETTER_PC[(li + step) % 7];
+    var targetPc = ((rootPc + base) % 12 + 12) % 12;
+    var diff = targetPc - natural;
+    if (diff > 6) diff -= 12;
+    if (diff < -6) diff += 12;
+    return targetLetter + (diff === 1 ? '#' : diff === 2 ? '##' : diff === -1 ? 'b' : diff === -2 ? 'bb' : '');
   }
 
   function getKeyInfo(keyName) {
@@ -665,11 +686,7 @@
       // Handle special case: pathetique uses minor iv
       var scaleInfo = info.scale.find(function(s) { return s.deg === degree; });
       var type = scaleInfo ? scaleInfo.type : '';
-
-      // Check for pathetique special override
-      if (prog.special === 'pathetique' && degree === 4) {
-        type = 'm';
-      }
+      if (prog.qualities && prog.qualities[degIdx]) type = prog.qualities[degIdx];
 
       var intervals = info.isMinor ? [0, 2, 3, 5, 7, 8, 10] : [0, 2, 4, 5, 7, 9, 11];
       var chordRoot = info.rootIdx + intervals[degree - 1];
@@ -680,16 +697,21 @@
       var chordName = rootName + (chordType || '');
 
       // Build numeral string
-      var numeral = scaleInfo ? scaleInfo.numeral : String(degree);
+      var numeralBase = scaleInfo ? scaleInfo.numeral : String(degree);
+      var numeral = (type === 'm' || type === 'm7') ? numeralBase.toLowerCase() : numeralBase.toUpperCase();
 
       var notes = chordIntervals.map(function(iv) {
-        return (chordRoot + iv);
+        return 48 + chordRoot + iv;
+      });
+      var noteNames = chordIntervals.map(function(iv) {
+        return spellChordNote(rootName, chordRoot % 12, iv);
       });
 
       chords.push({
         name: chordName,
         numeral: numeral,
         notes: notes,
+        noteNames: noteNames,
         bar: i + 1
       });
     }
@@ -703,9 +725,7 @@
     var html = '<div class="progression-name">' + ToolBox.escHtml(progName) + '</div>';
     html += '<div class="chord-grid" id="chordGrid">';
     chords.forEach(function(ch, i) {
-      var notesStr = ch.notes.map(function(n) {
-        return noteName(n, false);
-      }).join(' - ');
+      var notesStr = (ch.noteNames || ch.notes.map(function(n) { return noteName(n, false); })).join(' - ');
       html += '<div class="chord-card" id="chordCard' + i + '">'
         + '<div class="chord-name">' + ToolBox.escHtml(ch.name) + '</div>'
         + '<div class="chord-notes">' + ToolBox.escHtml(notesStr) + '</div>'
@@ -792,9 +812,9 @@
       // 高亮当前和弦卡片
       (function(idx) {
         var delay = (t - ctx.currentTime) * 1000;
-        setTimeout(function() {
-          highlightChord(idx);
-        }, delay);
+        highlightTimeouts.push(setTimeout(function() {
+          if (isPlaying) highlightChord(idx);
+        }, delay));
       })(i);
     });
 
@@ -838,6 +858,8 @@
     currentPlayIndex = -1;
     clearTimeout(playTimeout);
     playTimeout = null;
+    highlightTimeouts.forEach(function(t) { clearTimeout(t); });
+    highlightTimeouts = [];
     // 停止所有振荡器
     scheduledOscillators.forEach(function(osc) {
       try { osc.stop(); } catch(e) {}
@@ -968,6 +990,13 @@
     ToolBox.copyText(text, i18nText());
   };
 
+  window.__cpBuild = function(keyName, progIdx, bars) {
+    var prog = PROGRESSIONS[progIdx];
+    if (!prog) return [];
+    return buildProgression(keyName, prog, bars || 4).map(function(ch) {
+      return { name: ch.name, numeral: ch.numeral, notes: ch.noteNames, midi: ch.notes };
+    });
+  };
   window.toggleIntro = function() {
     var intro = document.getElementById('toolIntro');
     intro.classList.toggle('open');

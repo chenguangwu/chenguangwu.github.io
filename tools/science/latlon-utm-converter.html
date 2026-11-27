@@ -501,15 +501,20 @@ function convertUTM2LL(){
     return;
   }
 
+  if(latDeg < -80 || latDeg > 84){
+    ToolBox.setResult('result-utm2ll', '<p style="color:var(--danger);">反算纬度 '+latDeg.toFixed(4)+'° 超出 UTM 标准投影范围（−80°~84°）；极区坐标请使用 UPS（通用极球面投影），UTM 公式在极区不适用。</p>');
+    return;
+  }
+
   // 格式化度分秒
   function toDMS(val){
-    const sign = val >= 0 ? '' : '-';
-    const absV = Math.abs(val);
-    const deg = Math.floor(absV);
-    const minFull = (absV - deg) * 60;
-    const min = Math.floor(minFull);
-    const sec = ((minFull - min) * 60).toFixed(2);
-    return `${sign}${deg}°${String(min).padStart(2,'0')}'${sec}"`;
+    const sign = val < 0 ? '-' : '';
+    const total = Math.round(Math.abs(val) * 360000);
+    const deg = Math.floor(total / 360000);
+    const rem = total - deg * 360000;
+    const min = Math.floor(rem / 6000);
+    const secTicks = rem - min * 6000;
+    return `${sign}${deg}°${String(min).padStart(2,'0')}'${String(Math.floor(secTicks/100)).padStart(2,'0')}.${String(secTicks%100).padStart(2,'0')}"`;
   }
 
   const __g2=`

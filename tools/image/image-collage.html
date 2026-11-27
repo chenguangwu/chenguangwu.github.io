@@ -34,6 +34,11 @@
 .img-meta{flex:1;min-width:0;}
 .img-name{font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .img-size{font-size:11px;color:var(--text-muted);margin-top:2px;}
+.img-focus{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-top:5px;}
+.img-focus label{display:flex;flex-direction:column;gap:1px;font-size:10px;color:var(--text-muted);}
+.img-focus input[type=range]{height:20px;padding:0;}
+.import-report{margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--bg-hover);font-size:12px;line-height:1.7;color:var(--text-secondary);word-break:break-word;}
+.import-report b{color:var(--text);}
 .img-actions{display:flex;gap:4px;flex-shrink:0;}
 .img-actions button{width:28px;height:28px;border-radius:8px;border:1px solid var(--border);background:var(--card-bg);color:var(--text);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;transition:all .15s;padding:0;}
 .img-actions button:hover{border-color:var(--primary);color:var(--primary);}
@@ -124,7 +129,7 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
       "name": "合成画布尺寸怎么估算？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "边长 = 单图边长×格数 + 间距×(格数−1) + 边距×2。先用公式核一遍再导出，避免超出预期。"
+        "text": "固定宽度/高度模式按输入值精确输出画布；自适应模式以 300px 基准格高，按实际参与图片的平均宽高比算格宽，再用“边距×2 + 格宽×列数 + 间距×(列数−1)”计算画布。导出前可直接看预览下方的实际尺寸。"
       }
     },
     {
@@ -132,7 +137,7 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
       "name": "透明底和纯色底怎么选？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "需要叠加到其他背景用透明底（PNG）；单独成图用纯色底更干净。"
+        "text": "需要叠加到其他背景用透明底（PNG）；单独成图用纯色底更干净。JPG 不支持透明，导出时会自动垫白底。"
       }
     }
   ]
@@ -174,7 +179,7 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
     <h2 data-zh="🧩 图片拼图合成工具">Image Collage Synthesis</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="上传多张图片，选择布局模板合成为一张拼图，支持间距、边距、背景色与拖拽排序，一键下载。">Image Collage Synthesis</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">图片拼图布局与画布尺寸计算<br>垂直堆叠(v)：统一宽度 = min(1600, 各图最大宽) 或固定值<br>　各图高度 = round(统一宽 ÷ 原宽 × 原高)；画布高 = Σ各图高 + gap×(n−1)<br>水平排列(h)：统一高度同理，画布宽 = Σ各图宽 + gap×(n−1)<br>网格(grid)：平均宽高比 = Σ(宽/高) ÷ 张数<br>　定宽模式：格宽 = ⌊(固定值 − 边距×2 − gap×(列数−1)) ÷ 列数⌋，格高 = 格宽 ÷ 平均宽高比<br>　定高模式：格高同理反算格宽<br>　自适应模式：格高基准 300，按平均宽高比算格宽，超 3000px 时整体缩放<br>画布尺寸 = 边距×2 + 格数×格宽 + gap×(格数−1)<br>填充模式 cover/contain 由 drawImageFit 决定裁剪或留白<br>安全上限：任一边 > 8000px 时按比例缩放并提示<br>图片数超过格子数时仅合成前 行×列 张</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">图片拼图布局与画布尺寸计算<br>垂直堆叠(v)：统一内容宽 = min(1600, 各图最大宽) 或 固定画布宽 − 边距×2<br>　各图高 = round(统一内容宽 ÷ 原宽 × 原高)；画布高 = Σ各图高 + gap×(n−1) + 边距×2<br>水平排列(h)：统一内容高 = min(1600, 各图最大高) 或 固定画布高 − 边距×2；画布宽 = Σ各图宽 + gap×(n−1) + 边距×2<br>网格(grid)：平均宽高比 = 实际参与图片的 Σ(宽/高) ÷ 张数<br>　固定宽度：格宽 = (固定画布宽 − 边距×2 − gap×(列数−1)) ÷ 列数，格高 = 格宽 ÷ 平均宽高比<br>　固定高度：格高同理反算格宽<br>　自适应：格高基准 300，按平均宽高比算格宽；画布最长边超过 3000px 时整体等比缩小<br>画布尺寸 = 边距×2 + 列数×格宽 + gap×(列数−1)（高度同理）<br>填充方式 cover/contain 由 drawImageFit 决定裁剪或留白<br>安全预算：任一边 > 8000px 或总像素 > 1600 万时拒绝渲染并提示<br>图片数超过格子数时仅合成前 行×列 张</div>
       <div class="formula-desc tb-bi"><span class="t-zh">上传多张图片，选择布局模板合成为一张拼图，支持间距、边距、背景色与拖拽排序，一键下载。把多张旅行照拼成一张长图发朋友圈或做对比图。</span><span class="t-en">Stitch several images into one collage</span></div>
     </div>
 
@@ -185,17 +190,20 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
       <input type="file" id="fileInput" accept="image/png,image/jpeg,image/webp,image/gif" multiple style="display:none" aria-label="选择图片文件">
       <div class="upload-icon">📁</div>
       <div class="upload-text">点击选择图片或拖拽到此处</div>
-      <div class="upload-hint">支持 PNG / JPG / WEBP / GIF，可多选</div>
+      <div class="upload-hint" data-zh="支持 PNG / JPG / WEBP / GIF，可多选；GIF/动画 WebP 按静态首帧合成，导出仍为静态图片">Supports PNG / JPG / WEBP / GIF, multiple files; GIF/animated WebP is composited from the first static frame and exported as a still image</div>
+      <div id="loadStatus" role="status" aria-live="polite" style="display:none;font-size:12px;color:var(--text-muted);margin-top:6px;"></div>
     </div>
 
     <!-- 图片列表 -->
     <div id="listToolbar" style="display:none;gap:8px;flex-wrap:wrap;margin-top:12px;">
       <button type="button" class="btn" onclick="CollageTool.sortNames()">🔤 按名称排序</button>
       <button type="button" class="btn" onclick="CollageTool.reverse()">↕ 反转顺序</button>
-      <button type="button" class="btn" onclick="CollageTool.undo()">↩ 撤销</button>
+      <button type="button" class="btn" id="collageUndoBtn" onclick="CollageTool.undo()">↩ 撤销</button>
+      <button type="button" class="btn" data-zh="🧹 清理撤销历史" onclick="CollageTool.clearHistory()">🧹 Clear undo history</button>
       <span id="collageHistHint" style="font-size:12px;color:var(--text-muted);align-self:center;"></span>
     </div>
     <div class="img-list" id="imgList"></div>
+    <div class="import-report" id="importReport" style="display:none;" role="status" aria-live="polite"></div>
 
     <div class="section-title">⚙️ 合成设置</div>
     <div class="settings-grid">
@@ -218,7 +226,8 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
         <select id="sizeMode"><option value="auto">自适应</option></select>
       </div>
       <div id="fixedRow" class="fixed-size-row" style="display:none">
-        <div><label id="fixedLabel" for="fixedVal">固定宽度(px)</label><input type="number" id="fixedVal" value="1200" min="100" max="8000" placeholder="如 1200（100–8000）"></div>
+        <div><label id="fixedLabel" for="fixedVal">画布宽度(px)</label><input type="number" id="fixedVal" value="1200" min="100" max="8000" step="1" placeholder="如 1200（100–8000）"></div>
+        <p style="font-size:11px;color:var(--text-muted);margin:4px 0 0;" data-zh="固定尺寸指最终导出画布尺寸，包含外边距与图片间距。">Fixed size is the final exported canvas size, including outer margins and image gaps.</p>
       </div>
       <div id="fitRow">
         <label for="fitMode">适应方式（网格）</label>
@@ -291,12 +300,12 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
 <li>把多张旅行照拼成一张长图发朋友圈或做对比图。</li>
 <li>电商做多 SKU 合集图，统一间距与边距更整齐。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">2×2 拼四张</div><div class="dd-ex-body">四张 600×600 图，选 2×2 网格、间距 10px、边距 20px，合成画布 = 600×2+10+20×2 = 1260×1260px。</div></div>
-<div class="dd-example"><div class="dd-ex-title">3×3 拼九张</div><div class="dd-ex-body">九张 400×400，3×3 网格间距 8px 边距 16px，输出 400×3+8×2+16×2 = 1280×1280px。</div></div>
+<div class="dd-example"><div class="dd-ex-title">2×2 拼四张</div><div class="dd-ex-body">四张 600×600 图，选 2×2 网格、间距 10px、边距 20px，自适应输出画布为 650×650px（每格 300×300，含边距与间距）。</div></div>
+<div class="dd-example"><div class="dd-ex-title">3×3 拼九张</div><div class="dd-ex-body">九张 400×400，3×3 网格间距 8px 边距 16px，自适应输出 948×948px（每格 300×300，含边距与间距）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>合成画布尺寸怎么估算？</dt><dd>边长 = 单图边长×格数 + 间距×(格数−1) + 边距×2。先用公式核一遍再导出，避免超出预期。</dd>
-<dt>透明底和纯色底怎么选？</dt><dd>需要叠加到其他背景用透明底（PNG）；单独成图用纯色底更干净。</dd>
+<dt>合成画布尺寸怎么估算？</dt><dd>固定宽度/高度模式按输入值精确输出画布；自适应模式以 300px 基准格高，按实际参与图片的平均宽高比算格宽，再用“边距×2 + 格宽×列数 + 间距×(列数−1)”计算画布。导出前可直接看预览下方的实际尺寸。</dd>
+<dt>透明底和纯色底怎么选？</dt><dd>需要叠加到其他背景用透明底（PNG）；单独成图用纯色底更干净。JPG 不支持透明，导出时会自动垫白底。</dd>
 </dl>
 </div>
 </section>
@@ -332,12 +341,12 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
   <div class="related-tools-grid">
     <a href="generator-15.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG）</span><span class="rt-desc">圆角图片生成器。在前端上传图片并生成带指定圆角的 PNG（可批量、右键保存），图片不离开设备，用于头…</span></span>
+      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG）</span><span class="rt-desc">上传 1–12 张 PNG/JPEG/WebP，按短边百分比或固定像素生成圆角，四角透明并导出 PN…</span></span>
     </a>
     
     <a href="image-converter.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">图片转换</span><span class="rt-desc">将图片在 JPEG/PNG/WebP 等格式间转换并输出多种格式，便于网页优化、体积压缩与兼容性处理…</span></span>
+      <span class="rt-info"><span class="rt-name">图片转换</span><span class="rt-desc">把 PNG/JPEG/WebP/GIF 图片转换为 JPEG/PNG/WebP，可一次输出多种格式…</span></span>
     </a>
     <a href="gif-split.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
@@ -345,7 +354,7 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
     </a>
     <a href="image-compress.html" class="related-tool-card">
       <span class="rt-icon">🗜️</span>
-      <span class="rt-info"><span class="rt-name">图片压缩工具</span><span class="rt-desc">在线压缩图片，支持 JPEG / WebP / PNG 格式、质量调节、尺寸限制与批量处理，所有处理…</span></span>
+      <span class="rt-info"><span class="rt-name">图片压缩工具</span><span class="rt-desc">压缩 JPEG / WebP / PNG / GIF / BMP 图片，支持质量调节、尺寸限制与批量…</span></span>
     </a>
     <a href="image-rotate.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
@@ -359,11 +368,11 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
   <div class="related-tools-grid">
     <a href="generator-15.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG）</span><span class="rt-desc">圆角图片生成器。在前端上传图片并生成带指定圆角的 PNG（可批量、右键保存），图片不离开设备，用于头…</span></span>
+      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG）</span><span class="rt-desc">上传 1–12 张 PNG/JPEG/WebP，按短边百分比或固定像素生成圆角，四角透明并导出 PN…</span></span>
     </a>
     <a href="image-converter.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">图片转换</span><span class="rt-desc">将图片在 JPEG/PNG/WebP 等格式间转换并输出多种格式，便于网页优化、体积压缩与兼容性处理…</span></span>
+      <span class="rt-info"><span class="rt-name">图片转换</span><span class="rt-desc">把 PNG/JPEG/WebP/GIF 图片转换为 JPEG/PNG/WebP，可一次输出多种格式…</span></span>
     </a>
     <a href="gif-split.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
@@ -371,15 +380,15 @@ input[type="color"]:disabled{opacity:.45;cursor:not-allowed;}
     </a>
     <a href="nine-grid-cutter.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">九宫格切图</span><span class="rt-desc">上传图片后自动切成 3×3，并可分别下载。发朋友圈长图被压缩，想切成九宫格拼回大图。</span></span>
+      <span class="rt-info"><span class="rt-name">九宫格切图</span><span class="rt-desc">按 1–6 行 × 1–6 列自定义切图，支持九宫格、四宫格、横竖六宫格预设，可调裁切取景、适应留白…</span></span>
     </a>
     <a href="wechat-cover-maker.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">公众号封面生成器</span><span class="rt-desc">微信公众号封面图在线生成器，提供尺寸模板与文字/图片排版，一键导出符合规范的封面与缩略图，适合运营配…</span></span>
+      <span class="rt-info"><span class="rt-name">公众号封面生成器</span><span class="rt-desc">按所选尺寸实时排版并直接导出：标题/副标题自动适配，署名可开关或自定义，文字不裁切</span></span>
     </a>
     <a href="image-compress.html" class="related-tool-card">
       <span class="rt-icon">🗜️</span>
-      <span class="rt-info"><span class="rt-name">图片压缩工具</span><span class="rt-desc">在线压缩图片，支持 JPEG / WebP / PNG 格式、质量调节、尺寸限制与批量处理，所有处理…</span></span>
+      <span class="rt-info"><span class="rt-name">图片压缩工具</span><span class="rt-desc">压缩 JPEG / WebP / PNG / GIF / BMP 图片，支持质量调节、尺寸限制与批量…</span></span>
     </a>
   </div>
 </div>
@@ -444,31 +453,61 @@ function resolveGridSize(rowsRaw, colsRaw){
     error: r.error || c.error
   };
 }
-function showGridError(msg){
+function isEn(){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? true : false; }
+function tr(zh,en){ return isEn()?en:zh; }
+function showRenderError(msg){
   var canvas = $('canvas'), empty = $('previewEmpty'), info = $('infoBox');
+  lastRenderOk = false;
   if(canvas) canvas.style.display = 'none';
   if(empty) empty.style.display = 'none';
-  if(info){ info.style.display = 'block'; info.innerHTML = '<p style="color:var(--danger)">⚠️ ' + msg + '</p>'; }
+  if(info){ info.style.display = 'block'; info.innerHTML = '<p style="color:var(--danger)">⚠️ ' + ToolBox.escHtml(msg) + '</p>'; }
+}
+function resolveFixedSize(raw){
+  var s = (raw == null ? '' : String(raw)).trim();
+  if(s === '') return {valid:false,error:tr('画布尺寸不能为空，请填写 100–8000 的整数。','Canvas size is required; enter an integer from 100 to 8000.')};
+  if(!/^\d+$/.test(s)) return {valid:false,error:tr('画布尺寸必须是 100–8000 的整数（当前“'+s+'”）。','Canvas size must be an integer from 100 to 8000 (current “'+s+'”).')};
+  var n = Number(s);
+  if(!isFinite(n) || n < 100 || n > 8000) return {valid:false,error:tr('画布尺寸需在 100–8000 之间（当前“'+s+'”）。','Canvas size must be between 100 and 8000 (current “'+s+'”).')};
+  return {valid:true,value:n};
 }
 
-var images = []; // {img, url, name, w, h}
+var images = []; // {img,url,name,w,h,focusX,focusY,zoom}
 var history = [];  // 顺序/删除操作快照，最多 20 步
+var managed = [];  // 所有已解码图片资源，用于 history/current 均不再引用后释放 object URL
+var pendingUrls = [];
+var loadGen = 0, batchSeq = 0, batches = []; // 解码队列，按批次选择顺序提交
 var dragIdx = null;
+var renderRaf = null, lastRenderOk = false;
 
-/* ---------- 文件处理 ---------- */
-/* 按选择索引提交：解码完成的先后顺序不保证等于 FileList 顺序，
-   因此每个文件先记录自己的 index，全部结束（成功或失败）后按 index 归并。 */
-function pushHistory(){
+/* ---------- 历史与资源 ---------- */
+function liveUrls(){
+  var live = {};
+  images.forEach(function(i){ live[i.url] = 1; });
+  history.forEach(function(snap){ snap.forEach(function(i){ if(i && i.url) live[i.url] = 1; }); });
+  batches.forEach(function(b){ (b.entries||[]).forEach(function(e){ if(e && e.item && e.item.url) live[e.item.url] = 1; }); });
+  return live;
+}
+function revokeOrphans(){
+  var live = liveUrls(), keep = [];
+  managed.forEach(function(item){
+    if(item && item.url && !live[item.url]){ try{ URL.revokeObjectURL(item.url); }catch(e){} }
+    else keep.push(item);
+  });
+  managed = keep;
+  pendingUrls = pendingUrls.filter(function(u){ return !live[u]; });
+}
+function pushHistory(skipRelease){
   history.push(images.slice());
   if(history.length > 20){ history.shift(); }
+  if(!skipRelease) revokeOrphans();
   updateHistHint();
 }
 function updateHistHint(){
-  var h = $('collageHistHint'), tb = $('listToolbar');
-  if(tb){ tb.style.display = images.length ? 'flex' : 'none'; }
-  if(h){ h.textContent = history.length ? ('可撤销 ' + history.length + ' 步') : '暂无可撤销操作'; }
+  var h = $('collageHistHint'), tb = $('listToolbar'), undo = $('collageUndoBtn');
+  if(tb){ tb.style.display = (images.length || history.length) ? 'flex' : 'none'; }
+  if(undo){ undo.disabled = !history.length; undo.style.opacity = history.length ? '' : '.5'; }
+  if(h){ h.textContent = history.length ? tr('可撤销 ' + history.length + ' 步',''+history.length+' undo step(s)') : tr('暂无可撤销操作','Nothing to undo'); }
 }
-
 function orderLoaded(entries){
   var out = [];
   (entries || []).slice().sort(function(a, b){ return (a && a.index || 0) - (b && b.index || 0); })
@@ -476,71 +515,141 @@ function orderLoaded(entries){
   return out;
 }
 
+/* ---------- 文件处理 ---------- */
 function __svgFileBlocked(file){
   var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
-  if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
-    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
-    return true;
-  }
-  return false;
+  return (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n));
 }
 /* 仅测试钩子：供 verify 用例调用，不参与任何运行时分支 */
 window.__svgFileBlocked=__svgFileBlocked;
+var SUPPORTED_EXT = /\.(png|jpe?g|webp|gif|bmp)$/i;
+function untrackPending(url){
+  for(var i=pendingUrls.length-1;i>=0;i--){ if(pendingUrls[i]===url) pendingUrls.splice(i,1); }
+}
+function updateLoadStatus(){
+  var el = $('loadStatus');
+  if(!el) return;
+  var pending = 0;
+  batches.forEach(function(b){ pending += b.pending || 0; });
+  if(pending){ el.style.display = 'block'; el.textContent = tr('正在解码 '+pending+' 张图片…','Decoding '+pending+' image(s)…'); }
+  else { el.style.display = 'none'; el.textContent = ''; }
+}
+function showImportReport(batch, items){
+  var box = $('importReport');
+  if(!box) return;
+  var en = isEn();
+  var parts = [];
+  (items || []).forEach(function(it){ parts.push('<div>✅ ' + ToolBox.escHtml(it.name) + '</div>'); });
+  (batch.skipped || []).forEach(function(sk){ parts.push('<div>⏭ ' + ToolBox.escHtml(sk.name) + '：' + ToolBox.escHtml(sk.reason) + '</div>'); });
+  (batch.failed || []).forEach(function(name){ parts.push('<div>❌ ' + ToolBox.escHtml(name) + '：' + (en?'decode failed':'解码失败') + '</div>'); });
+  if(!parts.length){ box.style.display = 'none'; return; }
+  var summary = '<div><b>'+ (en?'Import result':'导入结果') +'</b>：' + (en?'added ':'成功 ')+(items||[]).length + (en?', skipped ':'，跳过 ')+(batch.skipped||[]).length + (en?', failed ':'，失败 ')+(batch.failed||[]).length + '</div>';
+  box.innerHTML = summary + parts.join('') + ((batch.skipped&&batch.skipped.length || batch.failed&&batch.failed.length) ? '<div style="margin-top:6px;"><button type="button" class="btn" onclick="document.getElementById(\'fileInput\').click()">'+ (en?'Choose files again':'重新选择文件') +'</button></div>' : '');
+  box.style.display = 'block';
+  var msg = (en?'Added ':( '已添加 '))+((items||[]).length)+ (en?' image(s)':' 张图片');
+  if((batch.skipped||[]).length) msg += en?('; skipped '+batch.skipped.length):('；跳过 '+batch.skipped.length+' 张');
+  if((batch.failed||[]).length) msg += en?('; failed '+batch.failed.length):('；失败 '+batch.failed.length+' 张');
+  ToolBox.showToast(msg, (batch.skipped&&batch.skipped.length)||(batch.failed&&batch.failed.length) ? 'warning':'success');
+}
+function flushBatches(){
+  while(batches.length && batches[0].ready){
+    var b = batches.shift();
+    var items = orderLoaded(b.entries);
+    if(b.gen !== loadGen){
+      items.forEach(function(it){ try{ URL.revokeObjectURL(it.url); }catch(e){} });
+      continue;
+    }
+    if(items.length){
+      // 先写入历史快照，再追加；追加前不要回收尚未进入 images 的新资源
+      pushHistory(true);
+      items.forEach(function(it){ images.push(it); });
+      revokeOrphans();
+    }
+    if(items.length || b.skipped.length || b.failed.length){ showImportReport(b, items); }
+    if(items.length){ pushHistoryDone(items); }
+  }
+  revokeOrphans();
+  updateHistHint();
+  updateLoadStatus();
+}
+function pushHistoryDone(items){
+  // 追加图片后的撤销点已在加入前压栈；这里只负责重绘与提示
+  renderList(); render();
+}
 function handleFiles(files){
-  var arr = [];
+  var en = isEn();
+  var skipped = [], accepted = [];
   Array.prototype.forEach.call(files, function(f){
-    if (!f.type || f.type.indexOf('image/') !== 0) { return; }
-    if (__svgFileBlocked(f)) { return; }
-    arr.push(f);
+    var name = f && f.name ? f.name : '';
+    if(__svgFileBlocked(f)){ skipped.push({name:name,reason:en?'SVG is not supported':'不支持 SVG'}); return; }
+    var type = String(f.type || '').toLowerCase();
+    if(!(type.indexOf('image/') === 0 || SUPPORTED_EXT.test(name))){ skipped.push({name:name,reason:en?'Unsupported file type':'不支持的文件类型'}); return; }
+    accepted.push(f);
   });
-  if(!arr.length){ ToolBox.showToast(i18nText('toast.msg933'), 'error'); return; }
-  var pending = arr.length;
-  var entries = [];   // {index, item}，item 为 null 表示该文件加载失败
-  var failed = 0;
-  arr.forEach(function(f, idx){
+  if(!accepted.length){
+    if(skipped.length) showImportReport({skipped:skipped,failed:[]}, []);
+    else ToolBox.showToast(i18nText('toast.msg933'), 'error');
+    return;
+  }
+  var batch = {gen:loadGen, entries:[], pending:accepted.length, ready:false, skipped:skipped, failed:[]};
+  batches.push(batch);
+  updateLoadStatus();
+  accepted.forEach(function(f, idx){
     var url = URL.createObjectURL(f);
+    pendingUrls.push(url);
     var im = new Image();
+    function done(){
+      batch.pending--;
+      if(batch.pending === 0){ batch.ready = true; flushBatches(); updateLoadStatus(); }
+      else updateLoadStatus();
+    }
     im.onload = function(){
-      entries.push({ index: idx, item: { img: im, url: url, name: f.name, w: im.naturalWidth, h: im.naturalHeight } });
-      done();
+      untrackPending(url);
+      if(batch.gen !== loadGen){ try{ URL.revokeObjectURL(url); }catch(e){} batch.pending--; if(batch.pending===0){batch.ready=true;} updateLoadStatus(); return; }
+      var item = {img:im, url:url, name:f.name, w:im.naturalWidth, h:im.naturalHeight, focusX:0.5, focusY:0.5, zoom:1};
+      managed.push(item); batch.entries.push({index:idx,item:item}); done();
     };
     im.onerror = function(){
-      failed++;
-      URL.revokeObjectURL(url);
-      entries.push({ index: idx, item: null });
-      done();
+      untrackPending(url);
+      try{ URL.revokeObjectURL(url); }catch(e){}
+      if(batch.gen === loadGen) batch.failed.push(f.name);
+      batch.pending--; if(batch.pending===0){ batch.ready=true; if(batch.gen===loadGen) flushBatches(); } updateLoadStatus();
     };
     im.src = url;
-    function done(){
-      pending--;
-      if(pending !== 0){ return; }
-      orderLoaded(entries).forEach(function(item){ images.push(item); });
-      renderList(); render();
-      if(failed){ ToolBox.showToast('加载失败 ' + failed + ' 张', 'error'); }
-      else { ToolBox.showToast('已添加 ' + arr.length + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" images":" 张图片")); }
-    }
   });
 }
 
 function renderList(){
-  var list = $('imgList');
-  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
+  var list = $('imgList'), en = isEn();
+  list.innerHTML = '';
   images.forEach(function(item, idx){
     var div = document.createElement('div');
     div.className = 'img-item';
     div.draggable = true;
     div.dataset.idx = idx;
-    const __h1='<span class="img-idx">' + (idx+1) + '</span>' +
+    var fx = Math.round((item.focusX==null?0.5:item.focusX)*100);
+    var fy = Math.round((item.focusY==null?0.5:item.focusY)*100);
+    var zm = Math.round((item.zoom==null?1:item.zoom)*100);
+    div.innerHTML = '<span class="img-idx">' + (idx+1) + '</span>' +
       '<img src="' + item.url + '" alt="' + ToolBox.escHtml(item.name) + '">' +
       '<div class="img-meta"><div class="img-name">' + ToolBox.escHtml(item.name) + '</div>' +
-      '<div class="img-size">' + item.w + ' × ' + item.h + ' px</div></div>' +
+      '<div class="img-size">' + item.w + ' × ' + item.h + ' px</div>' +
+      '<div class="img-focus">' +
+        '<label>'+tr('焦点X','Focus X')+'<input type="range" min="0" max="100" step="1" value="'+fx+'" aria-label="'+ToolBox.escHtml(item.name)+' '+tr('水平焦点','horizontal focus')+'" oninput="CollageTool.setFocus('+idx+',\'x\',this.value)"></label>' +
+        '<label>'+tr('焦点Y','Focus Y')+'<input type="range" min="0" max="100" step="1" value="'+fy+'" aria-label="'+ToolBox.escHtml(item.name)+' '+tr('垂直焦点','vertical focus')+'" oninput="CollageTool.setFocus('+idx+',\'y\',this.value)"></label>' +
+        '<label>'+tr('缩放','Zoom')+'<input type="range" min="100" max="200" step="1" value="'+zm+'" aria-label="'+ToolBox.escHtml(item.name)+' '+tr('缩放百分比','zoom percent')+'" oninput="CollageTool.setFocus('+idx+',\'zoom\',this.value)"></label>' +
+      '</div></div>' +
       '<div class="img-actions">' +
-        '<button title="上移" aria-label="上移" onclick="CollageTool.move(' + idx + ',-1)">↑</button>' +
-        '<button title="下移" aria-label="下移" onclick="CollageTool.move(' + idx + ',1)">↓</button>' +
-        '<button title="删除" class="del" aria-label="删除" onclick="CollageTool.remove(' + idx + ')">✕</button>' +
-      '</div>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){div.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}div.innerHTML=__h1;
+        '<button title="'+tr('上移','Move up')+'" aria-label="'+tr('上移','Move up')+'" onclick="CollageTool.move(' + idx + ',-1)">↑</button>' +
+        '<button title="'+tr('下移','Move down')+'" aria-label="'+tr('下移','Move down')+'" onclick="CollageTool.move(' + idx + ',1)">↓</button>' +
+        '<button title="'+tr('重置焦点','Reset focus')+'" aria-label="'+tr('重置焦点','Reset focus')+'" onclick="CollageTool.resetFocus('+idx+')">🎯</button>' +
+        '<button title="'+tr('删除','Remove')+'" class="del" aria-label="'+tr('删除','Remove')+'" onclick="CollageTool.remove(' + idx + ')">✕</button>' +
+      '</div>';
     (function(index){
-      div.addEventListener('dragstart', function(e){ dragIdx = index; div.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+      div.addEventListener('dragstart', function(e){
+        if(e.target && e.target.closest && e.target.closest('input,button,label')){ e.preventDefault(); return; }
+        dragIdx = index; div.classList.add('dragging'); if(e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+      });
       div.addEventListener('dragend', function(){ div.classList.remove('dragging'); });
       div.addEventListener('dragover', function(e){ e.preventDefault(); div.classList.add('drag-over'); });
       div.addEventListener('dragleave', function(){ div.classList.remove('drag-over'); });
@@ -563,7 +672,7 @@ function renderList(){
 function removeImg(idx){
   if(idx<0 || idx>=images.length) return;
   pushHistory();
-  images.splice(idx,1); renderList(); render();
+  images.splice(idx,1); renderList(); render(); revokeOrphans();
 }
 function moveImg(idx, dir){
   var t = idx + dir;
@@ -573,13 +682,35 @@ function moveImg(idx, dir){
   images.splice(t,0,m);
   renderList(); render();
 }
-function clearAll(){
-  if(!images.length){ ToolBox.showToast(i18nText('toast.msg344'), 'info'); return; }
-  pushHistory();
-  images.forEach(function(i){ URL.revokeObjectURL(i.url); });
-  images = []; renderList(); render(); ToolBox.showToast(i18nText('toast.msg276'));
+function setFocus(idx,key,val){
+  var item = images[idx]; if(!item) return;
+  var n = Number(val);
+  if(key==='zoom') item.zoom = Math.max(1, Math.min(2, isFinite(n)?n/100:1));
+  else if(key==='x') item.focusX = Math.max(0, Math.min(1, isFinite(n)?n/100:0.5));
+  else item.focusY = Math.max(0, Math.min(1, isFinite(n)?n/100:0.5));
+  scheduleRender();
 }
-
+function resetFocus(idx){
+  var item = images[idx]; if(!item) return;
+  item.focusX=0.5; item.focusY=0.5; item.zoom=1;
+  renderList(); render();
+}
+function clearAll(){
+  if(!images.length && !batches.length){ ToolBox.showToast(i18nText('toast.msg344'), 'info'); return; }
+  if(images.length) pushHistory();
+  loadGen++; // 让所有正在解码的旧批次失效
+  batches = [];
+  pendingUrls.forEach(function(u){ try{ URL.revokeObjectURL(u); }catch(e){} });
+  pendingUrls = [];
+  images = []; renderList(); render(); revokeOrphans();
+  ToolBox.showToast(tr('已清空图片，可用撤销恢复','Cleared images; use Undo to restore'));
+}
+function clearHistory(){
+  if(!history.length){ ToolBox.showToast(tr('没有可清理的撤销历史','No undo history to clear'), 'info'); return; }
+  history = [];
+  revokeOrphans(); updateHistHint();
+  ToolBox.showToast(tr('已清理撤销历史并释放旧图片资源','Undo history cleared and old image resources released'));
+}
 /* ---------- UI 联动 ---------- */
 function updateUI(){
   var layout = $('layout').value;
@@ -596,7 +727,7 @@ function updateUI(){
   var isGrid = !(layout==='v' || layout==='h');
   $('fitRow').style.display = isGrid ? 'block' : 'none';
   $('fixedRow').style.display = sel.value==='auto' ? 'none' : 'flex';
-  $('fixedLabel').textContent = sel.value==='fixed-h' ? ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Fixed height (px)":"固定高度(px)") : ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Fixed width (px)":"固定宽度(px)");
+  $('fixedLabel').textContent = sel.value==='fixed-h' ? tr('画布高度(px)','Canvas height (px)') : tr('画布宽度(px)','Canvas width (px)');
   var trans = $('transparentBg').checked;
   $('bgColor').disabled = trans;
 }
@@ -605,7 +736,7 @@ function updateUI(){
 /* 单格绘制几何（纯函数）：返回目标矩形与严格裁剪矩形。
    cover / fill 的目标矩形会超出单格（如 200×100 图填入 100×100 格会画到 −50..150），
    必须裁到格子范围（含间距内边），否则会覆盖相邻格与间距。 */
-function fitPlan(iw, ih, x, y, cw, ch, fit){
+function fitPlan(iw, ih, x, y, cw, ch, fit, fx, fy, zoom){
   var dw, dh;
   if(fit==='fill'){
     dw = cw; dh = ch;
@@ -618,13 +749,18 @@ function fitPlan(iw, ih, x, y, cw, ch, fit){
     }
   }
   dw = Math.max(1, dw); dh = Math.max(1, dh);
-  var dx = x + (cw-dw)/2;
-  var dy = y + (ch-dh)/2;
+  var zoom = (zoom==null || !isFinite(zoom)) ? 1 : Math.max(1, Math.min(2, zoom));
+  dw *= zoom; dh *= zoom;
+  var focusX = (fx==null || !isFinite(fx)) ? 0.5 : Math.max(0, Math.min(1, fx));
+  var focusY = (fy==null || !isFinite(fy)) ? 0.5 : Math.max(0, Math.min(1, fy));
+  var dx, dy;
+  if(fit==='fill'){ dx = x + (cw-dw)/2; dy = y + (ch-dh)/2; }
+  else { dx = x + (cw-dw)*focusX; dy = y + (ch-dh)*focusY; }
   return { dx: dx, dy: dy, dw: dw, dh: dh, clip: { x: x, y: y, w: cw, h: ch } };
 }
 
-function drawImageFit(ctx, img, x, y, cw, ch, fit){
-  var plan = fitPlan(img.naturalWidth, img.naturalHeight, x, y, cw, ch, fit);
+function drawImageFit(ctx, img, x, y, cw, ch, fit, item){
+  var plan = fitPlan(img.naturalWidth, img.naturalHeight, x, y, cw, ch, fit, item&&item.focusX, item&&item.focusY, item&&item.zoom);
   ctx.save();
   ctx.beginPath();
   ctx.rect(plan.clip.x, plan.clip.y, plan.clip.w, plan.clip.h);
@@ -634,13 +770,19 @@ function drawImageFit(ctx, img, x, y, cw, ch, fit){
 }
 
 function layoutLabel(l){
-  return ({v:'竖排拼接', h:'横排拼接', '2x2':'2×2 网格', '3x3':'3×3 网格', custom:'自定义网格'})[l] || l;
+  var map = isEn() ? {v:'Vertical', h:'Horizontal', '2x2':'2×2 grid', '3x3':'3×3 grid', custom:'Custom grid'} : {v:'竖排拼接', h:'横排拼接', '2x2':'2×2 网格', '3x3':'3×3 网格', custom:'自定义网格'};
+  return map[l] || l;
 }
 
+function scheduleRender(){
+  if(renderRaf) return;
+  renderRaf = (typeof requestAnimationFrame==='function') ? requestAnimationFrame(function(){ renderRaf=null; render(); }) : setTimeout(function(){ renderRaf=null; render(); },16);
+}
 function render(){
   var canvas = $('canvas');
   var empty = $('previewEmpty');
   var info = $('infoBox');
+  lastRenderOk = false;
   if(!images.length){
     canvas.style.display = 'none';
     empty.style.display = 'block';
@@ -654,8 +796,16 @@ function render(){
   var bg = $('bgColor').value;
   var fitMode = $('fitMode').value;
   var sizeMode = $('sizeMode').value;
-  var fixedVal = clamp(+$('fixedVal').value || 1200, 100, 8000);
   var transparent = $('transparentBg').checked;
+  var fixedVal = 0;
+  if(sizeMode !== 'auto'){
+    var fs = resolveFixedSize($('fixedVal').value);
+    $('fixedVal').setAttribute('aria-invalid', fs.valid ? 'false' : 'true');
+    if(!fs.valid){ showRenderError(fs.error); return; }
+    fixedVal = fs.value;
+  } else {
+    $('fixedVal').setAttribute('aria-invalid','false');
+  }
 
   var dims;
   if(layout==='v') dims = { type:'sv', rows:images.length, cols:1 };
@@ -666,19 +816,17 @@ function render(){
     var gs = resolveGridSize($('rows').value, $('cols').value);
     if($('rows')) $('rows').setAttribute('aria-invalid', gs.rowsValid ? 'false' : 'true');
     if($('cols')) $('cols').setAttribute('aria-invalid', gs.colsValid ? 'false' : 'true');
-    if(!gs.valid){ showGridError(gs.error); return; }
+    if(!gs.valid){ showRenderError(gs.error); return; }
     dims = { type:'grid', rows:gs.rows, cols:gs.cols };
   }
 
   var plan;
   if(dims.type==='sv'){
-    var commonW;
-    if(sizeMode==='fixed-w') commonW = fixedVal;
-    else commonW = Math.min(1600, Math.max.apply(null, images.map(function(i){ return i.w; })));
-    commonW = Math.max(1, commonW);
+    var commonW = (sizeMode==='fixed-w') ? (fixedVal - margin*2) : Math.min(1600, Math.max.apply(null, images.map(function(i){ return i.w; })));
+    if(commonW < 1){ showRenderError(tr('画布宽度不足以容纳两侧外边距，请增大尺寸或减小边距','Canvas width is too small for the side margins; increase the size or reduce margins')); return; }
     var scaled = images.map(function(i){ return { w: commonW, h: Math.max(1, Math.round(commonW / i.w * i.h)) }; });
     var totalH = scaled.reduce(function(s,x){ return s+x.h; },0) + gap*(scaled.length-1);
-    var cW = commonW + margin*2;
+    var cW = (sizeMode==='fixed-w') ? fixedVal : commonW + margin*2;
     var cH = totalH + margin*2;
     plan = { canvasW:cW, canvasH:cH, draw:function(ctx){
       for(var i=0;i<scaled.length;i++){
@@ -688,14 +836,12 @@ function render(){
       }
     }};
   } else if(dims.type==='sh'){
-    var commonH;
-    if(sizeMode==='fixed-h') commonH = fixedVal;
-    else commonH = Math.min(1600, Math.max.apply(null, images.map(function(i){ return i.h; })));
-    commonH = Math.max(1, commonH);
+    var commonH = (sizeMode==='fixed-h') ? (fixedVal - margin*2) : Math.min(1600, Math.max.apply(null, images.map(function(i){ return i.h; })));
+    if(commonH < 1){ showRenderError(tr('画布高度不足以容纳上下外边距，请增大尺寸或减小边距','Canvas height is too small for the top and bottom margins; increase the size or reduce margins')); return; }
     var scaled2 = images.map(function(i){ return { h: commonH, w: Math.max(1, Math.round(commonH / i.h * i.w)) }; });
     var totalW = scaled2.reduce(function(s,x){ return s+x.w; },0) + gap*(scaled2.length-1);
     var cW2 = totalW + margin*2;
-    var cH2 = commonH + margin*2;
+    var cH2 = (sizeMode==='fixed-h') ? fixedVal : commonH + margin*2;
     plan = { canvasW:cW2, canvasH:cH2, draw:function(ctx){
       for(var i=0;i<scaled2.length;i++){
         var x = margin;
@@ -705,14 +851,19 @@ function render(){
     }};
   } else {
     var rows = dims.rows, cols = dims.cols;
-    var avgAspect = images.reduce(function(s,i){ return s + i.w/i.h; },0) / images.length;
+    var count = Math.min(rows*cols, images.length);
+    var used = images.slice(0, count);
+    // 只统计实际参与合成的图片，避免第 N+1 张图改变网格比例
+    var avgAspect = used.reduce(function(s,i){ return s + i.w/i.h; },0) / used.length;
     var cellW, cellH;
     if(sizeMode==='fixed-w'){
-      cellW = Math.max(1, Math.floor((fixedVal - margin*2 - gap*(cols-1))/cols));
-      cellH = Math.max(1, Math.round(cellW / avgAspect));
+      cellW = (fixedVal - margin*2 - gap*(cols-1))/cols;
+      if(cellW < 1){ showRenderError(tr('画布宽度不足以容纳外边距和列间距，请增大尺寸或减小边距/间距','Canvas width cannot fit margins and column gaps; increase the size or reduce margins/gaps')); return; }
+      cellH = cellW / avgAspect;
     } else if(sizeMode==='fixed-h'){
-      cellH = Math.max(1, Math.floor((fixedVal - margin*2 - gap*(rows-1))/rows));
-      cellW = Math.max(1, Math.round(cellH * avgAspect));
+      cellH = (fixedVal - margin*2 - gap*(rows-1))/rows;
+      if(cellH < 1){ showRenderError(tr('画布高度不足以容纳外边距和行间距，请增大尺寸或减小边距/间距','Canvas height cannot fit margins and row gaps; increase the size or reduce margins/gaps')); return; }
+      cellW = cellH * avgAspect;
     } else {
       cellH = 300; cellW = Math.max(1, Math.round(cellH * avgAspect));
       var tw = margin*2 + cols*cellW + gap*(cols-1);
@@ -720,89 +871,95 @@ function render(){
       var maxDim = 3000;
       if(Math.max(tw,th) > maxDim){
         var s = maxDim / Math.max(tw,th);
-        cellW = Math.max(1, Math.floor(cellW*s));
-        cellH = Math.max(1, Math.floor(cellH*s));
+        cellW = Math.max(1, cellW*s);
+        cellH = Math.max(1, cellH*s);
       }
     }
-    var gW = margin*2 + cols*cellW + gap*(cols-1);
-    var gH = margin*2 + rows*cellH + gap*(rows-1);
+    var gW = (sizeMode==='fixed-w') ? fixedVal : margin*2 + cols*cellW + gap*(cols-1);
+    var gH = (sizeMode==='fixed-h') ? fixedVal : margin*2 + rows*cellH + gap*(rows-1);
     plan = { canvasW:gW, canvasH:gH, draw:function(ctx){
-      var count = rows*cols;
-      var n = Math.min(count, images.length);
-      for(var idx=0; idx<n; idx++){
+      for(var idx=0; idx<count; idx++){
         var r = Math.floor(idx/cols), c = idx%cols;
         var x = margin + c*(cellW+gap);
         var y = margin + r*(cellH+gap);
-        drawImageFit(ctx, images[idx].img, x, y, cellW, cellH, fitMode);
+        drawImageFit(ctx, images[idx].img, x, y, cellW, cellH, fitMode, images[idx]);
       }
     }};
   }
 
-  // 安全尺寸上限，防止画布过大导致合成失败
-  var MAX = 8000;
-  var scale = 1;
-  if(Math.max(plan.canvasW, plan.canvasH) > MAX){
-    scale = MAX / Math.max(plan.canvasW, plan.canvasH);
+  // 资源预算：同时限制最长边与总像素，避免 8000×8000 画布导致内存耗尽
+  var MAX_DIM = 8000, MAX_PIXELS = 16000000;
+  if(Math.max(plan.canvasW, plan.canvasH) > MAX_DIM || plan.canvasW*plan.canvasH > MAX_PIXELS){
+    showRenderError(tr('画布 '+Math.round(plan.canvasW)+'×'+Math.round(plan.canvasH)+' 超出安全预算（最长边 8000px、总像素 1600 万）。请降低固定尺寸、行列数或图片数量。','Canvas '+Math.round(plan.canvasW)+'×'+Math.round(plan.canvasH)+' exceeds the safe budget (max side 8000px, 16 megapixels). Reduce the fixed size, rows/columns or image count.'));
+    return;
   }
-  canvas.width = Math.max(1, Math.round(plan.canvasW*scale));
-  canvas.height = Math.max(1, Math.round(plan.canvasH*scale));
+  canvas.width = Math.max(1, Math.round(plan.canvasW));
+  canvas.height = Math.max(1, Math.round(plan.canvasH));
   var ctx = canvas.getContext('2d');
-  ctx.setTransform(scale,0,0,scale,0,0);
-  ctx.clearRect(0,0,plan.canvasW,plan.canvasH);
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
   if(!transparent){
     ctx.fillStyle = bg;
-    ctx.fillRect(0,0,plan.canvasW,plan.canvasH);
+    ctx.fillRect(0,0,canvas.width,canvas.height);
   }
   plan.draw(ctx);
 
   canvas.style.display = 'inline-block';
   empty.style.display = 'none';
   info.style.display = 'block';
+  lastRenderOk = true;
 
   var cells = (dims.type==='grid') ? dims.rows*dims.cols : images.length;
-  var truncTip = images.length > cells ? ' ｜ ⚠️ 图片超过 ' + cells + ' 张，仅合成前 ' + cells + ' 张' : '';
-  const __h3='<p>画布尺寸：<strong>' + canvas.width + ' × ' + canvas.height + '</strong> px</p>' +
-    '<p>图片数量：' + images.length + ' 张 ｜ 布局：' + layoutLabel(layout) + truncTip + '</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){info.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}info.innerHTML=__h3;
-
-  if(scale < 1){ ToolBox.showToast(i18nText('toast.msg515'), 'warning'); }
+  var truncTip = images.length > cells ? tr(' ｜ ⚠️ 图片超过 ' + cells + ' 张，仅合成前 ' + cells + ' 张', ' | WARNING: more than ' + cells + ' images; only the first ' + cells + ' are used') : '';
+  info.innerHTML = '<p>' + tr('画布尺寸','Canvas size') + '：<strong>' + canvas.width + ' × ' + canvas.height + '</strong> px</p>' +
+    '<p>' + tr('图片数量','Images') + '：' + images.length + tr(' 张',' ') + ' ｜ ' + tr('布局','Layout') + '：' + layoutLabel(layout) + truncTip + '</p>';
 }
 
 /* ---------- 下载 ---------- */
 function download(type){
+  if(type!=='png' && type!=='jpeg'){ ToolBox.showToast(tr('请明确选择 PNG 或 JPG 下载','Choose PNG or JPG explicitly'), 'warning'); return; }
   if(!images.length){ ToolBox.showToast(i18nText('toast.msg644'), 'error'); return; }
-  // 自定义网格行列非法时不得导出上一份陈旧预览
+  if(!lastRenderOk){ ToolBox.showToast(tr('当前参数无效或画布超出预算，未生成可下载图片','Current settings are invalid or the canvas exceeds the budget; nothing to download'), 'error'); return; }
   if($('layout').value === 'custom'){
     var gsDl = resolveGridSize($('rows').value, $('cols').value);
     if(!gsDl.valid){ ToolBox.showToast(gsDl.error, 'error'); return; }
+  }
+  if($('sizeMode').value !== 'auto'){
+    var fsDl = resolveFixedSize($('fixedVal').value);
+    if(!fsDl.valid){ ToolBox.showToast(fsDl.error, 'error'); return; }
   }
   var src = $('canvas');
   var transparent = $('transparentBg').checked;
   var mime = type==='png' ? 'image/png' : 'image/jpeg';
   var ext = type==='png' ? 'png' : 'jpg';
-  var target = src;
+  var flattened = false;
   if(type==='jpeg' && transparent){
-    target = document.createElement('canvas');
-    target.width = src.width; target.height = src.height;
-    var c = target.getContext('2d');
-    c.fillStyle = '#ffffff';
-    c.fillRect(0,0,target.width,target.height);
-    c.drawImage(src,0,0);
+    // 直接在原画布上垫白底，避免再建一张同尺寸临时画布；完成后 render() 恢复透明预览
+    var fctx = src.getContext('2d');
+    fctx.save();
+    fctx.setTransform(1,0,0,1,0,0);
+    fctx.globalCompositeOperation = 'destination-over';
+    fctx.fillStyle = '#ffffff';
+    fctx.fillRect(0,0,src.width,src.height);
+    fctx.restore();
+    flattened = true;
   }
-  try { target.toBlob(function(blob){
+  try { src.toBlob(function(blob){
+    if(flattened) render();
     if(!blob){ ToolBox.showToast(i18nText('toast.msg511'), 'error'); return; }
     var url = URL.createObjectURL(blob);
     var a = document.createElement('a');
     a.href = url; a.download = 'collage-' + Date.now() + '.' + ext;
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 0);
-    ToolBox.showToast('已下载 ' + ext.toUpperCase() + ' 图片');
-  }, mime, 0.92); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
+    ToolBox.showToast(tr('已下载 '+ext.toUpperCase()+' 图片','Downloaded '+ext.toUpperCase()+' image'));
+  }, mime, 0.92); } catch (e) { if(flattened) render(); ToolBox.showToast(tr('导出失败：'+((e && (e.name || e.message)) || '未知错误'),'Export failed: '+((e && (e.name || e.message)) || 'Unknown error')), 'error'); }
 }
 
 /* ---------- 暴露 ---------- */
 window.CollageTool = {
   sortNames: function(){
-    if(images.length < 2){ ToolBox.showToast('至少需要 2 张图片', 'info'); return; }
+    if(images.length < 2){ ToolBox.showToast(tr('至少需要 2 张图片','At least 2 images are required'), 'info'); return; }
     pushHistory();
     images.sort(function(a,b){
       var an = String(a.name||''), bn = String(b.name||'');
@@ -811,13 +968,16 @@ window.CollageTool = {
     renderList(); render();
   },
   reverse: function(){
-    if(images.length < 2){ ToolBox.showToast('至少需要 2 张图片', 'info'); return; }
+    if(images.length < 2){ ToolBox.showToast(tr('至少需要 2 张图片','At least 2 images are required'), 'info'); return; }
     pushHistory(); images.reverse(); renderList(); render();
   },
   undo: function(){
-    if(!history.length){ ToolBox.showToast('没有可撤销的操作', 'info'); return; }
-    images = history.pop(); renderList(); render(); ToolBox.showToast('已撤销上一步');
+    if(!history.length){ ToolBox.showToast(tr('没有可撤销的操作','Nothing to undo'), 'info'); return; }
+    images = history.pop(); revokeOrphans(); renderList(); render(); updateHistHint(); ToolBox.showToast(tr('已撤销上一步','Undid the last action'));
   },
+  clearHistory: clearHistory,
+  setFocus: setFocus,
+  resetFocus: resetFocus,
   move: moveImg,
   remove: removeImg,
   fitPlan: fitPlan,
@@ -837,16 +997,16 @@ document.addEventListener('DOMContentLoaded', function(){
 
   function onChange(id, fn){ $(id).addEventListener('change', fn); }
   function onInput(id, fn){ $(id).addEventListener('input', fn); }
-  onChange('layout', function(){ updateUI(); render(); });
-  onChange('sizeMode', function(){ updateUI(); render(); });
-  onChange('fitMode', render);
-  onChange('bgColor', render);
-  onChange('transparentBg', function(){ updateUI(); render(); });
-  onInput('rows', render); onChange('rows', render);
-  onInput('cols', render); onChange('cols', render);
-  onInput('fixedVal', render); onChange('fixedVal', render);
-  onInput('gap', function(){ $('gapVal').textContent = $('gap').value; render(); });
-  onInput('margin', function(){ $('marginVal').textContent = $('margin').value; render(); });
+  onChange('layout', function(){ updateUI(); scheduleRender(); });
+  onChange('sizeMode', function(){ updateUI(); scheduleRender(); });
+  onChange('fitMode', scheduleRender);
+  onChange('bgColor', scheduleRender);
+  onChange('transparentBg', function(){ updateUI(); scheduleRender(); });
+  onInput('rows', scheduleRender); onChange('rows', scheduleRender);
+  onInput('cols', scheduleRender); onChange('cols', scheduleRender);
+  onInput('fixedVal', scheduleRender); onChange('fixedVal', scheduleRender);
+  onInput('gap', function(){ $('gapVal').textContent = $('gap').value; scheduleRender(); });
+  onInput('margin', function(){ $('marginVal').textContent = $('margin').value; scheduleRender(); });
 
   // tool-intro 折叠
   var headers = document.querySelectorAll('.tool-intro-header');

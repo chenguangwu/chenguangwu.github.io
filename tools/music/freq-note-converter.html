@@ -188,7 +188,7 @@
     <h2 data-zh="📡 频率音符转换器">Freq Note Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="Hz 频率与音符名称双向转换 · 十二平均律 · Web Audio 试听">Freq Note Converter</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">MIDI 与频率互转：f = f_A4 × 2^((m − 69) ÷ 12)，m = 69 + 12 × log₂(f ÷ f_A4)（f ≤ 0 返回 −1）；音名：四舍五入后音级 = ((m % 12) + 12) % 12，八度 = ⌊m ÷ 12⌋ − 1；音分偏差 = 1200 × log₂(f ÷ 该 MIDI 的精确频率)；音名转频率时 MIDI = (八度 + 1) × 12 + 音级。播放频率钳制在 20–20000 Hz；音分指针位置 = 50 + 音分 ÷ 50 × 50（钳制 0–100）</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">MIDI 与频率互转：f = f_A4 × 2^((m − 69) ÷ 12)，m = 69 + 12 × log₂(f ÷ f_A4)（f ≤ 0 返回 −1）；音名：四舍五入后音级 = ((m % 12) + 12) % 12，八度 = ⌊m ÷ 12⌋ − 1；音分偏差 = 1200 × log₂(f ÷ 该 MIDI 的精确频率)；音名转频率时 MIDI = (八度 + 1) × 12 + 音级。试听仅支持 20–20000 Hz，超出范围不播放并提示；音分指针位置 = 50 + 音分 ÷ 50 × 50（钳制 0–100）</div>
       <div class="formula-desc tb-bi"><span class="t-zh">Hz 频率与音符名称双向转换 · 十二平均律 · Web Audio 试听。调音/音频工程里把测到的频率反查成音名与偏差音分。</span><span class="t-en">Convert between note names and frequencies using twelve-tone equal temperament</span></div>
     </div>
 
@@ -289,7 +289,7 @@
     </a>
     <a href="generator-1.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器按大调、小调与五声音阶等调式生成对应音名序列并支持试听，适合乐理学习、即兴创作与乐器练习的…</span></span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">指定根音、调式与起始八度后生成按音级正确拼写的音名序列、十二平均律频率，并支持 Web Audio…</span></span>
     </a>
     <a href="bpm-converter.html" class="related-tool-card">
       <span class="rt-icon">🏎️</span>
@@ -300,8 +300,8 @@
       <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">输入原曲BPM与目标BPM，计算速度比例与新时长，给出提速/降速百分比，用于翻唱移调、练琴跟拍等音乐…</span></span>
     </a>
     <a href="audio-converter.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">音频转换</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">音频格式与容量估算</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
     </a>
   </div>
 </div>
@@ -413,6 +413,7 @@
   var NOTE_LABELS = ['C','C#/Db','D','D#/Eb','E','F','F#/Gb','G','G#/Ab','A','A#/Bb','B'];
   var A4_MIDI = 69; // A4 的 MIDI 编号
   var a4Freq = 440; // 当前 A4 参考频率
+  var AUDIBLE_MIN = 20, AUDIBLE_MAX = 20000;
   var audioCtx = null;
   var currentOsc = null;
   var currentGain = null;
@@ -560,12 +561,14 @@
   window.calcNote2Freq = function() {
     var sel = document.getElementById('noteSelect');
     var noteIndex = sel.selectedIndex;
-    var octave = parseInt(document.getElementById('octaveInput').value);
+    var octaveRaw = String(document.getElementById('octaveInput').value == null ? '' : document.getElementById('octaveInput').value).trim();
+    var octave = Number(octaveRaw);
+    var octaveValid = octaveRaw !== '' && isFinite(octave) && Math.floor(octave) === octave && octave >= 0 && octave <= 8;
     var box = document.getElementById('note2freq');
     if (box) { try { delete box.dataset.copyValue; } catch (e) {} } // 先清旧复制值，避免八度非法时仍复制上一次的结果
 
-    if (isNaN(octave) || octave < 0 || octave > 8) {
-      const __h3='<p style="color:var(--text-muted);">八度范围：0 ~ 8</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h3;
+    if (!octaveValid) {
+      const __h3='<p style="color:var(--text-muted);">八度需为 0–8 的整数；小数或越界输入不会参与计算</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){box.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}box.innerHTML=__h3;
       return;
     }
 
@@ -607,12 +610,13 @@
   }
 
   function playTone(freq, duration) {
+    window.__fncAuditionAttempts = (window.__fncAuditionAttempts || 0) + 1;
     stopAudio();
     var ctx = getAudioCtx();
     var osc = ctx.createOscillator();
     var gain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(Math.max(20, Math.min(freq, 20000)), ctx.currentTime);
+    osc.frequency.setValueAtTime(freq, ctx.currentTime);
     gain.gain.setValueAtTime(0.3, ctx.currentTime);
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + (duration || 1));
     osc.connect(gain);
@@ -623,17 +627,35 @@
     currentGain = gain;
   }
 
+  function canAudition(freq) {
+    return isFinite(freq) && freq >= AUDIBLE_MIN && freq <= AUDIBLE_MAX;
+  }
+
   window.playFreq = function() {
-    var freq = parseFloat(document.getElementById('freqInput').value);
-    if (freq && freq > 0) playTone(freq, 1.5);
+    var raw = String(document.getElementById('freqInput').value == null ? '' : document.getElementById('freqInput').value).trim();
+    var freq = raw === '' ? NaN : Number(raw);
+    if (!isFinite(freq) || freq <= 0) { if (window.ToolBox) ToolBox.showToast('请输入有效频率后再试听', 'warning'); return; }
+    if (!canAudition(freq)) {
+      if (window.ToolBox) ToolBox.showToast('试听仅支持 ' + AUDIBLE_MIN + '–' + AUDIBLE_MAX + ' Hz，当前 ' + freq + ' Hz 超出范围，未播放', 'warning');
+      return;
+    }
+    playTone(freq, 1.5);
   };
 
   window.playNoteFreq = function() {
     var sel = document.getElementById('noteSelect');
     var noteIndex = sel.selectedIndex;
-    var octave = parseInt(document.getElementById('octaveInput').value);
-    if (isNaN(octave) || octave < 0 || octave > 8) return;
+    var raw = String(document.getElementById('octaveInput').value == null ? '' : document.getElementById('octaveInput').value).trim();
+    var octave = Number(raw);
+    if (raw === '' || !isFinite(octave) || Math.floor(octave) !== octave || octave < 0 || octave > 8) {
+      if (window.ToolBox) ToolBox.showToast('八度需为 0–8 的整数', 'warning');
+      return;
+    }
     var freq = noteToFreq(noteIndex, octave);
+    if (!canAudition(freq)) {
+      if (window.ToolBox) ToolBox.showToast('该音符频率 ' + freq.toFixed(1) + ' Hz 超出试听范围 ' + AUDIBLE_MIN + '–' + AUDIBLE_MAX + ' Hz，未播放', 'warning');
+      return;
+    }
     playTone(freq, 1.5);
   };
 

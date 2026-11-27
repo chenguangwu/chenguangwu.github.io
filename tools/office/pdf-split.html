@@ -26,6 +26,7 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <script src="/vendor/pdf-lib/1.17.1/pdf-lib.min.js" integrity="sha384-weMABwrltA6jWR8DDe9Jp5blk+tZQh7ugpCsF3JwSA53WZM9/14PjS5LAJNHNjAI" crossorigin="anonymous"></script>
+<script src="/js/tools/pdf-structure.js"></script>
 <script type="module">
 // pdf.js 4.2.67（CVE-2024-4367 修复版）改为自托管 ESM：4.x 官方只发布 .mjs，
 // 无法挂 integrity 到 import 语句，故把文件纳入本站 vendor（同源、无第三方供应链环节）。
@@ -185,6 +186,17 @@ window.pdfjsLib = pdfjsLib;
 .thumb-item.selected .thumb-check {
   display: flex;
 }
+button.thumb-item {
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  text-align: inherit;
+  appearance: none;
+}
+.thumb-item:focus-visible {
+  outline: 3px solid var(--primary);
+  outline-offset: 2px;
+}
 
 /* 缩略图加载中 */
 .thumb-loading {
@@ -312,7 +324,7 @@ window.pdfjsLib = pdfjsLib;
       "name": "加密的 PDF 能拆分吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "加密/密码保护的 PDF 可以读取页数与缩略图，但提取页面时可能受限；建议先去除保护再操作。50 页以上大文件生成缩略图可能需要数秒。"
+        "text": "需要打开密码的 PDF 无法在本页面解密（本工具不提供密码输入），请先用本地工具解除密码后再拆分；仅限制复制或编辑权限的 PDF 可能能读取页数与缩略图，但提取仍可能受限。50 页以上大文件生成缩略图可能需要数秒。"
       }
     }
   ]
@@ -371,6 +383,7 @@ window.pdfjsLib = pdfjsLib;
       </div>
       <div class="file-change" onclick="resetTool()">更换文件</div>
     </div>
+    <div class="info-box" id="pdfStructNotice" role="note" style="display:none;font-size:12px;line-height:1.7;"></div>
 
     <!-- 选择方式标签 -->
     <div class="tabs">
@@ -413,7 +426,11 @@ window.pdfjsLib = pdfjsLib;
     <!-- 操作按钮 -->
     <div class="toolbar" style="margin-top:20px;">
       <button type="button" class="btn primary" id="extractBtn" onclick="doExtract()">提取页面</button>
-      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">仅保留页面内容：书签、交互表单、批注、内部链接、附件与数字签名可能不保留；签名文档重写后将失效。Splitting preserves page content only; outlines, forms, comments, links, attachments and signatures may not survive, and digital signatures become invalid.</div>
+      <label id="pdfFlattenWrap" style="display:none;align-items:center;gap:8px;font-size:13px;">
+        <input type="checkbox" id="flattenForms" checked>
+        <span class="tb-bi"><span class="t-zh">检测到交互表单：提取前展平字段（保留外观，输出不再可编辑）</span><span class="t-en">Form fields detected: flatten before extracting (keep appearance, output is no longer editable)</span></span>
+      </label>
+      <div class="info-box" role="note" style="margin-top:10px;font-size:12px;line-height:1.6;">书签与所选页范围内的内部跳转会尝试重建；交互表单默认展平保留外观（可取消勾选）；批注、附件与数字签名仍不保留，签名文档重写后将失效。Outlines and internal links inside the selected pages are rebuilt when possible; form fields are flattened by default to keep their appearance; comments, attachments and signatures are not preserved, and signed documents become invalid after rewriting.</div>
       <button type="button" class="btn" onclick="resetTool()">重新选择文件</button>
     </div>
 
@@ -466,7 +483,7 @@ window.pdfjsLib = pdfjsLib;
     <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
     <ul>
       <li>所有 PDF 处理在浏览器本地完成，文件不会上传到任何服务器</li>
-      <li>支持加密/密码保护的 PDF 读取页面数和缩略图，但提取时可能受限</li>
+      <li>需要打开密码的 PDF 无法在本页面解密，请先解除密码；仅限制复制/编辑权限的文件可能能预览，但提取仍可能受限</li>
       <li>大文件（50页以上）生成缩略图可能需要数秒，请耐心等待</li>
       <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge 最新版）中使用</li>
       <li>提取的页面顺序按选择的页码顺序排列</li>
@@ -509,7 +526,7 @@ window.pdfjsLib = pdfjsLib;
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>如何按不连续页码拆分？</dt><dd>在页码范围输入框用「1-3, 5, 7-10」格式描述：短横线表示连续区间、逗号分隔多个片段，提取顺序即为填写顺序。</dd>
-<dt>加密的 PDF 能拆分吗？</dt><dd>加密/密码保护的 PDF 可以读取页数与缩略图，但提取页面时可能受限；建议先去除保护再操作。50 页以上大文件生成缩略图可能需要数秒。</dd>
+<dt>加密的 PDF 能拆分吗？</dt><dd>需要打开密码的 PDF 无法在本页面解密（本工具不提供密码输入），请先用本地工具解除密码后再拆分；仅限制复制或编辑权限的 PDF 可能能读取页数与缩略图，但提取仍可能受限。50 页以上大文件生成缩略图可能需要数秒。</dd>
 </dl>
 </div>
 </section>
@@ -572,7 +589,20 @@ window.pdfjsLib = pdfjsLib;
 <script>
 // pdf.js 4.x 为 ESM，模块脚本在页面解析阶段即执行并写入 window.pdfjsLib；
 // 用户选择文件时必然已完成，因此这里只做同步检查，不再用无主轮询 Promise（避免测试环境事件循环空转后静默退出）。
-function __pdfMsg(zh,en){try{return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?en:zh;}catch(e){return zh;}}
+function pdfIsEn(){try{return !!(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}catch(e){return false;}}
+function __pdfMsg(zh,en){return pdfIsEn()?en:zh;}
+function updateExtractButton(){
+  const btn=document.getElementById('extractBtn'); if(!btn) return;
+  btn.disabled = isLoadingFile || isExtracting;
+  if(isLoadingFile) btn.textContent = __pdfMsg('加载中...','Loading…');
+  else if(isExtracting) btn.textContent = __pdfMsg('处理中...','Processing…');
+  else btn.textContent = __pdfMsg('提取页面','Extract pages');
+}
+function setFileLoading(on){ isLoadingFile=!!on; updateExtractButton(); }
+function setSelectionControlsDisabled(on){
+  const nodes=document.querySelectorAll('#rangeInput, .tab-btn, #tab-range .toolbar .btn, #tab-visual .toolbar .btn, #thumbGrid .thumb-item, #flattenForms');
+  for(let i=0;i<nodes.length;i++) nodes[i].disabled=!!on;
+}
 function pdfjsReady() {
   if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
   return Promise.reject(new Error('pdfjs-not-ready'));
@@ -588,6 +618,16 @@ let currentMode = 'range';   // 当前选择模式
 let thumbsRendered = false;  // 缩略图是否已渲染
 let extractedBytes = null;    // 提取后的 PDF 字节数组
 let extractedFileName = '';  // 提取后的文件名
+let extractedPages = [];     // 成功提取时实际使用的页码（记录/导出用）
+let extractedSourceName = '';// 成功提取时的源文件名
+let isExtracting = false;    // 提取是否进行中
+let isLoadingFile = false;   // 文件读取/解析是否进行中
+let fileVersion = 0;         // 文件代次：换文件/重置即递增，旧异步任务据此失效
+let extractToken = 0;        // 提取任务令牌
+let thumbRenderToken = 0;    // 缩略图任务令牌
+let thumbRendering = false;  // 当前是否有缩略图任务
+let thumbRenderFor = 0;      // 缩略图任务对应的文件代次
+let pdfFeatures = null;      // 表单/书签/链接检测结果
 
 // 初始化事件
 (function init() {
@@ -631,6 +671,7 @@ let extractedFileName = '';  // 提取后的文件名
       document.querySelectorAll('.tab-content').forEach(function(c) { c.classList.remove('active'); });
       this.classList.add('active');
       document.getElementById('tab-' + tab).classList.add('active');
+      if(currentMode !== tab) invalidateExtraction();
       currentMode = tab;
 
       // 懒加载缩略图
@@ -657,89 +698,225 @@ async function handleFile(file) {
     return;
   }
 
-  // 验证文件大小（限制 100MB）
+  // 硬限制 100 MB；50 MB 以上先给出可取消的资源警告
   if (file.size > 100 * 1024 * 1024) {
     ToolBox.showToast(__pdfMsg('文件超过 100 MB，无法处理；请拆分或压缩后重试。','This file exceeds 100 MB and cannot be processed. Split or compress it and retry.'), 'warning');
     return;
   }
+  if (file.size > 50 * 1024 * 1024) {
+    const sizeText = formatFileSize(file.size);
+    const proceed = window.confirm(__pdfMsg(
+      '文件较大（' + sizeText + '）。生成缩略图可能较慢，并占用较多内存；建议先用页码范围拆分或压缩文件。确定继续加载吗？',
+      'This is a large file (' + sizeText + '). Thumbnail generation may be slow and use significant memory. Consider splitting by page range or compressing it first. Continue loading?'
+    ));
+    if (!proceed) {
+      ToolBox.showToast(__pdfMsg('已取消加载大文件','Large file loading cancelled.'), 'info');
+      return;
+    }
+    ToolBox.showToast(__pdfMsg('正在加载大文件（' + sizeText + '），缩略图生成可能较慢。','Loading a large file (' + sizeText + '); thumbnail generation may be slow.'), 'warning');
+  }
+
+  const myVersion = ++fileVersion;
+  extractToken++;                 // 旧提取立即失效
+  thumbRenderToken++;             // 旧缩略图任务立即失效
+  thumbRendering = false;
+  isExtracting = false;
+  setSelectionControlsDisabled(false);
+  setFileLoading(true);
+
+  const previousDoc = pdfjsDoc;
+  const en = pdfIsEn();
 
   try {
     ToolBox.showToast(__pdfMsg('正在读取 PDF…','Reading PDF…'), 'info');
+    invalidateExtraction();
 
-    // 读取文件
+    // 全部在局部变量完成；只有确认仍是最新任务后才一次性提交全局状态
     const buf = await file.arrayBuffer();
-    pdfArrayBuffer = buf;
+    if (myVersion !== fileVersion) return;
 
-    // 用 pdf.js 加载（传副本，避免 buffer 被 transfer）
     const pdfjsData = new Uint8Array(buf.slice(0));
     const lib = await pdfjsReady();
-    const loadingTask = lib.getDocument({ data: pdfjsData });
-    pdfjsDoc = await loadingTask.promise;
-    totalPages = pdfjsDoc.numPages;
+    if (myVersion !== fileVersion) return;
 
-    // 保存文件信息
+    const loadingTask = lib.getDocument({ data: pdfjsData });
+    const doc = await loadingTask.promise;
+    if (myVersion !== fileVersion) {
+      try { await doc.destroy(); } catch (e) {}
+      return;
+    }
+
+    // 结构检测使用独立副本，不阻塞/不污染后续提取
+    let features = null;
+    try {
+      if (typeof PDFStructure !== 'undefined' && typeof PDFLib !== 'undefined') {
+        const probe = await PDFLib.PDFDocument.load(buf.slice(0), { ignoreEncryption: true });
+        if (myVersion !== fileVersion) {
+          try { await doc.destroy(); } catch (e) {}
+          return;
+        }
+        features = PDFStructure.detect(probe);
+      }
+    } catch (featureErr) {
+      console.warn('PDF structure detect failed:', featureErr);
+    }
+    if (myVersion !== fileVersion) {
+      try { await doc.destroy(); } catch (e) {}
+      return;
+    }
+
+    // 原子提交：buffer、File、pdf.js 文档、页数、结构信息一次性对齐
     pdfFile = file;
+    pdfArrayBuffer = buf;
+    pdfjsDoc = doc;
+    totalPages = doc.numPages;
+    pdfFeatures = features;
     thumbsRendered = false;
     selectedPages.clear();
+    if (previousDoc && previousDoc !== doc) {
+      Promise.resolve(previousDoc.destroy()).catch(function(){});
+    }
 
     // 更新 UI
     document.getElementById('fileName').textContent = file.name;
-    document.getElementById('fileMeta').textContent =
-      '共 ' + totalPages + ' 页 · ' + formatFileSize(file.size);
+    document.getElementById('fileMeta').textContent = en
+      ? totalPages + (totalPages === 1 ? ' page · ' : ' pages · ') + formatFileSize(file.size)
+      : '共 ' + totalPages + ' 页 · ' + formatFileSize(file.size);
+    renderPdfFeatureNotice();
 
-    // 显示主操作卡片
     document.getElementById('uploadZone').style.display = 'none';
     document.getElementById('mainCard').style.display = '';
     document.getElementById('progressArea').style.display = 'none';
     document.getElementById('resultArea').style.display = 'none';
 
-    // 重置选择
     document.getElementById('rangeInput').value = '';
-    const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('rangePreview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rangePreview').innerHTML=__h0;
-    const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('thumbGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('thumbGrid').innerHTML=__h1;
-    document.getElementById('thumbStatus').textContent = '已选 0 页';
+    const __h0 = '';
+    document.getElementById('rangePreview').innerHTML = __h0;
+    const __h1 = '';
+    document.getElementById('thumbGrid').innerHTML = __h1;
+    document.getElementById('thumbStatus').textContent = en ? '0 pages selected' : '已选 0 页';
     document.getElementById('thumbLoading').style.display = 'none';
 
-    // 默认填入全部页码
     if (totalPages > 0) {
       const input = document.getElementById('rangeInput');
       input.value = '1-' + totalPages;
       updateRangePreview();
     }
 
-    ToolBox.showToast(i18nText('toast.saved', 'PDF 加载成功，共 ' + totalPages + ' 页'), 'success');
+    setSelectionControlsDisabled(false);
+    updateExtractButton();
+    ToolBox.showToast(__pdfMsg('PDF 加载成功，共 ' + totalPages + ' 页','PDF loaded: ' + totalPages + ' page(s).'), 'success');
+
+    // 若用户当前停留在可视化标签，新文件加载后立即渲染，避免空网格
+    if (currentMode === 'visual') renderThumbnails();
 
   } catch (err) {
+    if (myVersion !== fileVersion) return;   // 已被新文件/重置取代，旧失败不得污染当前状态
     console.error('PDF 加载失败:', err);
-    let msg = 'PDF 加载失败';
+
+    const isPassword = err && (err.name === 'PasswordException' || /password|encrypt/i.test(String(err.message || '')));
+    let msg;
     if (err.message === 'pdfjs-not-ready') {
-      msg = 'PDF 解析引擎加载失败，请刷新页面重试';
-    } else if (err.message && err.message.includes('password')) {
-      msg = '该 PDF 需要密码才能打开，请先解除密码保护';
-    } else if (err.message && err.message.includes('Invalid')) {
-      msg = '文件可能已损坏或不是有效的 PDF';
+      msg = __pdfMsg('PDF 解析引擎加载失败，请刷新页面重试。','PDF engine failed to load. Refresh the page and retry.');
+    } else if (isPassword) {
+      msg = __pdfMsg('该 PDF 需要打开密码，本页面不解密。请先用本地工具解除密码后再试。','This PDF requires an open password and cannot be decrypted here. Remove the password with a local tool first.');
+    } else if (/Invalid/i.test(String(err.message || ''))) {
+      msg = __pdfMsg('文件可能已损坏或不是有效的 PDF。','The file may be damaged or is not a valid PDF.');
+    } else {
+      msg = __pdfMsg('PDF 加载失败：' + (err.message || '未知错误'), 'PDF load failed: ' + (err.message || 'unknown error'));
     }
     ToolBox.showToast(msg, 'error');
+
     pdfFile = null;
     pdfArrayBuffer = null;
     pdfjsDoc = null;
+    totalPages = 0;
+    pdfFeatures = null;
+    thumbsRendered = false;
+    selectedPages.clear();
+    document.getElementById('fileName').textContent = '';
+    document.getElementById('fileMeta').textContent = '';
+    document.getElementById('mainCard').style.display = 'none';
+    document.getElementById('uploadZone').style.display = '';
+    document.getElementById('progressArea').style.display = 'none';
+    document.getElementById('resultArea').style.display = 'none';
+    document.getElementById('fileInput').value = '';
+  } finally {
+    if (myVersion === fileVersion) {
+      setFileLoading(false);
+      updateExtractButton();
+    }
   }
+}
+
+// 结构检测提示
+function renderPdfFeatureNotice(){
+  const box = document.getElementById('pdfStructNotice');
+  const wrap = document.getElementById('pdfFlattenWrap');
+  if(!box || !wrap) return;
+  const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+  if(!pdfFeatures){
+    box.style.display = 'none';
+    wrap.style.display = 'none';
+    return;
+  }
+  const f = pdfFeatures;
+  if(f.forms || f.outlines || f.internalLinks){
+    const parts = [];
+    if(f.forms) parts.push(en ? f.forms + ' form field(s)' : f.forms + ' 个表单字段');
+    if(f.outlines) parts.push(en ? f.outlines + ' bookmark(s)' : f.outlines + ' 个书签');
+    if(f.internalLinks) parts.push(en ? f.internalLinks + ' internal page link(s)' : f.internalLinks + ' 个内部页内跳转');
+    box.textContent = (en ? 'Detected: ' : '已检测：') + parts.join(' · ') +
+      (en ? '. Outlines and links inside the selected pages are rebuilt; out-of-range targets are removed. Form fields can be flattened below.' : '。所选页范围内的书签与内部跳转会重建，目标页不在结果中的会移除；表单可在下方选择展平。');
+  } else {
+    box.textContent = en ? 'No forms, bookmarks or internal page links detected.' : '未检测到表单、书签或内部页内跳转。';
+  }
+  box.style.display = 'block';
+  wrap.style.display = f.forms > 0 ? 'flex' : 'none';
+}
+
+// 缩略图选中状态（button + aria-pressed，键盘/读屏可用）
+function applyThumbSelection(item, on){
+  if(!item) return;
+  const pageNum = parseInt(item.dataset.page, 10);
+  item.classList.toggle('selected', !!on);
+  item.setAttribute('aria-pressed', on ? 'true' : 'false');
+  item.setAttribute('aria-label', pdfIsEn()
+    ? 'Page ' + pageNum + ', ' + (on ? 'selected' : 'not selected')
+    : '第 ' + pageNum + ' 页，' + (on ? '已选中' : '未选中'));
 }
 
 // 渲染缩略图
 async function renderThumbnails() {
-  if (!pdfjsDoc || thumbsRendered) return;
+  if (!pdfjsDoc) return;
+  if (thumbsRendered && thumbRenderFor === fileVersion) return;
+  if (thumbRendering && thumbRenderFor === fileVersion) return;
 
+  const token = ++thumbRenderToken;
+  const doc = pdfjsDoc;
+  const version = fileVersion;
+  const total = totalPages;
+  const en = pdfIsEn();
+  const stale = function(){
+    return token !== thumbRenderToken || version !== fileVersion || doc !== pdfjsDoc;
+  };
+
+  thumbRendering = true;
+  thumbRenderFor = version;
+  thumbsRendered = false;
   const grid = document.getElementById('thumbGrid');
   const loading = document.getElementById('thumbLoading');
   loading.style.display = '';
-  const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){grid.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}grid.innerHTML=__h2;
+  const __h2 = '';
+  grid.innerHTML = __h2;
 
   const targetWidth = 150;
 
   try {
-    for (let i = 1; i <= totalPages; i++) {
-      const page = await pdfjsDoc.getPage(i);
+    for (let i = 1; i <= total; i++) {
+      if (stale()) return;
+      const page = await doc.getPage(i);
+      if (stale()) return;
       const baseViewport = page.getViewport({ scale: 1 });
       const scale = targetWidth / baseViewport.width;
       const viewport = page.getViewport({ scale: scale });
@@ -753,157 +930,164 @@ async function renderThumbnails() {
         canvasContext: ctx,
         viewport: viewport
       }).promise;
+      if (stale()) return;
 
-      // 创建缩略图项
-      const item = document.createElement('div');
+      // 用原生 button 表达每页及选中状态，支持 Tab / Enter / Space
+      const item = document.createElement('button');
+      item.type = 'button';
       item.className = 'thumb-item';
       item.dataset.page = i;
       item.appendChild(canvas);
 
-      const check = document.createElement('div');
+      const check = document.createElement('span');
       check.className = 'thumb-check';
       check.textContent = '✓';
+      check.setAttribute('aria-hidden', 'true');
       item.appendChild(check);
 
       const num = document.createElement('div');
       num.className = 'thumb-num';
-      num.textContent = '第 ' + i + ' 页';
+      num.textContent = en ? 'Page ' + i : '第 ' + i + ' 页';
       item.appendChild(num);
 
-      // 点击切换选中
       item.addEventListener('click', function() {
-        const pageNum = parseInt(this.dataset.page);
-        if (selectedPages.has(pageNum)) {
-          selectedPages.delete(pageNum);
-          this.classList.remove('selected');
-        } else {
-          selectedPages.add(pageNum);
-          this.classList.add('selected');
-        }
+        if (isExtracting) return;   // 提取期间锁定选页，避免结果与当前选择错配
+        const pageNum = parseInt(this.dataset.page, 10);
+        const next = !selectedPages.has(pageNum);
+        if (next) selectedPages.add(pageNum);
+        else selectedPages.delete(pageNum);
+        applyThumbSelection(this, next);
         updateThumbStatus();
       });
 
+      applyThumbSelection(item, selectedPages.has(i));
       grid.appendChild(item);
 
-      // 更新进度
-      document.getElementById('thumbProgress').textContent =
-        '正在生成缩略图... ' + i + ' / ' + totalPages;
-
-      // 恢复已选中状态
-      if (selectedPages.has(i)) {
-        item.classList.add('selected');
-      }
+      document.getElementById('thumbProgress').textContent = en
+        ? 'Generating thumbnails… ' + i + ' / ' + total
+        : '正在生成缩略图... ' + i + ' / ' + total;
     }
 
+    if (stale()) return;
     thumbsRendered = true;
     loading.style.display = 'none';
     updateThumbStatus();
 
   } catch (err) {
+    if (stale()) return;
     console.error('缩略图生成失败:', err);
     loading.style.display = 'none';
-    ToolBox.showToast(i18nText('toast.saved', '缩略图生成失败：' + (err.message || '未知错误')), 'error');
+    ToolBox.showToast(__pdfMsg('缩略图生成失败：' + (err.message || '未知错误'), 'Thumbnail generation failed: ' + (err.message || 'unknown error')), 'error');
+  } finally {
+    if (token === thumbRenderToken) thumbRendering = false;
   }
 }
 
 // 更新缩略图选中状态
 function updateThumbStatus() {
-  document.getElementById('thumbStatus').textContent =
-    '已选 ' + selectedPages.size + ' 页';
+  invalidateExtraction();
+  const items = document.querySelectorAll('#thumbGrid .thumb-item');
+  for (let i = 0; i < items.length; i++) {
+    const p = parseInt(items[i].dataset.page, 10);
+    applyThumbSelection(items[i], selectedPages.has(p));
+  }
+  document.getElementById('thumbStatus').textContent = pdfIsEn()
+    ? selectedPages.size + (selectedPages.size === 1 ? ' page selected' : ' pages selected')
+    : '已选 ' + selectedPages.size + ' 页';
 }
 
 // 全选缩略图
 function selectAllThumbs() {
-  if (!pdfjsDoc) return;
-  if (!thumbsRendered) {
-    // 未渲染时直接记录选中
-    selectedPages.clear();
-    for (let i = 1; i <= totalPages; i++) selectedPages.add(i);
-  } else {
-    selectedPages.clear();
-    for (let i = 1; i <= totalPages; i++) selectedPages.add(i);
-    document.querySelectorAll('.thumb-item').forEach(function(item) {
-      item.classList.add('selected');
-    });
-  }
+  if (!pdfjsDoc || isExtracting) return;
+  selectedPages.clear();
+  for (let i = 1; i <= totalPages; i++) selectedPages.add(i);
   updateThumbStatus();
 }
 
 // 取消全选
 function deselectAllThumbs() {
+  if (isExtracting) return;
   selectedPages.clear();
-  document.querySelectorAll('.thumb-item').forEach(function(item) {
-    item.classList.remove('selected');
-  });
   updateThumbStatus();
 }
 
 // 反选
 function invertThumbs() {
-  if (!thumbsRendered) {
-    // 未渲染时反选
-    const newSet = new Set();
-    for (let i = 1; i <= totalPages; i++) {
-      if (!selectedPages.has(i)) newSet.add(i);
-    }
-    selectedPages = newSet;
-  } else {
-    document.querySelectorAll('.thumb-item').forEach(function(item) {
-      const pageNum = parseInt(item.dataset.page);
-      if (selectedPages.has(pageNum)) {
-        selectedPages.delete(pageNum);
-        item.classList.remove('selected');
-      } else {
-        selectedPages.add(pageNum);
-        item.classList.add('selected');
-      }
-    });
+  if (!pdfjsDoc || isExtracting) return;
+  const newSet = new Set();
+  for (let i = 1; i <= totalPages; i++) {
+    if (!selectedPages.has(i)) newSet.add(i);
   }
+  selectedPages = newSet;
   updateThumbStatus();
 }
 
+// 选页变化后旧提取结果立即失效，避免下载与当前选择不符
+function invalidateExtraction(){
+  if(isExtracting) return;
+  extractedBytes = null;
+  extractedFileName = '';
+  extractedPages = [];
+  extractedSourceName = '';
+  const area = document.getElementById('resultArea');
+  if(area) area.style.display = 'none';
+  const msg = document.getElementById('resultMsg');
+  if(msg) msg.textContent = '';
+}
+
 // 解析页码范围
+function normalizeRangeInput(input) {
+  return String(input || '')
+    .replace(/[，、]/g, ',')
+    .replace(/[－—–]/g, '-')
+    .replace(/[０-９]/g, function(ch) { return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); });
+}
+
 function parseRanges(input, max) {
   const result = [];
-  const parts = input.split(',');
+  const normalized = normalizeRangeInput(input);
+  const parts = normalized.split(',');
 
   for (const part of parts) {
     const trimmed = part.trim();
-    if (!trimmed) continue;
+    if (!trimmed) {
+      throw new Error(__pdfMsg('存在空页码段，请检查逗号分隔：' + normalized, 'Empty page segment; check comma separators: ' + normalized));
+    }
 
     if (trimmed.includes('-')) {
       const segs = trimmed.split('-');
       if (segs.length !== 2) {
-        throw new Error('格式错误：' + trimmed);
+        throw new Error(__pdfMsg('页码格式错误：' + trimmed, 'Invalid page format: ' + trimmed));
       }
-      const start = parseInt(segs[0].trim());
-      const end = parseInt(segs[1].trim());
-      if (isNaN(start) || isNaN(end)) {
-        throw new Error('页码无效：' + trimmed);
+      const startText = segs[0].trim();
+      const endText = segs[1].trim();
+      if (!/^\d+$/.test(startText) || !/^\d+$/.test(endText)) {
+        throw new Error(__pdfMsg('页码必须是正整数：' + trimmed, 'Page numbers must be positive integers: ' + trimmed));
       }
+      const start = parseInt(startText, 10);
+      const end = parseInt(endText, 10);
       if (start < 1 || end > max) {
-        throw new Error('页码超出范围（1-' + max + '）：' + trimmed);
+        throw new Error(__pdfMsg('页码超出范围（1-' + max + '）：' + trimmed, 'Page out of range (1-' + max + '): ' + trimmed));
       }
       if (start > end) {
-        throw new Error('起始页大于结束页：' + trimmed);
+        throw new Error(__pdfMsg('起始页不能大于结束页：' + trimmed, 'Start page must not exceed end page: ' + trimmed));
       }
       for (let i = start; i <= end; i++) {
         result.push(i);
       }
     } else {
-      const page = parseInt(trimmed);
-      if (isNaN(page)) {
-        throw new Error('页码无效：' + trimmed);
+      if (!/^\d+$/.test(trimmed)) {
+        throw new Error(__pdfMsg('页码必须是正整数：' + trimmed, 'Page numbers must be positive integers: ' + trimmed));
       }
+      const page = parseInt(trimmed, 10);
       if (page < 1 || page > max) {
-        throw new Error('页码超出范围（1-' + max + '）：' + trimmed);
+        throw new Error(__pdfMsg('页码超出范围（1-' + max + '）：' + trimmed, 'Page out of range (1-' + max + '): ' + trimmed));
       }
       result.push(page);
     }
   }
 
-  // IT-D35：Set 去重本身保持首次出现顺序；页面承诺「提取顺序即为填写顺序」，
-  // 不可再 sort 成升序（如 `7-10,1` 必须是 [7,8,9,10,1] 而非 [1,7,8,9,10]）。
+  // Set 去重保持首次出现顺序，提取顺序即为填写顺序。
   return [...new Set(result)];
 }
 
@@ -911,27 +1095,37 @@ function parseRanges(input, max) {
 function updateRangePreview() {
   const input = document.getElementById('rangeInput').value.trim();
   const preview = document.getElementById('rangePreview');
+  invalidateExtraction();
+  const en = pdfIsEn();
 
   if (!input) {
-    const __h3='';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h3;
+    const __h3 = '';
+    preview.innerHTML = __h3;
     return;
   }
 
   try {
     const pages = parseRanges(input, totalPages);
     if (pages.length === 0) {
-      const __h4='<p style="color:var(--text-muted);">未输入有效页码</p>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h4;
+      const __h4 = en
+        ? '<p style="color:var(--text-muted);">No valid page number entered</p>'
+        : '<p style="color:var(--text-muted);">未输入有效页码</p>';
+      preview.innerHTML = __h4;
     } else {
-      // 显示摘要（超过 20 页时截断显示）
       let display = pages.join(', ');
       if (display.length > 100) {
-        display = pages.slice(0, 20).join(', ') + ' ... 共 ' + pages.length + ' 页';
+        display = pages.slice(0, 20).join(', ') + (en ? ' ... ' + pages.length + ' pages total' : ' ... 共 ' + pages.length + ' 页');
       }
-      const __h5='<p>将提取 <strong>' + pages.length + '</strong> 页</p>' +
-        '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + display + '</p>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h5;
+      const __h5 = en
+        ? '<p>Extract <strong>' + pages.length + '</strong> page' + (pages.length === 1 ? '' : 's') + '</p>' +
+          '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + display + '</p>'
+        : '<p>将提取 <strong>' + pages.length + '</strong> 页</p>' +
+          '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">' + display + '</p>';
+      preview.innerHTML = __h5;
     }
   } catch (err) {
-    const __h6='<p style="color:var(--danger);">⚠️ ' + ToolBox.escHtml(err.message) + '</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h6;
+    const __h6 = '<p style="color:var(--danger);">⚠️ ' + ToolBox.escHtml(err.message) + '</p>';
+    preview.innerHTML = __h6;
   }
 }
 
@@ -974,6 +1168,11 @@ function getSelectedPages() {
 
 // 提取页面
 async function doExtract() {
+  if (isExtracting) return;
+  if (isLoadingFile) {
+    ToolBox.showToast(__pdfMsg('文件仍在加载，请稍候','The file is still loading. Please wait.'), 'warning');
+    return;
+  }
   if (!pdfArrayBuffer) {
     ToolBox.showToast(__pdfMsg('请先上传 PDF 文件','Upload a PDF file first.'), 'warning');
     return;
@@ -992,69 +1191,127 @@ async function doExtract() {
     return;
   }
 
-  // 禁用按钮
-  const extractBtn = document.getElementById('extractBtn');
-  extractBtn.disabled = true;
-  extractBtn.textContent = '处理中...';
+  // 任务开始时固定源文件、名称、缓冲区、页码和展平选项，后续不再读可变全局
+  const runVersion = fileVersion;
+  const runToken = ++extractToken;
+  const sourceBuffer = pdfArrayBuffer.slice(0);
+  const sourceName = pdfFile ? pdfFile.name : '';
+  const sourceFeatures = pdfFeatures;
+  const flattenForms = !!(document.getElementById('flattenForms') && document.getElementById('flattenForms').checked);
+  const en = pdfIsEn();
+  const pagesForTask = pages.slice();
+  const stale = function(){
+    return runToken !== extractToken || runVersion !== fileVersion;
+  };
 
-  // 显示进度
+  isExtracting = true;
+  setSelectionControlsDisabled(true);
+  updateExtractButton();
+
   const progressArea = document.getElementById('progressArea');
   const resultArea = document.getElementById('resultArea');
   progressArea.style.display = '';
   resultArea.style.display = 'none';
 
   try {
-    updateProgress(10, '正在加载 PDF 文档...');
+    updateProgress(10, __pdfMsg('正在加载 PDF 文档...','Loading PDF document…'));
 
     const { PDFDocument } = PDFLib;
-    const sourceDoc = await PDFDocument.load(pdfArrayBuffer);
+    const sourceDoc = await PDFDocument.load(sourceBuffer, { ignoreEncryption: true });
+    if (stale()) return;
 
-    updateProgress(30, '正在提取 ' + pages.length + ' 个页面...');
+    const features = (typeof PDFStructure !== 'undefined') ? PDFStructure.detect(sourceDoc) : (sourceFeatures || {});
+    if (stale()) return;
+
+    let flattenFailed = false;
+    if(flattenForms && features.forms > 0){
+      try{
+        sourceDoc.getForm().flatten();
+      }catch(flatErr){
+        flattenFailed = true;
+        console.warn('Form flatten failed:', flatErr);
+      }
+    }
+
+    updateProgress(30, __pdfMsg('正在提取 ' + pagesForTask.length + ' 个页面...','Extracting ' + pagesForTask.length + ' page(s)…'));
 
     const newDoc = await PDFDocument.create();
-    const indices = pages.map(function(p) { return p - 1; }); // 转为 0 索引
+    if (stale()) return;
+
+    const indices = pagesForTask.map(function(p) { return p - 1; });
     const copiedPages = await newDoc.copyPages(sourceDoc, indices);
+    if (stale()) return;
 
-    updateProgress(60, '正在组装新文档...');
-
-    copiedPages.forEach(function(page) {
+    updateProgress(60, __pdfMsg('正在组装新文档...','Assembling the new document…'));
+    const pairs = [];
+    copiedPages.forEach(function(page, idx) {
       newDoc.addPage(page);
+      pairs.push([indices[idx], newDoc.getPageCount() - 1]);
     });
 
-    updateProgress(80, '正在生成 PDF 文件...');
+    let structText = '';
+    if(typeof PDFStructure !== 'undefined'){
+      const linkStats = PDFStructure.relinkPages(sourceDoc, newDoc, pairs);
+      const pageMap = new Map();
+      pairs.forEach(function(pair){
+        pageMap.set(sourceDoc.getPage(pair[0]).ref.toString(), newDoc.getPage(pair[1]).ref);
+      });
+      const outlineStats = PDFStructure.appendOutlines(sourceDoc, newDoc, pageMap);
+      const formsSkipped = features.forms > 0 && !flattenForms;
+      if(outlineStats.items || outlineStats.dropped || linkStats.fixed || linkStats.dropped || flattenFailed || formsSkipped){
+        structText = en
+          ? ' · Bookmarks kept ' + outlineStats.items + (outlineStats.dropped ? ' (dropped ' + outlineStats.dropped + ')' : '') +
+            ' · Internal links fixed ' + linkStats.fixed + (linkStats.dropped ? ' (dropped ' + linkStats.dropped + ')' : '') +
+            (features.forms && flattenForms && !flattenFailed ? ' · forms flattened' : '') +
+            (formsSkipped ? ' · forms not flattened; fields may be lost' : '') +
+            (flattenFailed ? ' · form flattening failed; fields may be lost' : '')
+          : ' · 书签保留 ' + outlineStats.items + (outlineStats.dropped ? '（丢弃 ' + outlineStats.dropped + '）' : '') +
+            ' · 内部跳转修正 ' + linkStats.fixed + (linkStats.dropped ? '（移除 ' + linkStats.dropped + '）' : '') +
+            (features.forms && flattenForms && !flattenFailed ? ' · 表单已展平' : '') +
+            (formsSkipped ? ' · 表单未展平，字段可能丢失' : '') +
+            (flattenFailed ? ' · 表单展平失败，字段可能丢失' : '');
+      }
+    }
 
-    extractedBytes = await newDoc.save();
+    updateProgress(80, __pdfMsg('正在生成 PDF 文件...','Building the PDF file…'));
+    const outBytes = await newDoc.save();
+    if (stale()) return;   // 提取期间换文件/重置：丢弃旧结果，绝不落到新文件上
 
-    updateProgress(100, '提取完成！');
+    updateProgress(100, __pdfMsg('提取完成！','Extraction complete!'));
 
-    // 准备下载
-    const originalName = pdfFile.name.replace(/\.pdf$/i, '');
-    extractedFileName = originalName + '_提取' + pages.length + '页.pdf';
+    extractedBytes = outBytes;
+    extractedPages = pagesForTask.slice();
+    extractedSourceName = sourceName;
 
-    const blob = new Blob([extractedBytes], { type: 'application/pdf' });
-    const sizeStr = formatFileSize(blob.size);
+    const originalName = (sourceName || 'document').replace(/\.pdf$/i, '');
+    extractedFileName = en
+      ? originalName + '_extracted_' + pagesForTask.length + 'page' + (pagesForTask.length === 1 ? '' : 's') + '.pdf'
+      : originalName + '_提取' + pagesForTask.length + '页.pdf';
 
-    // 显示结果
+    const sizeStr = formatFileSize(outBytes.byteLength);
     resultArea.style.display = '';
     document.getElementById('resultMsg').textContent =
-      '✅ 提取完成！共 ' + pages.length + ' 页，文件大小 ' + sizeStr;
+      __pdfMsg('✅ 提取完成！共 ' + pagesForTask.length + ' 页，文件大小 ' + sizeStr,
+               '✅ Extraction complete! ' + pagesForTask.length + ' page' + (pagesForTask.length > 1 ? 's' : '') + ', ' + sizeStr) + structText;
 
-    ToolBox.showToast(__pdfMsg('提取完成，文件已开始下载','Extraction complete. Download started.'), 'success');
-
-    // 滚动到结果
+    ToolBox.showToast(__pdfMsg('提取完成，请点击下载 PDF','Extraction complete. Click Download PDF.'), 'success');
     resultArea.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
   } catch (err) {
+    if (stale()) return;
     console.error('提取失败:', err);
-    let msg = '提取失败：' + (err.message || '未知错误');
-    if (err.message && err.message.includes('encrypt')) {
-      msg = '该 PDF 已加密，无法提取页面。请先解除密码保护。';
-    }
+    const isEncrypted = err && (err.name === 'PasswordException' || /encrypt|password/i.test(String(err.message || '')));
+    const msg = isEncrypted
+      ? __pdfMsg('该 PDF 已加密或需要密码，无法提取页面。请先解除密码保护。','This PDF is encrypted or password-protected and cannot be extracted. Remove the password first.')
+      : __pdfMsg('提取失败：' + (err.message || '未知错误'), 'Extraction failed: ' + (err.message || 'unknown error'));
     ToolBox.showToast(msg, 'error');
     progressArea.style.display = 'none';
   } finally {
-    extractBtn.disabled = false;
-    extractBtn.textContent = '提取页面';
+    if (runToken === extractToken) {
+      isExtracting = false;
+      setSelectionControlsDisabled(false);
+      updateExtractButton();
+    }
   }
 }
 
@@ -1077,11 +1334,19 @@ function downloadResult() {
     a.remove();
   }, 100);
 
-  ToolBox.showToast('开始下载 ' + extractedFileName, 'success');
+  ToolBox.showToast(__pdfMsg('开始下载 ' + extractedFileName, 'Downloading ' + extractedFileName), 'success');
 }
 
 // 重置工具
 function resetTool() {
+  // 使在途加载/提取/缩略图任务全部失效，防止旧结果落到新文件
+  fileVersion++;
+  extractToken++;
+  thumbRenderToken++;
+  thumbRendering = false;
+  isLoadingFile = false;
+  isExtracting = false;
+
   pdfFile = null;
   pdfArrayBuffer = null;
   pdfjsDoc = null;
@@ -1090,6 +1355,9 @@ function resetTool() {
   thumbsRendered = false;
   extractedBytes = null;
   extractedFileName = '';
+  extractedPages = [];
+  extractedSourceName = '';
+  pdfFeatures = null;
 
   document.getElementById('fileInput').value = '';
   document.getElementById('uploadZone').style.display = '';
@@ -1097,10 +1365,14 @@ function resetTool() {
   document.getElementById('progressArea').style.display = 'none';
   document.getElementById('resultArea').style.display = 'none';
   document.getElementById('rangeInput').value = '';
-  const __h7='';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){document.getElementById('rangePreview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rangePreview').innerHTML=__h7;
-  const __h8='';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){document.getElementById('thumbGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('thumbGrid').innerHTML=__h8;
+  const __h7 = '';
+  document.getElementById('rangePreview').innerHTML = __h7;
+  const __h8 = '';
+  document.getElementById('thumbGrid').innerHTML = __h8;
   document.getElementById('thumbLoading').style.display = 'none';
-  document.getElementById('thumbStatus').textContent = '已选 0 页';
+  document.getElementById('thumbStatus').textContent = pdfIsEn() ? '0 pages selected' : '已选 0 页';
+  setSelectionControlsDisabled(false);
+  updateExtractButton();
 }
 
 // 更新进度条
@@ -1121,17 +1393,27 @@ function formatFileSize(bytes) {
 var __pdf_split_last=0,__pdf_split_skip=false;
 function __pdf_splitSnap(){
     var out={};
+    if(extractedBytes && extractedPages.length){
+        out['提取页码']=extractedPages.join(', ');
+        out['源文件']=extractedSourceName;
+    }else if(currentMode==='visual' && selectedPages.size){
+        out['提取页码']=[...selectedPages].sort(function(a,b){return a-b;}).join(', ');
+    }
     var els=document.querySelectorAll('input[id],select[id],textarea[id]');
     for(var i=0;i<els.length;i++){
         var e=els[i];
         var t=(e.type||'').toLowerCase();
         if(t==='button'||t==='submit'||t==='hidden') continue;
+        if(currentMode==='visual' && e.id==='rangeInput') continue;
         var v=(t==='checkbox'||t==='radio')?(e.checked?(e.value||'1'):''):e.value;
         if(v!==''&&v!=null) out[e.id]=v;
     }
     return out;
 }
 function __pdf_splitResText(){
+    var msg=document.getElementById('resultMsg');
+    var mt=msg?(msg.textContent||'').replace(/\s+/g,' ').trim():'';
+    if(mt) return mt.slice(0,80);
     var r=document.querySelector('.result-box');
     if(!r) return '';
     var t=(r.textContent||'').replace(/\s+/g,' ').trim();
@@ -1221,6 +1503,7 @@ function __pdf_splitExtras(){
 }
 function __pdf_splitExport(){
     if (typeof TBKit === 'undefined') return;
+    try{ __pdf_splitExtras(); }catch(e0){}
     try{
         var box=document.querySelector('#pdf_splitTable');
         if(!box||!box.querySelector('tr')){

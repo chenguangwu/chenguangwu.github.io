@@ -269,6 +269,7 @@
         <button type="button" class="btn success" onclick="copyBatchResult()">复制全部结果</button>
         <button type="button" class="btn" onclick="clearBatch()">清空</button>
       </div>
+      <div style="font-size:12px;color:var(--text-muted);margin:6px 0 10px;">「复制全部结果」按原始行位置输出：空行保留为空行，失败行写成【第 N 行失败：原因】，不会改变行号。</div>
       <label>处理结果</label>
       <div id="batchResult" class="result-box batch-result">
         <p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>
@@ -386,6 +387,7 @@
   }
   function __b64OptionChange(){
     __b64ClearOutput();
+    if(typeof __batchInvalidate === 'function') __batchInvalidate();
     onInputChange();
   }
 
@@ -401,6 +403,7 @@
     urlSafe.disabled = algo !== 'base64';
     urlSafe.parentElement.style.opacity = algo === 'base64' ? '1' : '0.5';
     __b64ClearOutput();
+    if(typeof __batchInvalidate === 'function') __batchInvalidate();
     onInputChange();
     // 文件结果绑定生成时的算法；切算法后立刻对同一文件重新编码（或清除旧结果）。
     if(typeof currentFile !== 'undefined' && currentFile){
@@ -450,7 +453,7 @@
 
   function bytesToUtf8(bytes){
     try{
-      return new TextDecoder('utf-8',{fatal:true}).decode(bytes);
+      return new TextDecoder('utf-8',{fatal:true,ignoreBOM:true}).decode(bytes);
     }catch(err){
       var e=new Error('invalid utf-8 byte sequence');
       e.code='INVALID_UTF8';
@@ -469,11 +472,32 @@
   }
 
   function base64Decode(str, urlSafe){
+    var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    var raw = String(str).replace(/\s/g,'');
     if(urlSafe){
-      str = str.replace(/-/g,'+').replace(/_/g,'/');
-      while(str.length % 4) str += '=';
+      if(/[+/]/.test(raw)) throw new Error(__b64L('URL-safe Base64 does not accept "+" or "/"; switch to standard Base64','URL 安全模式不接受「+」或「/」，请切换标准 Base64'));
+      raw = raw.replace(/-/g,'+').replace(/_/g,'/');
+    }else if(/[-_]/.test(raw)){
+      throw new Error(__b64L('Standard Base64 does not accept "-" or "_"; enable URL-safe mode','标准 Base64 不接受「-」或「_」，请启用 URL 安全模式'));
     }
-    var binary = atob(str);
+    if(!raw) return new Uint8Array(0);
+    var pad = raw.slice(-2)==='==' ? 2 : (raw.slice(-1)==='=' ? 1 : 0);
+    if(raw.indexOf('=')!==-1 && raw.indexOf('=') < raw.length - pad) throw new Error(__b64L('Base64 padding "=" may only appear at the end','Base64 填充「=」只能出现在末尾'));
+    var body = pad ? raw.slice(0,-pad) : raw;
+    if(!/^[A-Za-z0-9+/]*$/.test(body)) throw new Error(__b64L('Base64 contains characters outside the selected alphabet','Base64 含有所选字母表之外的字符'));
+    var rem = body.length % 4;
+    if(rem === 1) throw new Error(__b64L('Base64 length is invalid (one leftover character)','Base64 长度无效（多出 1 个字符）'));
+    var requiredPad = (4 - rem) % 4;
+    if(pad && (pad !== requiredPad || raw.length % 4 !== 0)) throw new Error(__b64L('Base64 padding count does not match the data length','Base64 填充数量与数据长度不匹配'));
+    if(requiredPad === 2){
+      var v2 = alphabet.indexOf(body.charAt(body.length-1));
+      if(v2 & 0x0F) throw new Error(__b64L('Base64 is non-canonical: unused bits in the final group are not zero; re-encode or check for corruption','Base64 非规范编码：末组未使用位不为零；请重新编码或检查数据是否损坏'));
+    }else if(requiredPad === 1){
+      var v1 = alphabet.indexOf(body.charAt(body.length-1));
+      if(v1 & 0x03) throw new Error(__b64L('Base64 is non-canonical: unused bits in the final group are not zero; re-encode or check for corruption','Base64 非规范编码：末组未使用位不为零；请重新编码或检查数据是否损坏'));
+    }
+    var normalized = body + '='.repeat(requiredPad);
+    var binary = atob(normalized);
     var bytes = new Uint8Array(binary.length);
     for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
@@ -582,8 +606,14 @@
   }
 
   function base85Decode(str){
-    str = str.replace(/^<~|~>$/g,'').replace(/\s/g,'');
-    if(str.indexOf('~>') !== -1) throw new Error(__b64L('Unexpected "~>" inside Base85 data','Base85 数据内部出现多余的「~>」'));
+    var s = String(str).trim();
+    var hasStart = s.indexOf('<~') === 0;
+    var hasEnd = s.slice(-2) === '~>';
+    if(hasStart !== hasEnd) throw new Error(__b64L('Adobe Base85 wrapper markers must appear in pairs: "<~" at the start and "~>" at the end','Base85 的 Adobe 包装标记必须成对出现：「<~」开头且「~>」结尾'));
+    if(hasStart) s = s.slice(2,-2);
+    if(s.indexOf('<~') !== -1 || s.indexOf('~>') !== -1) throw new Error(__b64L('Base85 data contains extra wrapper markers','Base85 数据内部出现多余的包装标记「<~」或「~>」'));
+    s = s.replace(/\s/g,'');
+    str = s;
     var bytes = [];
     var value = 0;
     var count = 0;
@@ -828,11 +858,17 @@
   function swapIO(){
     var input = document.getElementById('input');
     var output = document.getElementById('output');
+    if(!__b64OutputValid || !output.value){
+      return ToolBox.showToast(__b64L('Swap is only available after a successful encode or decode','只有成功编码或解码后才能交换输入与结果'), 'warning');
+    }
     var tmp = input.value;
     input.value = output.value;
     output.value = tmp;
-    __b64OutputValid = true;
+    // 交换后输出框里放的是旧输入，不是本次转换结果，必须锁住复制与下载类动作。
+    __b64OutputValid = false;
+    __lastDecodedBytes = null;
     onInputChange();
+    ToolBox.showToast(__b64L('Swapped; the output now holds the previous input, so encode/decode again before copying','已交换；输出框现在是上一次的输入，请重新编码或解码后再复制'), 'warning');
   }
 
   function clearAll(){
@@ -992,7 +1028,7 @@
   function batchEncode(){
     var input = document.getElementById('batchInput').value;
     var lines = __batchLines(input);
-    if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg904'), 'warning');
+    if(lines.length === 0) { __batchInvalidate(); return ToolBox.showToast(i18nText('toast.msg904'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
     lines.forEach(function(line, idx){
@@ -1008,7 +1044,7 @@
   function batchDecode(){
     var input = document.getElementById('batchInput').value;
     var lines = __batchLines(input);
-    if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg907'), 'warning');
+    if(lines.length === 0) { __batchInvalidate(); return ToolBox.showToast(i18nText('toast.msg907'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
     lines.forEach(function(line, idx){
@@ -1041,7 +1077,7 @@
       }
       html += '</div>';
     });
-    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
+    container.innerHTML = html;
     window._batchResults = results;
   }
 
@@ -1052,19 +1088,28 @@
     ToolBox.copyText(r.dst);
   }
 
-  function __batchCopyText(){
+  function __batchCopyText(mode){
     if(!window._batchResults) return '';
-    return window._batchResults.filter(function(r){ return r.ok && !r.blank; }).map(function(r){ return r.dst; }).join('\n');
+    if(mode === 'success') {
+      return window._batchResults.filter(function(r){ return r.ok && !r.blank; }).map(function(r){ return r.dst; }).join('\n');
+    }
+    // 默认保留行位置：空行输出空行，失败行输出明确占位（不静默丢行、不改变行号）。
+    return window._batchResults.map(function(r){
+      if(r.blank) return '';
+      if(!r.ok) return __b64L('[line ' + r.line + ' failed: ' + r.dst + ']', '【第 ' + r.line + ' 行失败：' + r.dst + '】');
+      return r.dst;
+    }).join('\n');
   }
   function copyBatchResult(){
     if(!window._batchResults || window._batchResults.length === 0) return ToolBox.showToast(i18nText(), 'warning');
     var good = window._batchResults.filter(function(r){ return r.ok && !r.blank; });
     if(good.length === 0) return ToolBox.showToast(__b64L('No successful rows to copy','没有可复制的成功行'), 'warning');
     var failed = window._batchResults.filter(function(r){ return !r.ok; });
+    var blanks = window._batchResults.filter(function(r){ return r.blank; });
     ToolBox.copyText(__batchCopyText());
     ToolBox.showToast(__b64L(
-      'Copied ' + good.length + ' successful row(s)' + (failed.length ? '; skipped ' + failed.length + ' failed row(s) on line ' + failed.map(function(r){return r.line;}).join(', ') : ''),
-      '已复制 ' + good.length + ' 条成功结果' + (failed.length ? '；已跳过 ' + failed.length + ' 条失败行（第 ' + failed.map(function(r){return r.line;}).join('、') + ' 行）' : '')
+      'Copied ' + window._batchResults.length + ' row(s) preserving line positions' + (blanks.length ? '; kept ' + blanks.length + ' blank line(s)' : '') + (failed.length ? '; ' + failed.length + ' failed row(s) marked on line ' + failed.map(function(r){return r.line;}).join(', ') : ''),
+      '已复制 ' + window._batchResults.length + ' 行（保留行位置）' + (blanks.length ? '；保留 ' + blanks.length + ' 个空行' : '') + (failed.length ? '；' + failed.length + ' 条失败行已用占位文本标记（第 ' + failed.map(function(r){return r.line;}).join('、') + ' 行）' : '')
     ));
   }
 
@@ -1250,7 +1295,7 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

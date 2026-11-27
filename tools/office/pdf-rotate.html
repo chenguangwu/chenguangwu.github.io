@@ -33,7 +33,15 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/4.2.67/pdf.worker.min.mj
 window.pdfjsLib = pdfjsLib;
 </script>
 <style>
-.drop-zone{border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;color:var(--text-muted);cursor:pointer;transition:all .2s;background:var(--result-bg);}
+.drop-zone{border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;color:var(--text-muted);cursor:pointer;transition:all .2s;background:var(--result-bg);width:100%;font:inherit;display:block;}
+.drop-zone:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
+.load-status{margin-top:10px;font-size:12.5px;color:var(--primary);display:none;}
+.doc-nav{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0;font-size:13px;color:var(--text-muted);}
+.doc-nav label{color:var(--text-secondary);}
+.doc-nav input[type="number"]{width:90px;}
+.doc-nav input[type="text"]{width:150px;}
+.doc-nav .thumb-status{font-size:12.5px;color:var(--text-muted);}
+.doc-nav .btn{padding:6px 10px;font-size:12px;}
 .drop-zone:hover,.drop-zone.dragover{border-color:var(--primary);background:var(--bg-hover);color:var(--primary);}
 .drop-zone .dz-icon{font-size:42px;margin-bottom:8px;line-height:1;}
 .drop-zone .dz-title{font-size:15px;font-weight:600;color:var(--text);}
@@ -55,6 +63,7 @@ window.pdfjsLib = pdfjsLib;
 .thumb-error{color:var(--danger);}
 .thumb-actions{display:flex;gap:6px;}
 .thumb-actions .btn{flex:1;padding:7px 0;font-size:12px;justify-content:center;}
+.thumb-actions .btn:focus-visible,.doc-nav .btn:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
 .sel-bar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px;font-size:13px;color:var(--text-light);}
 .sel-bar .sel-count{font-weight:700;color:var(--primary);}
 .panel-wrap{position:relative;}
@@ -68,7 +77,7 @@ window.pdfjsLib = pdfjsLib;
 }
 </style>
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "旋转会改动原文内容吗？", "acceptedAnswer": {"@type": "Answer", "text": "不会。旋转仅改变页面方向（视觉角度），文字、图片等内容保持不变，可随时一键重置回原始方向。"}}, {"@type": "Question", "name": "支持哪些旋转模式？", "acceptedAnswer": {"@type": "Answer", "text": "提供单页、批量、全部三种模式，可逐页微调也可整体校正；大文件生成缩略图可能需数秒，请耐心等待。"}}]}
+{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "旋转会改动原文内容吗？", "acceptedAnswer": {"@type": "Answer", "text": "不会。旋转仅改变页面方向（视觉角度），文字、图片等内容保持不变，可随时一键重置回原始方向。"}}, {"@type": "Question", "name": "支持哪些旋转模式？", "acceptedAnswer": {"@type": "Answer", "text": "提供单页、批量、全部三种模式，可逐页微调也可整体校正；大文件生成缩略图可能需数秒，请耐心等待。"}},{"@type":"Question","name":"旋转带数字签名的 PDF 会影响签名吗？","acceptedAnswer":{"@type":"Answer","text":"保存旋转结果会重新写出 PDF，原有数字签名可能不再有效或无法通过验证；请保留原始文件，并在 PDF 阅读器中检查输出文件的签名状态。具体表现取决于签名方式与阅读器。"}}]}
 </script>
 
 <script type="application/ld+json">
@@ -103,7 +112,7 @@ window.pdfjsLib = pdfjsLib;
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 <meta name="title-en" content="PDF Rotate">
-<meta name="desc-en" content="Rotate single pages or every page of a PDF">
+<meta name="desc-en" content="Rotate PDF pages in your browser. Adjust a single page, a selected batch, or the whole document; preview thumbnails and angles live, reset to the original…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/office/pdf-rotate.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/office/pdf-rotate.html">
@@ -156,12 +165,13 @@ window.pdfjsLib = pdfjsLib;
     <h2 data-zh="🖼️ PDF页面旋转工具">PDF Rotate</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="纯前端旋转 PDF 页面方向，支持单页、批量、全部旋转，实时预览，文件不上传服务器。">PDF Rotate</p>
 
-    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
-      <div class="dz-icon">📄</div>
-      <div class="dz-title">点击或拖拽 PDF 文件到这里</div>
-      <div class="dz-hint">支持 .pdf 格式，所有处理在浏览器本地完成</div>
-      <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择 PDF 文件">
-    </div>
+    <button type="button" class="drop-zone" id="dropZone" aria-label="选择 PDF 文件">
+      <div class="dz-icon" aria-hidden="true">📄</div>
+      <div class="dz-title" id="dropTitle">点击或拖拽 PDF 文件到这里</div>
+      <div class="dz-hint" id="dropHint">支持 .pdf 格式，所有处理在浏览器本地完成</div>
+    </button>
+    <input type="file" id="fileInput" accept="application/pdf,.pdf" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择 PDF 文件">
+    <div class="load-status" id="loadStatus" role="status" aria-live="polite">正在加载 PDF…</div>
 
     <div id="pdfPanel" style="display:none;">
       <div class="pdf-info" id="pdfInfo"></div>
@@ -169,21 +179,34 @@ window.pdfjsLib = pdfjsLib;
 
 
       <div class="toolbar" style="margin-top:6px;">
-        <button type="button" class="btn" onclick="rotateAll(-90)">↺ 全部左转90°</button>
-        <button type="button" class="btn" onclick="rotateAll(90)">↻ 全部右转90°</button>
-        <button type="button" class="btn" onclick="rotateSelected(-90)">↺ 选中左转</button>
-        <button type="button" class="btn" onclick="rotateSelected(90)">↻ 选中右转</button>
-        <button type="button" class="btn" onclick="selectAll()">☑ 全选</button>
-        <button type="button" class="btn" onclick="deselectAll()">☐ 取消全选</button>
-        <button type="button" class="btn" onclick="resetAll()">⟲ 重置旋转</button>
-        <button type="button" class="btn" onclick="resetFile()">📁 重新上传</button>
-        <button type="button" class="btn primary" onclick="downloadPdf()">⬇ 下载旋转后的PDF</button>
+        <button type="button" class="btn" id="rotateAllLeft" onclick="rotateAll(-90)">↺ 全部左转90°</button>
+        <button type="button" class="btn" id="rotateAllRight" onclick="rotateAll(90)">↻ 全部右转90°</button>
+        <button type="button" class="btn" id="rotateSelLeft" onclick="rotateSelected(-90)">↺ 选中左转</button>
+        <button type="button" class="btn" id="rotateSelRight" onclick="rotateSelected(90)">↻ 选中右转</button>
+        <button type="button" class="btn" id="selectAllBtn" onclick="selectAll()">☑ 全选</button>
+        <button type="button" class="btn" id="deselectAllBtn" onclick="deselectAll()">☐ 取消全选</button>
+        <button type="button" class="btn" id="resetRotateBtn" onclick="resetAll()">⟲ 重置旋转</button>
+        <button type="button" class="btn" id="resetFileBtn" onclick="resetFile()">📁 重新上传</button>
+        <button type="button" class="btn primary" id="downloadBtn" onclick="downloadPdf()">⬇ 下载旋转后的PDF</button>
       </div>
 
-      <div class="sel-bar">已选 <span class="sel-count" id="selCount">0</span> / <span id="totalCount">0</span> 页</div>
+      <div class="sel-bar"><span id="selLabel">已选</span> <span class="sel-count" id="selCount">0</span> / <span id="totalCount">0</span> <span id="selUnit">页</span></div>
+
+      <div class="doc-nav">
+        <label for="jumpPage" id="jumpLabel">跳转页码</label>
+        <input type="number" id="jumpPage" min="1" step="1" placeholder="页码">
+        <button type="button" class="btn" id="jumpBtn" onclick="jumpToPage()">跳转</button>
+        <span class="thumb-status" id="thumbRenderStatus" role="status" aria-live="polite"></span>
+        <button type="button" class="btn" id="thumbToggle" onclick="toggleThumbRendering()">暂停渲染</button>
+      </div>
+      <div class="doc-nav">
+        <label for="selectRangeInput" id="rangeLabel">范围选择</label>
+        <input type="text" id="selectRangeInput" placeholder="例如 1-3, 5">
+        <button type="button" class="btn" id="selectRangeBtn" onclick="selectRange()">选中范围</button>
+      </div>
 
       <div class="panel-wrap">
-        <div class="loading-overlay" id="loadingOverlay">正在渲染页面…</div>
+        <div class="loading-overlay" id="loadingOverlay" role="status">正在加载…</div>
         <div class="thumb-grid" id="thumbGrid"></div>
       </div>
     </div>
@@ -219,7 +242,8 @@ window.pdfjsLib = pdfjsLib;
     <div class="tool-notes-title">⚠️ 使用说明与注意事项</div>
     <ul>
       <li>本工具纯前端运行，PDF 文件不会上传到任何服务器，隐私安全有保障</li>
-      <li>旋转操作仅改变页面方向，不会修改文字、图片等内容</li>
+      <li>旋转操作仅改变页面方向，不会修改文字、图片等内容；保存会重新写出 PDF</li>
+      <li>含数字签名的 PDF 旋转后签名可能失效，请保留原件并检查输出文件的签名状态</li>
       <li>大文件（页数较多）渲染缩略图可能需要数秒，请耐心等待</li>
       <li>建议在主流浏览器（Chrome / Safari / Firefox / Edge 最新版本）中使用</li>
     </ul>
@@ -262,6 +286,7 @@ window.pdfjsLib = pdfjsLib;
 <dl class="dd-faq">
 <dt>旋转会改动原文内容吗？</dt><dd>不会。旋转仅改变页面方向（视觉角度），文字、图片等内容保持不变，可随时一键重置回原始方向。</dd>
 <dt>支持哪些旋转模式？</dt><dd>提供单页、批量、全部三种模式，可逐页微调也可整体校正；大文件生成缩略图可能需数秒，请耐心等待。</dd>
+<dt>旋转带数字签名的 PDF 会影响签名吗？</dt><dd>保存旋转结果会重新写出 PDF，原有数字签名可能不再有效或无法通过验证；请保留原始文件，并在 PDF 阅读器中检查输出文件的签名状态。具体表现取决于签名方式与阅读器。</dd>
 </dl>
 </div>
 </section>
@@ -337,13 +362,79 @@ let state = {
   file:null, fileBuffer:null, pdfjsDoc:null,
   rotations:[], originalRotations:[],
   numPages:0, fileName:'', fileSize:0,
-  selected:new Set()
+  selected:new Set(), renderedPages:new Set(), version:0
 };
-let renderToken = 0;
+let stateVersion = 0;
+let loadToken = 0;
+let exportToken = 0;
+let exporting = false;
+let thumbObserver = null;
+let thumbPaused = false;
+let pageRenderToken = new Map();
 
 const fileInput = document.getElementById('fileInput');
 const dropZone = document.getElementById('dropZone');
 
+function isEn(){
+  try { return !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()); }
+  catch(e){ return false; }
+}
+function M(zh, en){ return isEn() ? en : zh; }
+
+function applyUiLanguage(){
+  const en = isEn();
+  const setText = function(id, text){ const el = document.getElementById(id); if(el) el.textContent = text; };
+  setText('dropTitle', en ? 'Click or drop a PDF here' : '点击或拖拽 PDF 文件到这里');
+  setText('dropHint', en ? 'PDF only · all processing happens locally in your browser' : '支持 .pdf 格式，所有处理在浏览器本地完成');
+  setText('selLabel', en ? 'Selected' : '已选');
+  setText('selUnit', en ? 'pages' : '页');
+  setText('jumpLabel', en ? 'Jump to page' : '跳转页码');
+  setText('rangeLabel', en ? 'Select range' : '范围选择');
+  setText('jumpBtn', en ? 'Go' : '跳转');
+  setText('selectRangeBtn', en ? 'Select range' : '选中范围');
+  setText('rotateAllLeft', en ? '↺ Rotate all left 90°' : '↺ 全部左转90°');
+  setText('rotateAllRight', en ? '↻ Rotate all right 90°' : '↻ 全部右转90°');
+  setText('rotateSelLeft', en ? '↺ Rotate selected left' : '↺ 选中左转');
+  setText('rotateSelRight', en ? '↻ Rotate selected right' : '↻ 选中右转');
+  setText('selectAllBtn', en ? '☑ Select all' : '☑ 全选');
+  setText('deselectAllBtn', en ? '☐ Clear selection' : '☐ 取消全选');
+  setText('resetRotateBtn', en ? '⟲ Reset rotation' : '⟲ 重置旋转');
+  setText('resetFileBtn', en ? '📁 Choose another PDF' : '📁 重新上传');
+  setText('downloadBtn', en ? '⬇ Download rotated PDF' : '⬇ 下载旋转后的PDF');
+  setText('thumbToggle', thumbPaused ? (en ? 'Resume rendering' : '继续渲染') : (en ? 'Pause rendering' : '暂停渲染'));
+  setText('loadStatus', en ? 'Loading PDF…' : '正在加载 PDF…');
+  const jp = document.getElementById('jumpPage'); if(jp) jp.placeholder = en ? 'Page' : '页码';
+  const sr = document.getElementById('selectRangeInput'); if(sr) sr.placeholder = en ? 'e.g. 1-3, 5' : '例如 1-3, 5';
+  if(dropZone) dropZone.setAttribute('aria-label', en ? 'Choose a PDF file' : '选择 PDF 文件');
+  if(fileInput) fileInput.setAttribute('aria-label', en ? 'Choose a PDF file' : '选择 PDF 文件');
+  updateRenderProgress();
+}
+
+function setLoadStatus(on, text){
+  const el = document.getElementById('loadStatus');
+  if(!el) return;
+  el.textContent = text || M('正在加载 PDF…','Loading PDF…');
+  el.style.display = on ? 'block' : 'none';
+}
+function showLoading(show, text){
+  const el = document.getElementById('loadingOverlay');
+  if(!el) return;
+  el.textContent = text || M('正在加载…','Loading…');
+  el.style.display = show ? 'flex' : 'none';
+}
+function setControlsDisabled(on){
+  const nodes = document.querySelectorAll('#pdfPanel button, #pdfPanel input, #pdfPanel select');
+  for(let i=0;i<nodes.length;i++) nodes[i].disabled = !!on;
+  if(dropZone) dropZone.disabled = !!on;
+  if(fileInput) fileInput.disabled = !!on;
+}
+function setLoadingState(on, text){
+  setLoadStatus(on, text);
+  showLoading(on, text);
+  setControlsDisabled(on);
+}
+
+dropZone.addEventListener('click', function(){ fileInput.click(); });
 dropZone.addEventListener('dragover', e=>{ e.preventDefault(); dropZone.classList.add('dragover'); });
 dropZone.addEventListener('dragleave', ()=>dropZone.classList.remove('dragover'));
 dropZone.addEventListener('drop', e=>{
@@ -355,7 +446,7 @@ dropZone.addEventListener('drop', e=>{
 function handleFile(file){
   if(!file) return;
   if(file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name)){
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(M('请选择 PDF 文件（仅支持 .pdf）','Choose a PDF file (.pdf only).'), 'warning');
     return;
   }
   fileInput.value = '';
@@ -369,15 +460,40 @@ function formatSize(bytes){
 }
 
 async function loadPdf(file){
-  ToolBox.showToast(i18nText(), 'info');
+  const token = ++loadToken;
+  exportToken++;                 // 取消在途导出
+  exporting = false;
+  const version = ++stateVersion; // 使旧缩略图/渲染立即失效
+  if(state) state.version = version;
+  if(thumbObserver){ thumbObserver.disconnect(); thumbObserver = null; }
+  thumbPaused = false;
+  pageRenderToken.clear();
+
+  const prevDoc = state ? state.pdfjsDoc : null;
+  let pendingDoc = null;
+  setLoadingState(true, M('正在加载 PDF…','Loading PDF…'));
+
   try{
     const raw = await file.arrayBuffer();
+    if(token !== loadToken) return;
+
     const pdfjsData = new Uint8Array(raw.slice(0));
     const pdfLibData = raw.slice(0);
 
     const pdfjsDoc = await (await pdfjsReady()).getDocument({ data: pdfjsData }).promise;
+    pendingDoc = pdfjsDoc;
+    if(token !== loadToken){
+      try{ await pdfjsDoc.destroy(); }catch(e){}
+      return;
+    }
+
     const { PDFDocument } = window.PDFLib;
     const pdfLibDoc = await PDFDocument.load(pdfLibData, { ignoreEncryption:true });
+    if(token !== loadToken){
+      try{ await pdfjsDoc.destroy(); }catch(e){}
+      return;
+    }
+
     const pages = pdfLibDoc.getPages();
     const rotations = [];
     const originalRotations = [];
@@ -387,73 +503,129 @@ async function loadPdf(file){
       originalRotations.push(a);
     }
 
+    // 原子提交：文件、buffer、文档、页数与角度一次性对齐
     state = {
       file, fileBuffer:raw, pdfjsDoc,
       rotations, originalRotations,
       numPages:pdfjsDoc.numPages,
       fileName:file.name, fileSize:file.size,
-      selected:new Set()
+      selected:new Set(), renderedPages:new Set(), version
     };
+    if(prevDoc && prevDoc !== pdfjsDoc){
+      Promise.resolve(prevDoc.destroy()).catch(function(){});
+    }
 
     document.getElementById('pdfPanel').style.display = '';
     renderInfo();
-    await renderAllThumbs();
-    ToolBox.showToast(i18nText('toast.saved', 'PDF 加载完成，共 ' + state.numPages + ' 页'), 'success');
+    renderAllThumbs();
+    setLoadingState(false);
+    ToolBox.showToast(M('PDF 加载完成，共 ' + state.numPages + ' 页','PDF loaded: ' + state.numPages + ' page(s).'), 'success');
   }catch(e){
+    if(pendingDoc && pendingDoc !== (state && state.pdfjsDoc)){
+      try{ Promise.resolve(pendingDoc.destroy()).catch(function(){}); }catch(e2){}
+    }
+    if(token !== loadToken) return;
     console.error(e);
-    const msg = (e && e.message === 'pdfjs-not-ready') ? 'PDF 解析引擎加载失败，请刷新页面重试' : ('PDF 加载失败：' + ((e && e.message) || e));
-    ToolBox.showToast(msg,'error');
+    setLoadingState(false);
+    const msg = (e && e.message === 'pdfjs-not-ready')
+      ? M('PDF 解析引擎加载失败，请刷新页面重试','PDF engine failed to load. Refresh the page and retry.')
+      : M('PDF 加载失败：' + ((e && e.message) || e), 'PDF load failed: ' + ((e && e.message) || e));
+    ToolBox.showToast(msg, 'error');
   }
 }
 
 function renderInfo(){
+  const en = isEn();
   document.getElementById('pdfInfo').innerHTML =
-    '<div class="pi-item"><div class="pi-label">文件名</div><div class="pi-value">' + ToolBox.escHtml(state.fileName) + '</div></div>' +
-    '<div class="pi-item"><div class="pi-label">总页数</div><div class="pi-value">' + state.numPages + ' 页</div></div>' +
-    '<div class="pi-item"><div class="pi-label">文件大小</div><div class="pi-value">' + formatSize(state.fileSize) + '</div></div>';
+    '<div class="pi-item"><div class="pi-label">' + (en ? 'File name' : '文件名') + '</div><div class="pi-value">' + ToolBox.escHtml(state.fileName) + '</div></div>' +
+    '<div class="pi-item"><div class="pi-label">' + (en ? 'Pages' : '总页数') + '</div><div class="pi-value">' + state.numPages + (en ? (state.numPages === 1 ? ' page' : ' pages') : ' 页') + '</div></div>' +
+    '<div class="pi-item"><div class="pi-label">' + (en ? 'File size' : '文件大小') + '</div><div class="pi-value">' + formatSize(state.fileSize) + '</div></div>';
   document.getElementById('totalCount').textContent = state.numPages;
   updateSelCount();
 }
 
-function showLoading(show){
-  document.getElementById('loadingOverlay').style.display = show ? 'flex' : 'none';
-}
-
 async function renderAllThumbs(){
   const grid = document.getElementById('thumbGrid');
+  if(thumbObserver){ thumbObserver.disconnect(); thumbObserver = null; }
   grid.innerHTML = '';
+  state.renderedPages = new Set();
+  thumbPaused = false;
+  applyUiLanguage();
+
   for(let i=0;i<state.numPages;i++){
     grid.appendChild(createThumbItem(i));
   }
-  const token = ++renderToken;
-  showLoading(true);
-  for(let i=0;i<state.numPages;i++){
-    if(token !== renderToken) return;
-    await renderThumbCanvas(i);
+  updateRenderProgress();
+
+  if(!('IntersectionObserver' in window)){
+    for(let i=0;i<state.numPages;i++) renderThumbCanvas(i);
+    return;
   }
-  showLoading(false);
+
+  const version = state.version;
+  thumbObserver = new IntersectionObserver(function(entries){
+    if(thumbPaused || version !== state.version) return;
+    entries.forEach(function(entry){
+      const item = entry.target;
+      const i = parseInt(item.dataset.page, 10);
+      if(!entry.isIntersecting){
+        if(item.dataset.rendered === '1' && item.dataset.dirty !== '1'){
+          const wrap = document.getElementById('wrap-' + i);
+          if(wrap && wrap.querySelector('canvas')){
+            wrap.innerHTML = '<div class="thumb-loading">' + M('滚动到此处加载','Scroll to load') + '</div>';
+            item.dataset.rendered = '0';
+            state.renderedPages.delete(i);
+            updateRenderProgress();
+          }
+        }
+        return;
+      }
+      if(item.dataset.dirty === '1' || item.dataset.rendered !== '1') renderThumbCanvas(i);
+    });
+  }, { rootMargin:'300px 0px' });
+
+  document.querySelectorAll('#thumbGrid .thumb-item').forEach(function(item){ thumbObserver.observe(item); });
 }
 
 function createThumbItem(i){
+  const en = isEn();
   const div = document.createElement('div');
   div.className = 'thumb-item';
   div.id = 'thumb-' + i;
+  div.dataset.page = i;
+  div.dataset.dirty = '1';
+  div.dataset.rendered = '0';
   div.innerHTML =
     '<div class="thumb-head">' +
-      '<label class="thumb-check"><input type="checkbox" data-page="' + i + '" onchange="onCheckChange(' + i + ', this.checked)"><span>第 ' + (i+1) + ' 页</span></label>' +
+      '<label class="thumb-check"><input type="checkbox" data-page="' + i + '" onchange="onCheckChange(' + i + ', this.checked)" aria-label="' + (en ? 'Select page ' + (i+1) : '选择第 ' + (i+1) + ' 页') + '"><span>' + (en ? 'Page ' + (i+1) : '第 ' + (i+1) + ' 页') + '</span></label>' +
       '<span class="angle-badge" id="angle-' + i + '">' + state.rotations[i] + '°</span>' +
     '</div>' +
-    '<div class="thumb-canvas-wrap" id="wrap-' + i + '"><div class="thumb-loading">渲染中…</div></div>' +
+    '<div class="thumb-canvas-wrap" id="wrap-' + i + '"><div class="thumb-loading">' + (en ? 'Scroll to load' : '滚动到此处加载') + '</div></div>' +
     '<div class="thumb-actions">' +
-      '<button type="button" class="btn" onclick="rotateOne(' + i + ', -90)" title="左转90°" aria-label="左转90°">↺ 左转</button>' +
-      '<button type="button" class="btn" onclick="rotateOne(' + i + ', 90)" title="右转90°" aria-label="右转90°">↻ 右转</button>' +
+      '<button type="button" class="btn" onclick="rotateOne(' + i + ', -90)" title="' + (en ? 'Rotate left 90°' : '左转90°') + '" aria-label="' + (en ? 'Rotate left 90°' : '左转90°') + '">↺ ' + (en ? 'Left 90°' : '左转') + '</button>' +
+      '<button type="button" class="btn" onclick="rotateOne(' + i + ', 90)" title="' + (en ? 'Rotate right 90°' : '右转90°') + '" aria-label="' + (en ? 'Rotate right 90°' : '右转90°') + '">↻ ' + (en ? 'Right 90°' : '右转') + '</button>' +
     '</div>';
   return div;
 }
 
 async function renderThumbCanvas(i){
+  const st = state;
+  if(!st || !st.pdfjsDoc) return;
+  const doc = st.pdfjsDoc;
+  const version = st.version;
+  const angle = st.rotations[i];
+  const item = document.getElementById('thumb-' + i);
+  const wrap = document.getElementById('wrap-' + i);
+  if(!item || !wrap || !wrap.isConnected) return;
+
+  const myToken = (pageRenderToken.get(i) || 0) + 1;
+  pageRenderToken.set(i, myToken);
+
+  wrap.innerHTML = '<div class="thumb-loading">' + M('渲染中…','Rendering…') + '</div>';
   try{
-    const page = await state.pdfjsDoc.getPage(i+1);
+    const page = await doc.getPage(i+1);
+    if(myToken !== pageRenderToken.get(i) || version !== state.version || doc !== state.pdfjsDoc || !wrap.isConnected) return;
+
     const base = page.getViewport({ scale:1 });
     const scale = Math.min(1.6, 230 / Math.max(base.width, 1));
     const viewport = page.getViewport({ scale });
@@ -466,7 +638,11 @@ async function renderThumbCanvas(i){
     offCtx.fillRect(0,0,off.width,off.height);
     await page.render({ canvasContext:offCtx, viewport }).promise;
 
-    const extra = (((state.rotations[i] - state.originalRotations[i]) % 360) + 360) % 360;
+    // 每个 await 后校验：文件代次、页面令牌、角度快照、DOM 仍是同一容器
+    if(myToken !== pageRenderToken.get(i) || version !== state.version || doc !== state.pdfjsDoc) return;
+    if(angle !== state.rotations[i] || !wrap.isConnected || document.getElementById('wrap-' + i) !== wrap) return;
+
+    const extra = (((angle - st.originalRotations[i]) % 360) + 360) % 360;
     const isSide = extra === 90 || extra === 270;
 
     const disp = document.createElement('canvas');
@@ -485,15 +661,22 @@ async function renderThumbCanvas(i){
     ctx.translate(-off.width/2, -off.height/2);
     ctx.drawImage(off, 0, 0);
 
-    const wrap = document.getElementById('wrap-' + i);
-    if(wrap){
-      wrap.innerHTML = '';
-      wrap.appendChild(disp);
+    if(!isThumbVisible(item)){
+      wrap.innerHTML = '<div class="thumb-loading">' + M('滚动到此处加载','Scroll to load') + '</div>';
+      item.dataset.rendered = '0';
+      return;
     }
+    wrap.innerHTML = '';
+    wrap.appendChild(disp);
+    state.renderedPages.add(i);
+    item.dataset.rendered = '1';
+    item.dataset.dirty = '0';
+    updateRenderProgress();
   }catch(e){
+    if(myToken !== pageRenderToken.get(i) || version !== state.version || doc !== state.pdfjsDoc || !wrap.isConnected) return;
     console.error('render page', i, e);
-    const wrap = document.getElementById('wrap-' + i);
-    if(wrap) wrap.innerHTML = '<div class="thumb-error">渲染失败</div>';
+    wrap.innerHTML = '<div class="thumb-error">' + M('渲染失败','Render failed') + '</div>';
+    item.dataset.dirty = '1';
   }
 }
 
@@ -502,57 +685,77 @@ function setAngle(i){
   if(el) el.textContent = state.rotations[i] + '°';
 }
 
+function updateRenderProgress(){
+  const el = document.getElementById('thumbRenderStatus');
+  if(!el) return;
+  if(!state || !state.numPages){ el.textContent = ''; return; }
+  const rendered = state.renderedPages.size;
+  el.textContent = thumbPaused
+    ? M('已暂停 · 已渲染 ' + rendered + ' / ' + state.numPages, 'Paused · rendered ' + rendered + ' / ' + state.numPages)
+    : M('已渲染 ' + rendered + ' / ' + state.numPages + '（滚动加载）', 'Rendered ' + rendered + ' / ' + state.numPages + ' (lazy)');
+}
+
+function isThumbVisible(item){
+  if(!item) return false;
+  const r = item.getBoundingClientRect();
+  return r.bottom > -300 && r.top < (window.innerHeight || document.documentElement.clientHeight) + 300;
+}
+
+function markThumbDirty(i, renderNow){
+  const item = document.getElementById('thumb-' + i);
+  if(!item) return;
+  item.dataset.dirty = '1';
+  if(renderNow || isThumbVisible(item)) renderThumbCanvas(i);
+}
+
 function rotateOne(i, delta){
+  if(!state || i < 0 || i >= state.numPages) return;
   state.rotations[i] = (((state.rotations[i] + delta) % 360) + 360) % 360;
   setAngle(i);
-  renderThumbCanvas(i);
+  markThumbDirty(i, true);
 }
 
 async function rotateAll(delta){
-  const idx = [];
+  if(!state || !state.numPages) return;
   for(let i=0;i<state.numPages;i++){
     state.rotations[i] = (((state.rotations[i] + delta) % 360) + 360) % 360;
     setAngle(i);
-    idx.push(i);
+    markThumbDirty(i, false);
   }
-  await renderMany(idx);
+  updateRenderProgress();
 }
 
 async function rotateSelected(delta){
+  if(!state) return;
   if(state.selected.size === 0){
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(M('请先勾选要旋转的页面','Select pages before rotating.'), 'warning');
     return;
   }
   const idx = Array.from(state.selected).sort((a,b)=>a-b);
   for(const i of idx){
     state.rotations[i] = (((state.rotations[i] + delta) % 360) + 360) % 360;
     setAngle(i);
+    markThumbDirty(i, false);
   }
-  await renderMany(idx);
+  updateRenderProgress();
 }
 
 async function resetAll(){
-  const idx = [];
+  if(!state || !state.numPages){
+    ToolBox.showToast(M('请先加载 PDF 文件','Load a PDF file first.'), 'warning');
+    return;
+  }
   for(let i=0;i<state.numPages;i++){
     state.rotations[i] = state.originalRotations[i];
     setAngle(i);
-    idx.push(i);
+    markThumbDirty(i, false);
   }
-  await renderMany(idx);
-  ToolBox.showToast(i18nText(), 'info');
-}
-
-async function renderMany(idx){
-  const token = ++renderToken;
-  showLoading(true);
-  for(const i of idx){
-    if(token !== renderToken) return;
-    await renderThumbCanvas(i);
-  }
-  showLoading(false);
+  updateRenderProgress();
+  ToolBox.showToast(M('已重置为原始方向','Rotation reset to original orientation.'), 'info');
 }
 
 function onCheckChange(i, checked){
+  if(!state) return;
   if(checked) state.selected.add(i); else state.selected.delete(i);
   const item = document.getElementById('thumb-' + i);
   if(item) item.classList.toggle('selected', checked);
@@ -560,6 +763,7 @@ function onCheckChange(i, checked){
 }
 
 function selectAll(){
+  if(!state) return;
   for(let i=0;i<state.numPages;i++){
     state.selected.add(i);
     const cb = document.querySelector('input[data-page="' + i + '"]');
@@ -571,54 +775,182 @@ function selectAll(){
 }
 
 function deselectAll(){
+  if(!state) return;
   state.selected.clear();
   document.querySelectorAll('input[data-page]').forEach(cb=>cb.checked=false);
   document.querySelectorAll('.thumb-item').forEach(el=>el.classList.remove('selected'));
   updateSelCount();
 }
 
+function normalizeRangeText(input){
+  return String(input || '')
+    .replace(/[，、]/g, ',')
+    .replace(/[－—–]/g, '-')
+    .replace(/[０-９]/g, function(ch){ return String.fromCharCode(ch.charCodeAt(0) - 0xFEE0); });
+}
+
+function selectRange(){
+  if(!state || !state.numPages) return;
+  const input = document.getElementById('selectRangeInput').value.trim();
+  if(!input){ ToolBox.showToast(M('请输入页码范围','Enter a page range.'), 'warning'); return; }
+  const normalized = normalizeRangeText(input);
+  const set = new Set();
+  try{
+    for(const part of normalized.split(',')){
+      const t = part.trim();
+      if(!t) throw new Error(M('存在空页码段，请检查逗号分隔','Empty page segment; check commas.'));
+      if(t.indexOf('-') >= 0){
+        const seg = t.split('-');
+        if(seg.length !== 2 || !/^\d+$/.test(seg[0].trim()) || !/^\d+$/.test(seg[1].trim())) throw new Error(M('页码格式错误：' + t, 'Invalid page range: ' + t));
+        const a = parseInt(seg[0], 10), b = parseInt(seg[1], 10);
+        if(a < 1 || b > state.numPages || a > b) throw new Error(M('页码超出范围：' + t, 'Page out of range: ' + t));
+        for(let i=a;i<=b;i++) set.add(i-1);
+      }else{
+        if(!/^\d+$/.test(t)) throw new Error(M('页码格式错误：' + t, 'Invalid page number: ' + t));
+        const p = parseInt(t, 10);
+        if(p < 1 || p > state.numPages) throw new Error(M('页码超出范围：' + t, 'Page out of range: ' + t));
+        set.add(p-1);
+      }
+    }
+  }catch(e){
+    ToolBox.showToast(e.message, 'error');
+    return;
+  }
+  if(!set.size){ ToolBox.showToast(M('未选择任何有效页码','No valid page selected.'), 'warning'); return; }
+  state.selected = set;
+  document.querySelectorAll('#thumbGrid input[data-page]').forEach(function(cb){
+    cb.checked = set.has(parseInt(cb.dataset.page, 10));
+  });
+  document.querySelectorAll('.thumb-item').forEach(function(item){
+    item.classList.toggle('selected', set.has(parseInt(item.dataset.page, 10)));
+  });
+  updateSelCount();
+}
+
+function jumpToPage(){
+  if(!state || !state.numPages) return;
+  const p = parseInt(document.getElementById('jumpPage').value, 10);
+  if(!isFinite(p) || p < 1 || p > state.numPages){
+    ToolBox.showToast(M('请输入 1-' + state.numPages + ' 之间的页码','Enter a page from 1 to ' + state.numPages + '.'), 'warning');
+    return;
+  }
+  const item = document.getElementById('thumb-' + (p-1));
+  if(!item) return;
+  item.scrollIntoView({ behavior:'auto', block:'center' });
+  if(item.dataset.rendered !== '1') renderThumbCanvas(p-1);
+}
+
+function toggleThumbRendering(){
+  if(!state || !state.numPages) return;
+  if(!thumbObserver) return;
+  thumbPaused = !thumbPaused;
+  if(thumbPaused){
+    thumbObserver.disconnect();
+  }else{
+    const version = state.version;
+    thumbObserver = new IntersectionObserver(function(entries){
+      if(thumbPaused || version !== state.version) return;
+      entries.forEach(function(entry){
+        const item = entry.target;
+        const i = parseInt(item.dataset.page, 10);
+        if(!entry.isIntersecting){
+          if(item.dataset.rendered === '1' && item.dataset.dirty !== '1'){
+            const wrap = document.getElementById('wrap-' + i);
+            if(wrap && wrap.querySelector('canvas')){
+              wrap.innerHTML = '<div class="thumb-loading">' + M('滚动到此处加载','Scroll to load') + '</div>';
+              item.dataset.rendered = '0';
+              state.renderedPages.delete(i);
+              updateRenderProgress();
+            }
+          }
+          return;
+        }
+        if(item.dataset.dirty === '1' || item.dataset.rendered !== '1') renderThumbCanvas(i);
+      });
+    }, { rootMargin:'300px 0px' });
+    document.querySelectorAll('#thumbGrid .thumb-item').forEach(function(item){
+      if(item.dataset.dirty === '1' || item.dataset.rendered !== '1') thumbObserver.observe(item);
+    });
+  }
+  applyUiLanguage();
+  updateRenderProgress();
+}
+
 function updateSelCount(){
-  document.getElementById('selCount').textContent = state.selected.size;
+  document.getElementById('selCount').textContent = state ? state.selected.size : 0;
 }
 
 function resetFile(){
-  state = { file:null, fileBuffer:null, pdfjsDoc:null, rotations:[], originalRotations:[], numPages:0, fileName:'', fileSize:0, selected:new Set() };
+  loadToken++;
+  exportToken++;
+  exporting = false;
+  const version = ++stateVersion;
+  if(thumbObserver){ thumbObserver.disconnect(); thumbObserver = null; }
+  thumbPaused = false;
+  pageRenderToken.clear();
+  if(state && state.pdfjsDoc){
+    Promise.resolve(state.pdfjsDoc.destroy()).catch(function(){});
+  }
+  state = { file:null, fileBuffer:null, pdfjsDoc:null, rotations:[], originalRotations:[], numPages:0, fileName:'', fileSize:0, selected:new Set(), renderedPages:new Set(), version };
   document.getElementById('pdfPanel').style.display = 'none';
   document.getElementById('thumbGrid').innerHTML = '';
   document.getElementById('pdfInfo').innerHTML = '';
+  document.getElementById('loadStatus').style.display = 'none';
+  setLoadingState(false);
   fileInput.value = '';
 }
 
 async function downloadPdf(){
-  if(!state.fileBuffer){
-    ToolBox.showToast(i18nText(), 'warning');
+  if(!state || !state.fileBuffer){
+    ToolBox.showToast(M('请先加载 PDF 文件','Load a PDF file first.'), 'warning');
     return;
   }
+  if(exporting) return;
+
+  // 点击瞬间固定文件、名称、全部角度，后续异步阶段不再读可变 state
+  const snapshot = {
+    buffer: state.fileBuffer.slice(0),
+    name: state.fileName,
+    rotations: state.rotations.slice(),
+    version: state.version
+  };
+  const token = exportToken;
+  exporting = true;
+  ToolBox.showToast(M('正在生成旋转后的 PDF…','Preparing the rotated PDF…'), 'info');
+
   try{
-    ToolBox.showToast(i18nText(), 'info');
     const { PDFDocument, degrees } = window.PDFLib;
-    const doc = await PDFDocument.load(state.fileBuffer.slice(0), { ignoreEncryption:true });
+    const doc = await PDFDocument.load(snapshot.buffer, { ignoreEncryption:true });
+    if(token !== exportToken) return;
+
     const pages = doc.getPages();
     for(let i=0;i<pages.length;i++){
-      const target = ((state.rotations[i] % 360) + 360) % 360;
+      const target = (((snapshot.rotations[i] || 0) % 360) + 360) % 360;
       pages[i].setRotation(degrees(target));
     }
     const bytes = await doc.save();
+    if(token !== exportToken) return;  // 导出期间重置/换文件，丢弃旧结果
+
     const blob = new Blob([bytes], { type:'application/pdf' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = state.fileName.replace(/\.pdf$/i,'') + '-rotated.pdf';
+    a.download = snapshot.name.replace(/\.pdf$/i,'') + '-rotated.pdf';
     document.body.appendChild(a);
     a.click();
     setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
-    ToolBox.showToast(i18nText(), 'success');
+    ToolBox.showToast(M('已开始下载 ' + a.download, 'Downloading ' + a.download), 'success');
   }catch(e){
+    if(token !== exportToken) return;
     console.error(e);
-    ToolBox.showToast('下载失败：' + (e.message || e),'error');
+    ToolBox.showToast(M('下载失败：' + (e.message || e), 'Download failed: ' + (e.message || e)), 'error');
+  }finally{
+    if(token === exportToken) exporting = false;
   }
 }
 
+applyUiLanguage();
+setLoadingState(false);
 ToolBox.initToolTheme();
 </script>
 <script>

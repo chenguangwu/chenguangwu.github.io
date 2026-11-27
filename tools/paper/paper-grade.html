@@ -141,17 +141,18 @@
       <strong>等级说明：</strong>A等（优级品）适合高级印刷；B等（一等品）适合一般印刷；C等（合格品）适合普通用途。白度单位为ISO（%）。
     </div>
 
-    <h3>铜版纸等级</h3>
+    <h3 id="cat1">铜版纸等级</h3>
     <div id="table1"></div>
 
-    <h3 style="margin-top:16px;">胶版纸等级</h3>
+    <h3 id="cat2" style="margin-top:16px;">胶版纸等级</h3>
     <div id="table2"></div>
 
-    <h3 style="margin-top:16px;">白卡纸等级</h3>
+    <h3 id="cat3" style="margin-top:16px;">白卡纸等级</h3>
     <div id="table3"></div>
 
-    <h3 style="margin-top:16px;">牛皮纸等级</h3>
+    <h3 id="cat4" style="margin-top:16px;">牛皮纸等级</h3>
     <div id="table4"></div>
+    <div id="pgEmpty" class="info-box" style="display:none;">未找到匹配的纸种、等级或用途；可尝试“铜版纸”“A等”“包装”等关键词。</div>
     <div class="toolbar" style="margin-top:14px;">
       <button id="pgExport" class="btn" onclick="__pgExport()">⬇️ 导出全部对照表 CSV</button>
     </div>
@@ -281,10 +282,30 @@ document.getElementById('table4').innerHTML = buildTable(data4, ['等级', '颜�
 
 function filterTable() {
   var kw = document.getElementById('searchInput').value.trim().toLowerCase();
-  document.querySelectorAll('#table1 tbody tr, #table2 tbody tr, #table3 tbody tr, #table4 tbody tr').forEach(function(tr) {
-    var txt = tr.textContent.toLowerCase();
-    tr.style.display = (kw === '' || txt.indexOf(kw) >= 0) ? '' : 'none';
+  var groups = [
+    {table:'table1',cat:'cat1',name:'铜版纸'},
+    {table:'table2',cat:'cat2',name:'胶版纸'},
+    {table:'table3',cat:'cat3',name:'白卡纸'},
+    {table:'table4',cat:'cat4',name:'牛皮纸'}
+  ];
+  var any = false;
+  groups.forEach(function(g){
+    var catMatch = kw === '' || g.name.toLowerCase().indexOf(kw) >= 0;
+    var rows = document.querySelectorAll('#'+g.table+' tbody tr');
+    var visible = 0;
+    rows.forEach(function(tr){
+      var hit = catMatch || tr.textContent.toLowerCase().indexOf(kw) >= 0;
+      tr.style.display = hit ? '' : 'none';
+      if(hit) visible++;
+    });
+    var cat = document.getElementById(g.cat);
+    if(cat) cat.style.display = visible ? '' : 'none';
+    var box = document.getElementById(g.table);
+    if(box) box.style.display = visible ? '' : 'none';
+    if(visible) any = true;
   });
+  var empty = document.getElementById('pgEmpty');
+  if(empty) empty.style.display = any ? 'none' : '';
 }
 </script>
 <script>
@@ -325,9 +346,18 @@ function filterTable() {
     var en=TBKit.util.isEn();
     var t=document.getElementById('pgHidden');
     if(!t){ t=document.createElement('table'); t.id='pgHidden'; t.style.display='none'; document.body.appendChild(t); }
-    var rows=[[en?'Category':'类别',en?'Grade':'等级',en?'Brightness ISO(%)':'白度ISO(%)',en?'Indicator 2':'指标2',en?'Indicator 3':'指标3',en?'Main use':'主要用途']];
-    [['铜版纸',data1],['胶版纸',data2],['白卡纸',data3],['牛皮纸',data4]].forEach(function(p){
-      p[1].forEach(function(r){ rows.push([p[0]].concat(r)); });
+    var rows=[[en?'Paper type':'纸种',en?'Grade':'等级',en?'Metric':'指标名',en?'Value':'数值',en?'Unit':'单位',en?'Main use':'主要用途']];
+    var defs=[
+      [en?'Coated paper':'铜版纸',data1,[[en?'Brightness':'白度','ISO(%)'],[en?'Dirt count':'尘埃度',en?'count/m²':'个/m²'],[en?'Coating deviation':'涂布量偏差','%']]],
+      [en?'Offset paper':'胶版纸',data2,[[en?'Brightness':'白度','ISO(%)'],[en?'Dirt count':'尘埃度',en?'count/m²':'个/m²'],[en?'Stretch rate':'伸缩率','%']]],
+      [en?'White card':'白卡纸',data3,[[en?'Brightness':'白度','ISO(%)'],[en?'Basis weight':'克重','gsm'],[en?'Cross-direction fold':'横向耐折',en?'times':'次']]],
+      [en?'Kraft paper':'牛皮纸',data4,[[en?'Color':'颜色',''],[en?'Bursting strength':'耐破度','kPa'],[en?'Stretch rate':'伸缩率','%']]]
+    ];
+    defs.forEach(function(d){
+      d[1].forEach(function(r){
+        var use=r[4];
+        for(var j=0;j<3;j++){ rows.push([d[0],r[0],d[2][j][0],r[j+1],d[2][j][1],use]); }
+      });
     });
     t.innerHTML='<tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c){return '<td>'+(c==null?'':c)+'</td>';}).join('')+'</tr>';}).join('')+'</tbody>';
     TBKit.util.exportTable('#pgHidden','paper-grades.csv');

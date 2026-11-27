@@ -18,6 +18,73 @@ const { runCase } = require("./verify_it_calc.js");
 
 // ---------------------------------------------------------------- 用例
 const CASES = [
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "H2O" },
+    clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/molar-mass-calculator.html','utf8');var i=h.indexOf('function __molar_mass_calculatorExport(){');var j=h.indexOf('function __molar_mass_calculatorExportHistory(){');var seg=h.slice(i,j),hist=h.slice(j,j+260);var ok=i>=0&&j>i&&seg.indexOf('exportCsv(')>=0&&seg.indexOf('exportTable(')<0&&seg.indexOf('Chemical formula')>=0&&seg.indexOf('Mass fraction (%)')>=0&&seg.indexOf('rows.push([f,total.toFixed(3)')>=0&&hist.indexOf('molar-mass-calculator-history.csv')>=0;document.getElementById('formula').value='MOLEXP '+(ok?'OK':'BAD');"],
+    expect: ["MOLEXP OK"],
+    ref: "摩尔质量明细导出：旧按钮调用 exportTable 导出历史表（结果只截前 80 字）。现主按钮 exportCsv 当前元素明细，列含 Chemical formula / Mass fraction；历史导出独立函数与 molar-mass-calculator-history.csv。真机已核 C6H12O6/H2O/CuSO4·5H2O/空/错误五态。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "H2O" },
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/calc-cycle.html','utf8');var i=h.indexOf('function __calc_cycleExport(){');var j=h.indexOf('function __calc_cycleExportHistory(){');var seg=h.slice(i,j),hist=h.slice(j,j+220);var ok=i>=0&&j>i&&seg.indexOf('exportCsv(')>=0&&seg.indexOf('exportTable(')<0&&seg.indexOf('Chemical formula')>=0&&seg.indexOf('Mass fraction (%)')>=0&&hist.indexOf('calc-cycle-history.csv')>=0;document.getElementById('formula').value='MOLEXP '+(ok?'OK':'BAD');"],
+    "expect": ["MOLEXP OK"],
+    "ref": "calc-cycle 明细导出：旧按钮调用 exportTable 导出历史表。现主按钮 exportCsv 当前元素明细（化学式/总摩尔质量/元素/计数/原子量/分项质量/占比），历史单独 calc-cycle-history.csv。真机已核 C6H12O6/水合物/空/错误四态。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    // 原 all_default 弱用例（formula=H2O 恰等于页面默认）
+    inputs: { formula: "C6H12O6" },
+    expect: ["180.156 元素组成", "72.066", "40.00%"],
+    ref: "改为 C6H12O6：M = 12.011×6 + 1.008×12 + 15.999×6 = 180.156（toFixed(3)）；C 行质量 12.011×6 = 72.066、占比 72.066/180.156 = 40.00%。**同批修复页面真缺陷**：元素组成「占比」列原写成 (m/total×100)，而 total 是循环内累加中的前缀和 ⇒ 首行恒 100.00%：H2O 显示 100.00%+88.81% = 188.81%、C6H12O6 显示 100.00%+14.37%+53.29% = 167.66%（占比合计 >100% 物理不可能）。已改为先累加求 total、再第二趟算占比：C6H12O6 → 40.00%/6.71%/53.29%（合计 100.00%）、H2O → 11.19%/88.81%。默认态 18.016、无「72.066」与「40.00%」",
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "Ca(OH)2" },
+    expect: ["74.092", "54.09%"],
+    ref: "新增回归：括号结构 Ca(OH)2 → 40.078+2×(15.999+1.008)=74.092；旧正则解析丢掉括号，会把 O2H2 误拆成 O2 + H2 且 Ca 后系数错位，得 57.09 一类错误值",
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "Ca(OH]2" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（括号类型）：原括号扫描只累计深度、不区分配对类型，Ca(OH]2 的 '(' 遇 ']' 也 depth-- 归零被接受。现改栈匹配，闭合符须与栈顶开启符对应；交叉括号报错。旧版接受并算出质量 ⇒ 变红，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "NaCl·2H2O·3H2O" },
+    expect: ["摩尔质量 M 148.515", "H 10 1.008 10.080", "O 5 15.999 79.995"],
+    ref: "SMS-9 清账（多水合段）：原 addComp 递归时把前段系数累乘到后段，NaCl·2H2O·3H2O 得 H=16/O=8/M=202.560。现按 · 在顶层分段、各段系数独立（NaCl+2H2O+3H2O）：H=2+3=5×2=10、O=2+3=5、M=148.515。三条锚均为旧版不成立，零逃生。"
+  },
+  {
+    slug: "science/molar-mass-calculator",
+    inputs: { formula: "H0" },
+    expect: ["化学式格式有误"],
+    ref: "SMS-9 清账（零下标）：原括号/元素下标只按数字串解析，H0 产生 H=0 并以 M=0.000、占比 NaN/Infinity 参与展示。现元素与括号计数统一要求正整数，0 下标判格式错误；旧版不报「化学式格式有误」⇒ 变红，零逃生。"
+  },
+  {
+    "slug": "science/molar-mass-calculator",
+    "inputs": {
+      "formula": "abc123测试"
+    },
+    "expect": [
+      "化学式格式有误：括号不配对或含无法识别字符"
+    ],
+    "ref": "非法化学式 abc123测试 现由 parseFormula 校验并给出格式错误提示（原自动补强用例期望「摩尔质量 M 0.000」，是旧版静默返回 0 的行为，且把输入回显拼进期望串；已按现行为更正，默认 H2O 不出现该提示）。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "H2O)" },
+    "expect": ["括号不匹配：多余的右括号"],
+    "ref": "SMS-75：parseSegment 原在 ')' 分支直接 stack.pop()，多余右括号（H2O)/)H2O）无对应左括号时 top=undefined，随后 for(var k in top){cur[k]=…} 抛未捕获 TypeError、结果停留旧值。修复为 pop 前判断 stack.length<=1 直接返回错误。默认 formula=H2O 合法 ⇒ 不含该错误串（页面原生静态说明只有泛化「括号不匹配」，无此精确串）。"
+  },
+  {
+    "slug": "science/calc-cycle",
+    "inputs": { "formula": "CuSO4.5H2O" },
+    "expect": ["249.68 g/mol", "共 21 个原子"],
+    "ref": "SMS-76：文档示范水合物 CuSO4.5H2O，但旧 parseSegment 把段首系数 5 当非法字符报「无法识别的字符：\\\"5\\\"」。修复后 parseFormula 分段剥离段首系数乘算：Cu 63.546+S 32.06+O4 63.996+5×(H2 2.016+O 15.999)=63.546+32.06+63.996+90.075=249.677→249.68 g/mol；原子数 1+1+4+5×3=21。默认 H2O=18.02 ⇒ 不含该串。"
+  },
   // ── 经典力学 ─────────────────────────────────────────────────
   { slug: "science/newtons-second",
     inputs: { m: "10", a: "" },
@@ -75,37 +142,6 @@ const CASES = [
   },
 
   // ── 化学（摩尔质量 / pH）────────────────────────────────────
-  {
-    slug: "science/molar-mass-calculator",
-    // 原 all_default 弱用例（formula=H2O 恰等于页面默认）
-    inputs: { formula: "C6H12O6" },
-    expect: ["180.156 元素组成", "72.066", "40.00%"],
-    ref: "改为 C6H12O6：M = 12.011×6 + 1.008×12 + 15.999×6 = 180.156（toFixed(3)）；C 行质量 12.011×6 = 72.066、占比 72.066/180.156 = 40.00%。**同批修复页面真缺陷**：元素组成「占比」列原写成 (m/total×100)，而 total 是循环内累加中的前缀和 ⇒ 首行恒 100.00%：H2O 显示 100.00%+88.81% = 188.81%、C6H12O6 显示 100.00%+14.37%+53.29% = 167.66%（占比合计 >100% 物理不可能）。已改为先累加求 total、再第二趟算占比：C6H12O6 → 40.00%/6.71%/53.29%（合计 100.00%）、H2O → 11.19%/88.81%。默认态 18.016、无「72.066」与「40.00%」",
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "Ca(OH)2" },
-    expect: ["74.092", "54.09%"],
-    ref: "新增回归：括号结构 Ca(OH)2 → 40.078+2×(15.999+1.008)=74.092；旧正则解析丢掉括号，会把 O2H2 误拆成 O2 + H2 且 Ca 后系数错位，得 57.09 一类错误值",
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "Ca(OH]2" },
-    expect: ["化学式格式有误"],
-    ref: "SMS-9 清账（括号类型）：原括号扫描只累计深度、不区分配对类型，Ca(OH]2 的 '(' 遇 ']' 也 depth-- 归零被接受。现改栈匹配，闭合符须与栈顶开启符对应；交叉括号报错。旧版接受并算出质量 ⇒ 变红，零逃生。"
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "NaCl·2H2O·3H2O" },
-    expect: ["摩尔质量 M 148.515", "H 10 1.008 10.080", "O 5 15.999 79.995"],
-    ref: "SMS-9 清账（多水合段）：原 addComp 递归时把前段系数累乘到后段，NaCl·2H2O·3H2O 得 H=16/O=8/M=202.560。现按 · 在顶层分段、各段系数独立（NaCl+2H2O+3H2O）：H=2+3=5×2=10、O=2+3=5、M=148.515。三条锚均为旧版不成立，零逃生。"
-  },
-  {
-    slug: "science/molar-mass-calculator",
-    inputs: { formula: "H0" },
-    expect: ["化学式格式有误"],
-    ref: "SMS-9 清账（零下标）：原括号/元素下标只按数字串解析，H0 产生 H=0 并以 M=0.000、占比 NaN/Infinity 参与展示。现元素与括号计数统一要求正整数，0 下标判格式错误；旧版不报「化学式格式有误」⇒ 变红，零逃生。"
-  },
   {
     slug: "science/ph-calculator",
     // ⚠ 默认页签是「H⁺→pH」，读的是 id="H"（默认 0.001）；id="ph" 属于另两个页签，
@@ -462,6 +498,59 @@ const CASES = [
     ref: "SMS-127 清账：原 n 无上限，BigInt 连乘 r 项 + 两个未使用的 O(n) 数组，n=1e5 冻结页面。现加 n≤2000 上限守卫并删除未使用数组。注入 n=2001（刚过界，旧版可在秒内算出、不会卡死）断言上限提示；旧版正常输出排列数 ⇒ 变红，零逃生。"
   },
   {
+    slug: "science/combination-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=true;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBSC_'+((h.indexOf('方案数 2')>=0&&h.indexOf('A + A')>=0&&h.indexOf('A + B')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBSC_OK"],
+    ref: "组合方案（去重）：A,A,B 中取 2 个，按元素类型组合只有 {A,A}、{A,B} 两种，C(3,2)=3 因重复文本合并降为 2。共享纯函数 combinatorics-schemes.js 负责枚举，页面方案面板负责分页展示。旧版无方案面板 ⇒ 不产生该串。"
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBRAW_'+((h.indexOf('A#2')>=0&&h.indexOf('方案数 3')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBRAW_OK"],
+    ref: "组合方案（按位置）：关闭去重后 A,A,B 的三个位置取 2 个共 C(3,2)=3 种，重复文本以 A#2 区分，与去重态 2 种明确不同；防止把“相同文本同元素”和“不同位置”混为一谈。"
+  },
+  {
+    slug: "science/combination-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "甲、乙、丙、丙", n: "4", r: "0" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='甲、乙、丙、丙';document.getElementById('r').value='0';document.getElementById('dedupe').checked=true;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBR0_'+((h.indexOf('方案数 1')>=0&&h.indexOf('（不取元素）')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBR0_OK"],
+    ref: "组合方案 r=0：C(n,0)=1，唯一方案为空选，显示“（不取元素）”且不应误判为未填写；同时验证顿号分隔解析。"
+  },
+  {
+    slug: "science/combination-calculator",
+    inputs: { elements: "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z", n: "26", r: "20" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBLIM_'+((h.indexOf('230,230')>=0&&h.indexOf('方案数超过 500')>=0&&document.getElementById('combSchemes').querySelectorAll('.scheme-item').length===0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["COMBLIM_OK"],
+    ref: "组合生成上限：C(26,20)=C(26,6)=230,230 超过 500，应只显示数量并明确提示，绝不枚举 23 万条（否则页面卡死）。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=true;__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMSC_'+((h.indexOf('方案数 3')>=0&&h.indexOf('A → A')>=0&&h.indexOf('B → A')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["PERMSC_OK"],
+    ref: "排列方案（去重）：A,A,B 取 2 个的不重复序列为 AA、AB、BA 共 3 条，P(3,2)=6 因相同文本合并降为 3；验证重复序列只出现一次。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    inputs: { elements: "A,A,B", n: "3", r: "2" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMRAW_'+((h.indexOf('A#2')>=0&&h.indexOf('方案数 6')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["PERMRAW_OK"],
+    ref: "排列方案（按位置）：关闭去重后三个位置取 2 个共 P(3,2)=6 条，A/A#2 区分使 AA 出现两次；与去重态 3 条形成互斥回归。"
+  },
+  {
+    slug: "science/permutation-calculator",
+    checkIds: ["dedupe"],
+    inputs: { elements: "A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z", n: "26", r: "20" },
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').join(',');__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMLIM_'+((h.indexOf('560,127,029,342,507,827,200,000')>=0&&h.indexOf('上限 P(n,r)')>=0&&document.getElementById('permSchemes').querySelectorAll('.scheme-item').length===0)?'OK':'BAD_'+h.slice(0,80));"],
+    expect: ["PERMLIM_OK"],
+    ref: "排列去重计数卡死防线：26 个互异元素取 20 个，P(26,20)=560,127,029,342,507,827,200,000；去重精确计数是指数级状态搜索，必须在超过 500 且类型 >10 时改用上限值直接限流，禁止枚举。旧实现此处 RangeError/卡死。"
+  },
+  {
     slug: "science/nth-root-calculator",
     inputs: { x: "27", n: "7" },
     expect: ["e^0.471 = 1.601", "验证：(1.601)^7 = 27 ≈ 27"],
@@ -742,6 +831,13 @@ const CASES = [
     clicks: ["calculate()"],
     expect: ["IQR = Q3 − Q1 = 9.5 − 4.5 = 5", "上界 = Q3 + 1.5×IQR = 9.5 + 7.5 = 17"],
     ref: "四分位数（线性插值法，n=6）：pos = (n−1)×p ⇒ Q1 位置 = 5×0.25 = 1.25 ⇒ Q1 = 4 + 0.25×(6−4) = **4.5**；Q2 位置 = 2.5 ⇒ Q2 = 6 + 0.5×(8−6) = **7**；Q3 位置 = 3.75 ⇒ Q3 = 8 + 0.75×(10−8) = **9.5**。IQR = 9.5 − 4.5 = **5**；异常值上界 = 9.5 + 1.5×5 = **17**、下界 = 4.5 − 7.5 = −3（三条均可手算复算，且互为一体）。默认数据不同 ⇒ 不命中。",
+  },
+  {
+    slug: "science/correlation-calculator",
+    inputs: { xData: "1, 2", yData: "3, 4" },
+    clicks: ["calculate()"],
+    expect: ["样本量过小：n = 2", "不能据此推断总体相关强度或统计显著性"],
+    ref: "n=2 小样本：只要 X/Y 都有差异，Pearson r 必然为 ±1；页面必须保留 r 但明确说明不能推断总体相关或显著性。默认 5 组数据不出现该提示 ⇒ 非逃生。"
   },
   {
     slug: "science/correlation-calculator",
@@ -1546,7 +1642,7 @@ const CASES = [
       "lon2": "42"
     },
     "expect": [
-      "0° 初始方位角 北 方位（北向） 42.00000 中点纬度 42.00000 中点经度 0.0"
+      "—（两点重合） 初始方位角 重合 方位 42.00000 中点纬度 42.00000 中点经度 0.0"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"lat1\":\"42\",\"lon1\":\"42\",\"lat2\":\"42\",\"lon2\":\"42\"}，输出区含「0° 初始方位角 北 方位（北向） 42.00000 中点纬度 42.00000…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -1761,9 +1857,9 @@ const CASES = [
       "lon2": "42"
     },
     "expect": [
-      "伦敦 东京 巴黎\n42\n42\n42\n42\n0.00\n0.00\n0.00\n0.00°\n正北 (N"
+      "42\n42\n42\n42\n0.00\n0.00\n0.00\n—\n两点重合：方位无唯一解"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat1\":\"42\",\"lon1\":\"42\",\"lat2\":\"42\",\"lon2\":\"42\"}，输出区含「伦敦 东京 巴黎\n42\n42\n42\n42\n0.00\n0.00\n0.00\n0.00…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"lat1\":\"42\",\"lon1\":\"42\",\"lat2\":\"42\",\"lon2\":\"42\"}，输出区含「42\n42\n42\n42\n0.00\n0.00\n0.00\n—\n两点重合：方位无唯一解」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "science/heat-transfer-calculator",
@@ -1913,16 +2009,6 @@ const CASES = [
       " 撞击点 撞击坑 4.68 km 火球区 5.61 km 烧伤区 23.91 km 严重破坏 10.78 km 中度破坏 84.72"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"meteorDiameter\":\"42\",\"meteorVelocity\":\"42\",\"impactAngle\":\"42\",\"targetDensity\":\"42\",\"meteorDensity\":\"7800\",\"targetType\":\"crystalline\"}，输出区含「 撞击点 撞击坑 4.68 km 火球区 5.61 km 烧伤区 23.91 k…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
-  },
-  {
-    "slug": "science/molar-mass-calculator",
-    "inputs": {
-      "formula": "abc123测试"
-    },
-    "expect": [
-      "化学式格式有误：括号不配对或含无法识别字符"
-    ],
-    "ref": "非法化学式 abc123测试 现由 parseFormula 校验并给出格式错误提示（原自动补强用例期望「摩尔质量 M 0.000」，是旧版静默返回 0 的行为，且把输入回显拼进期望串；已按现行为更正，默认 H2O 不出现该提示）。"
   },
   {
     "slug": "science/mode-calculator",
@@ -2626,18 +2712,6 @@ const CASES = [
     "ref": "632 复核失败重做：showFormulas() 原无条件写入中文标题与多行中文说明，英文态（?lang=en-US）点击「公式说明」仍全中文。修复后按 __matIsEn() 分流整套英文文案。探针 mock TBKit.util.isEn=true 后调用，断言含 Matrix formula reference / Addition: 且无 CJK；默认态不执行 clicks ⇒ 零逃生。"
   },
   {
-    "slug": "science/calc-cycle",
-    "inputs": { "formula": "H2O)" },
-    "expect": ["括号不匹配：多余的右括号"],
-    "ref": "SMS-75：parseSegment 原在 ')' 分支直接 stack.pop()，多余右括号（H2O)/)H2O）无对应左括号时 top=undefined，随后 for(var k in top){cur[k]=…} 抛未捕获 TypeError、结果停留旧值。修复为 pop 前判断 stack.length<=1 直接返回错误。默认 formula=H2O 合法 ⇒ 不含该错误串（页面原生静态说明只有泛化「括号不匹配」，无此精确串）。"
-  },
-  {
-    "slug": "science/calc-cycle",
-    "inputs": { "formula": "CuSO4.5H2O" },
-    "expect": ["249.68 g/mol", "共 21 个原子"],
-    "ref": "SMS-76：文档示范水合物 CuSO4.5H2O，但旧 parseSegment 把段首系数 5 当非法字符报「无法识别的字符：\\\"5\\\"」。修复后 parseFormula 分段剥离段首系数乘算：Cu 63.546+S 32.06+O4 63.996+5×(H2 2.016+O 15.999)=63.546+32.06+63.996+90.075=249.677→249.68 g/mol；原子数 1+1+4+5×3=21。默认 H2O=18.02 ⇒ 不含该串。"
-  },
-  {
     "slug": "science/astro-geo-calculator",
     "inputs": { "sun-lat": "-33.86", "sun-lon": "151.21", "sun-date": "2026-06-21" },
     "clicks": ["calcSunriseSunset()"],
@@ -2856,12 +2930,100 @@ const CASES = [
     ref: "相关系数 X 数据含标签时，X/Y 解析错误合并后的 err 整段转义；旧版拼接 err 直接写 innerHTML。",
   },
   {
+    slug: "science/p-value-calculator",
+    inputs: {},
+    clicks: ["setMode(2);document.getElementById('chi2').value='1000000';document.getElementById('df2').value='1000000';calculate();var o=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/p-value-calculator.html','utf8');var ok=h.indexOf('if(!ok) return NaN')>=0&&h.indexOf('Wilson–Hilferty')>=0&&o.indexOf('Wilson–Hilferty')>=0;document.getElementById('chi2').value='CHIBIG '+(ok?'OK':'BAD');"],
+    expect: ["CHIBIG OK"],
+    ref: "大自由度卡方：gammp(500000,500000) 在 499 项内不收敛必须返回 NaN；chiSquareCDF(1e6,1e6) 应约 0.5（旧实现 0.739745），并明确标注 Wilson–Hilferty 近似。探针同时检查不收敛信号、中心值与说明文案。"
+  },
+  {
+    slug: "science/chi-square-calculator",
+    inputs: {},
+    clicks: ["setMode(1);document.getElementById('chiIn').value='1000000';document.getElementById('dfIn').value='1000000';calculate();var o=String(document.getElementById('output').textContent||document.getElementById('output').innerHTML);var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/science/chi-square-calculator.html','utf8');var ok=h.indexOf('if(!ok) return NaN')>=0&&h.indexOf('Wilson–Hilferty')>=0&&o.indexOf('Wilson–Hilferty')>=0;document.getElementById('chiIn').value='CHIBIG '+(ok?'OK':'BAD');"],
+    expect: ["CHIBIG OK"],
+    ref: "卡方工具大自由度：gammp(500000,500000) 499 项不收敛应返回 NaN；CDF(1e6,1e6) 约 0.5，并标注大自由度近似；旧实现给 0.739745。"
+  },
+  {
     slug: "science/chi-square-calculator",
     inputs: {},
     clicks: ["(function(){document.getElementById('obs').value='<img src=x onerror=window.__xss=1>';document.getElementById('exp').value='';calculate();var o=document.getElementById('output'),im=document.querySelector('#output img'),hasImg=im&&String(im.tagName).toUpperCase()==='IMG',ok=!hasImg&&!window.__xss&&o.innerHTML.indexOf('&lt;img')>=0&&o.innerHTML.indexOf('<img src')<0;document.getElementById('__tbProbe').textContent='CHIXSS '+(ok?'OK':'BAD');})()"],
     expect: ["CHIXSS OK"],
     ref: "卡方观察频数含标签时，观察/期望频数错误均经 __escHtml 输出；旧版两处 error 直接拼 innerHTML。",
   },
+  {
+    slug: "science/latlon-utm-converter",
+    inputs: {},
+    clicks: ["document.getElementById('utmZone').value='31';document.getElementById('utmHemisphere').value='N';document.getElementById('utmEasting').value='174541.329';document.getElementById('utmNorthing').value='1439053.593';convertUTM2LL()"],
+    expect: ["13°00'00.00"],
+    ref: "UTM 反算 DMS 进位：上述坐标反算纬度 12.999999°，秒数 59.999964″ 四舍五入后必须进为 13°00'00.00″，不得出现 60.00″。",
+  },
+  {
+    slug: "science/latlon-utm-converter",
+    inputs: {},
+    clicks: ["document.getElementById('utmZone').value='31';document.getElementById('utmHemisphere').value='N';document.getElementById('utmEasting').value='500000';document.getElementById('utmNorthing').value='9430000';convertUTM2LL()"],
+    expect: ["超出 UTM 标准投影范围"],
+    ref: "UTM 反算适用范围：该坐标反算纬度约 84.91°，虽在 ±90° 合法经纬度内，但已超出 UTM 标准投影 -80°~84°；旧版只查 ±90° 会输出不可用坐标，现拒绝并提示改用 UPS。",
+  },
+  {
+    slug: "science/astronomy-toolkit",
+    inputs: {},
+    clicks: ["document.getElementById('utmZone').value='31';document.getElementById('utmHemisphere').value='N';document.getElementById('utmEasting').value='500000';document.getElementById('utmNorthing').value='9430000';convertUTMToLatLon()"],
+    expect: ["超出 UTM 标准投影范围"],
+    ref: "天文工具箱 UTM 反算同样须检查 -80°~84°：84.91° 虽未超 ±90° 也不应返回 UTM 坐标，现提示极区改用 UPS。",
+  },
+
+  {
+    slug: "science/geo-distance-calculator",
+    inputs: { lat1: "0", lon1: "0", lat2: "0", lon2: "180" },
+    clicks: ["calculate()"],
+    expect: ["20015.09", "对跖点：方位无唯一解"],
+    ref: "对跖点浮点边界：Haversine 的 a 可能因浮点误差略大于 1，旧版 sqrt(1−a)=NaN 使公里/英里/海里全变 NaN；现 clamp a∈[0,1] 后仍得 6371×π=20015.09 km。对跖点初始方位无唯一解，显示 — 并注明原因，不再误报正东 90°。默认北京→上海不命中。",
+  },
+
+  {
+    slug: "science/pendulum-period",
+    inputs: {},
+    clicks: ["document.getElementById('L').value='0.0001';document.getElementById('g').value='9.80665';calcTool();var sw=__pdprSweep();var u=sw.labels.every(function(v,i){return i===0||v!==sw.labels[i-1]});var ok=sw&&u&&sw.dT.every(function(v){return isFinite(v)&&v>0;});document.getElementById('__tbProbe').textContent='PDSMALL '+(ok?'OK':'BAD '+sw.labels.join(','));"],
+    expect: ["PDSMALL OK"],
+    ref: "小尺度摆长 L=0.0001 m：采样标签须随量级保留有效数字（0.00002/0.000036/…，旧版统一 round 到 0.001 会全部变 0），曲线数据须保留完整精度（T≈0.009 s，不能舍入成 0）。默认 L=1 m 不命中。",
+  },
+  {
+    slug: "science/pendulum-period",
+    inputs: {},
+    clicks: ["document.getElementById('L').value='1';calcTool();document.getElementById('L').value='0';calcTool();var c=document.getElementById('pdprChart');document.getElementById('__tbProbe').textContent='PDE '+(String(c.innerHTML||c.textContent||c.innerText||'').indexOf('请输入有效参数后再绘制曲线')>=0?'OK':'BAD '+String(c.innerHTML||c.textContent||c.innerText||'').slice(0,40));"],
+    expect: ["PDE OK"],
+    ref: "先以 L=1 画出曲线，再把 L 改为 0：旧版 __pdprChart 在 __pdprSweep 返回 null 时直接 return，旧曲线继续显示；现清空图表容器并提示「请输入有效参数后再绘制曲线」。",
+  },
+  {
+    slug: "science/spring-oscillation-period",
+    inputs: {},
+    clicks: ["document.getElementById('m').value='0.0001';document.getElementById('k').value='0.0001';calcTool();var sw=__sospSweep();var u=sw.labels.every(function(v,i){return i===0||v!==sw.labels[i-1]});var ok=sw&&u&&sw.dT.every(function(v){return isFinite(v)&&v>0;});document.getElementById('__tbProbe').textContent='SOSMALL '+(ok?'OK':'BAD '+sw.labels.join(','));"],
+    expect: ["SOSMALL OK"],
+    ref: "小尺度刚度 k=0.0001 N/m：采样标签须为 0.00002/0.000036/…（旧版 round 到 0.01 会全部变 0），周期数据保留完整精度（T≈14.05 s），不得被固定四位小数截断。",
+  },
+  {
+    slug: "science/spring-oscillation-period",
+    inputs: {},
+    clicks: ["document.getElementById('m').value='1';calcTool();document.getElementById('m').value='0';calcTool();var c=document.getElementById('sospChart');document.getElementById('__tbProbe').textContent='SOSE '+(String(c.innerHTML||c.textContent||c.innerText||'').indexOf('请输入有效参数后再绘制曲线')>=0?'OK':'BAD '+String(c.innerHTML||c.textContent||c.innerText||'').slice(0,40));"],
+    expect: ["SOSE OK"],
+    ref: "质量由 1 改为 0：旧版曲线生成提前 return，旧曲线残留；现清空图表容器并提示。",
+  },
+
+  {
+    slug: "science/matrix-calculator",
+    inputs: {},
+    clicks: ["var a=fmt(0.001234567),b=fmt(999999.9999),c=fmt(1e-4);var ok=a==='0.001234567'&&b==='999999.9999'&&c==='1.000000e-4';document.getElementById('__tbProbe').textContent='MATFMT '+(ok?'OK':'BAD '+a+' / '+b+' / '+c);"],
+    expect: ["MATFMT OK"],
+    ref: "普通量级数值显示精度：旧版 round 到 1e-10 后调用无参 toLocaleString，默认最多 3 位小数 ⇒ 0.001234567 显示成 0.001、999999.9999 也丢尾部精度。现按 10 位有效数字取最短十进制：0.001234567 / 999999.9999；小于 1e-3 仍走 6 位科学计数 1.000000e-4。",
+  },
+  {
+    slug: "science/physics-calculator",
+    inputs: {},
+    clicks: ["var a=fmt(0.001234567),b=fmt(999999.9999),c=fmt(1e-4);var ok=a==='0.001234567'&&b==='999999.9999'&&c==='1.000000e-4';document.getElementById('__tbProbe').textContent='PHYFMT '+(ok?'OK':'BAD '+a+' / '+b+' / '+c);"],
+    expect: ["PHYFMT OK"],
+    ref: "物理计算结果同口径：0.001234567 保留 10 位有效数字，不再被 toLocaleString 默认 3 位小数压成 0.001；999999.9999 不丢尾数；1e-4 仍用科学计数。",
+  },
+
 ];
 
 // ---------------------------------------------------------------- main

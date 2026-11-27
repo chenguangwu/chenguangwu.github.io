@@ -1,6 +1,36 @@
 #!/usr/bin node
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
+const fs=require("fs"), path=require("path");
+function musicStaticChecks(){
+  const read=(p)=>fs.readFileSync(path.join(__dirname,"..","tools","music",p),"utf8");
+  const cp=read("chord-progression.html"), cn=read("chord-notes.html"), mt=read("music-theory.html"), gt=read("guitar-fretboard.html"), wt=read("web-tuner.html"), bs=read("beat-subdivision.html"), fq=read("freq-note-converter.html"), sp=read("convert-speed.html"), dt=read("detector.html"), ac=read("audio-converter.html"), ma=read("music-analysis.html"), mp=read("music-player.html"), et=read("ear-trainer.html"), rt=read("rhythm-trainer.html"), rr=read("random-training-rhythm.html"), pk=read("piano-keyboard.html"), sg=read("generator-1.html"), bp=read("bpm-converter.html");
+  return [
+    {name:"和弦进行降E映射、悲怆四级与大调高频",ok:/'Eb':3/.test(cp)&&!/'Eb':2/.test(cp)&&/qualities:\s*\['',\s*'m',\s*'',\s*'m'\]/.test(cp)&&/48 \+ chordRoot/.test(cp)&&/spellChordNote\(rootName/.test(cp)},
+    {name:"和弦进行停止清理全部高亮定时器",ok:/highlightTimeouts/.test(cp)&&/highlightTimeouts\.forEach/.test(cp)&&/if \(isPlaying\) highlightChord/.test(cp)},
+    {name:"和弦音符按音级拼写并修正A大三示例",ok:/spellFromRoot/.test(cn)&&/A C♯ E/.test(cn)&&!/A、A\+4\(半音\)=C、/.test(cn)},
+    {name:"乐理小调与复音程按音级拼写",ok:/SCALE_STEPS/.test(mt)&&/stepOverride/.test(mt)&&/intervalName\(iv\)/.test(mt)&&/14:'9'/.test(mt)},
+    {name:"吉他小调音阶与降号拼写",ok:/minor': \[0,2,3,5,7,8,10\]/.test(gt)&&/spellChordNote|calcScaleNotes/.test(gt)&&/NOTE_NAMES_FLAT/.test(gt)},
+    {name:"调音器错误区分与目标随参考音刷新",ok:/PermissionDeniedError/.test(wt)&&/DevicesNotFoundError|NotFoundError/.test(wt)&&/targetBaseFreq \* refA4 \/ 440/.test(wt)&&/Microphone permission denied/.test(wt)&&/No microphone detected/.test(wt)&&!/global\.ToolBox/.test(wt)},
+    {name:"节拍细分严格BPM、7/8分组与整小节格数",ok:/function readBpm/.test(bs)&&/readBpm\('bpm', 1, 999\)/.test(bs)&&/getMeterGroups/.test(bs)&&/group7/.test(bs)&&/共 \$\{cells\} 个细分格子/.test(bs)},
+    {name:"节拍器播放中实时读取参数",ok:/function metroSettings/.test(bs)&&/readBpm\('metroBpm', 20, 300\)/.test(bs)&&/st\.interval/.test(bs)&&/setTimeout\(metroTick/.test(bs)&&!/setInterval\(\s*\(\) => \{\s*scheduleClick/.test(bs)},
+    {name:"音符转频率八度整数与试听范围",ok:/octaveValid/.test(fq)&&/Math\.floor\(octave\) === octave/.test(fq)&&/canAudition/.test(fq)&&/AUDIBLE_MIN/.test(fq)&&!/Math\.max\(20, Math\.min\(freq, 20000\)/.test(fq)},
+    {name:"变速比例与相对变化分开标注",ok:/目标速度占原速比例/.test(sp)&&/相对变化/.test(sp)&&/__ratio/.test(sp)},
+    {name:"节拍检测新一轮清空旧结果",ok:/function clearResult/.test(dt)&&/updateDisplay[\s\S]{0,200}clearResult\(\)/.test(dt)&&/resetBPM[\s\S]{0,300}clearResult\(\)/.test(dt)},
+    {name:"音频格式十进制容量与英文免责",ok:/totalBytes \/ 1e6/.test(ac)&&/320 \* 1000 \* dur \/ 8 \/ 1e6/.test(ac)&&/no upload or transcoding/.test(ac)&&!/Convert audio files between common formats/.test(ac)},
+    {name:"音频分析容量十进制与统计清空",ok:/totalBytes \/ 1e6/.test(ma)&&/function clearStats/.test(ma)&&/clearStats\(\)/.test(ma)&&/bytesPerSec \/ 1000/.test(ma)},
+    {name:"播放器按实际加入数反馈并跳过非音频",ok:/function isAudioFile/.test(mp)&&/const added = \[\]/.test(mp)&&/skipped\+\+/.test(mp)&&/已添加 \$\{added\.length\} 首，跳过 \$\{skipped\}/.test(mp)&&!/已添加 \$\{files\.length\} 首歌曲/.test(mp)},
+    {name:"播放器 Promise/事件同步状态并修正历史索引",ok:/function attemptPlay/.test(mp)&&/p\.then\(\(\) => \{ updatePlayUI\(true\)/.test(mp)&&/showPlayError\(\); return false;/.test(mp)&&/audio\.addEventListener\('error'/.test(mp)&&/__tbHistSave\(\{时间:__tbTime\(\),曲目:t\.name/.test(mp)&&!/var t=playlist\[i\]/.test(mp)},
+    {name:"听力训练播放方式用 data-style 选中",ok:/data-style="simultaneous"/.test(et)&&/data-style="arpeggio"/.test(et)&&/getAttribute\('data-style'\) === style/.test(et)&&!/textContent\.indexOf\(style/.test(et)},
+    {name:"听力训练动态文案按语言生成",ok:/function intervalName/.test(et)&&/function chordName/.test(et)&&/L\('Easy \(4 intervals\)'/.test(et)&&/L\('Correct answer: '/.test(et)&&/L\('Correct!/.test(et)&&/L\('Wrong answer'/.test(et)&&/refreshLanguageUI/.test(et)},
+    {name:"听力训练切题停止旧振荡器与定时器",ok:/function stopCurrentSound/.test(et)&&/activeOscs\.forEach/.test(et)&&/playTimers\.forEach/.test(et)&&/function generateQuestion\(\) \{\n    stopCurrentSound\(\)/.test(et)&&/if \(token === playToken\)/.test(et)},
+    {name:"节奏训练额外点击计入分母并展示",ok:/extraTapIndices/.test(rt)&&/scoredUnits = results\.length \+ extraCount/.test(rt)&&/totalScore \/ scoredUnits/.test(rt)&&/Extra taps/.test(rt)&&/额外点击/.test(rt)},
+    {name:"跟拍训练空值与越界拒绝启动",ok:/function readInt\(id, min, max\)/.test(rr)&&/Number\.isInteger\(n\) && n >= min && n <= max/.test(rr)&&/bpm === null \|\| sub === null \|\| bars === null/.test(rr)&&!/parseInt\(document\.getElementById\('tapBpm'\)\.value\)\|\|100/.test(rr)&&!/bpm=Math\.max\(40,Math\.min\(200,bpm\)\)/.test(rr)},
+    {name:"钢琴键盘失焦/隐藏停止全部音符",ok:/window\.addEventListener\('blur', function\(\) \{\n    stopAllNotes\(\);/.test(pk)&&/document\.addEventListener\('visibilitychange'/.test(pk)&&/if \(document\.hidden\) stopAllNotes\(\)/.test(pk)&&/window\.addEventListener\('pagehide'/.test(pk)},
+    {name:"音阶生成指定调性/正确拼写/试听键盘",ok:/function spellPitch/.test(sg)&&/const ROOTS = \[/.test(sg)&&/function buildScale/.test(sg)&&/function renderKeyboard/.test(sg)&&/function playScale/.test(sg)&&/随机练习/.test(sg)&&!/一律随机生成/.test(sg)},
+    {name:"BPM 主/反向分别校验记录导出",ok:/function __bpm_converterMainValid/.test(bp)&&/function __bpm_converterReverseValid/.test(bp)&&/if\(!mainOk && !reverseOk\)/.test(bp)&&/if\(!reverseOk\)\{ delete snap\.reverseMs/.test(bp)&&/!__bpm_converterMainValid\(\) && !__bpm_converterReverseValid\(\)/.test(bp)&&!/if\(!Number\.isFinite\(ms\) \|\| ms<=0\)\{\n        ToolBox\.showToast\('请先输入有效的时长值'\)/.test(bp)}
+  ];
+}
 const CASES = [
 {
     "slug": "music/ear-trainer",
@@ -22,7 +52,7 @@ const CASES = [
     "ch": "2",
     "dur": "180"
   },
-  "expect": [ "45.42 MB" ],
+  "expect": [ "47.63 MB" ],
   "ref": "auto-restore"
 },
 {
@@ -35,8 +65,16 @@ const CASES = [
     "bpmA": "100",
     "bpmB": "140"
   },
-  "expect": ["180\n4/4\n180 BPM — Presto（急板） | 拍号 4/4 | 小节时长 1.33s\n180 BPM 333.3 四分音符(ms) 1.33s 小节时长 4 每小节拍数\n音符类型 符号 时长(ms) 时长(s) 每拍数量 每小节数量 全音符 𝅝 1333.33 1.333 4 1 附点全音符 𝅝. 2000.00 2.000 8/3 2/3 全音符三连音 𝅝³ 888.89 0.889 6 3/2 二分音符 𝅗𝅥 666.67 0.667 2 2 附点二分音符 𝅗𝅥. 1000.00 1.000 4/3 4/3 二分音符三连音 𝅗𝅥³ 444.44 0.444 3 3 四分音符 ♩ 333.33 0.333 1 4 附点四分音符 ♩. 500.00 0.500 2/3 8/3 四分音符三连音 ♩³ 222.22 0.222 3/2 6 八分音符 ♪ 166.67 0.167 2 8 附点八分音符 ♪. 250.00 0.250 4/3 16/3 八分音符三连音 ♪³ 111.11 0.111 3 12 十六分音符 𝅘𝅥𝅯 83.33 0.083 4 16 附点十六分音符 𝅘𝅥𝅯. 125.00 0.125 8/3 32/3 十六分音符三连音 𝅘𝅥𝅯³ 55.56 0.056 6 24 三十二分音符 𝅘𝅥𝅰 41.67 0.042 8 32 附点三十二分音符 𝅘𝅥𝅰. 62.50 0.063 16/3 64/3 三十二分音符三连音 𝅘𝅥𝅰³ 27.78 0.028 12 48\nquarter\n拍1 拍2 拍3 拍4 共 4 个细分 | 每格 333.33ms\n♩ 四分音符 ♪ 八分音符 𝅘𝅥𝅯 十六分音符 ♩³ 四分三连音 ♪³ 八分三连音 ♩. 附点四分 ♪. 附点八分\n100\n140\n音符类型 符号 BPM 100 时长(ms) BPM 140 时长(ms) 差值(ms) 差异比例 全音符 𝅝 2400.00 1714.29 +685.71 +28.6% 附点全音符 𝅝. 3600.00 2571.43 +1028.57 +28.6% 二分音符 𝅗𝅥 1200.00 857.14 +342.86 +28.6% 附点二分音符 𝅗𝅥. 1800.00 1285.71 +514.29 +28.6% 四分音符 ♩ 600.00 428.57 +171.43 +28.6% 附点四分音符 ♩. 900.00 642.86 +257.14 +28.6% 八分音符 ♪ 300.00 214.29 +85.71 +28.6% 附点八分音符 ♪. 450.00 321.43 +128.57 +28.6% 十六分音符 𝅘𝅥𝅯 150.00 107.14 +42.86 +28.6% 附点十六分音符 𝅘𝅥𝅯. 225.00 160.71 +64.29 +28.6% 三十二分音符 𝅘𝅥𝅰 75.00 53.57 +21.43 +28.6% 附点三十二分音符 𝅘𝅥𝅰. 112.50 80.36 +32.14 +28.6%\n120\n120 BPM\n80\nundefined%\n50\nundefined%\n▶"],
-  "ref": "auto-restore"
+  "expect": [
+    "180 BPM — Presto（急板） | 拍号 4/4 | 小节时长 1.33s",
+    "180 BPM",
+    "333.3",
+    "1333.33",
+    "共 4 个细分格子",
+    "拍号 4/4，每格 333.33ms",
+    "BPM 100 时长(ms)"
+  ],
+  "ref": "默认参数整页回归：180 BPM 四分音符 333.33ms、全音符 1333.33ms、4/4 共 4 格；对比表含 BPM 100/140。可视化改为整小节格子后锚「共 4 个细分格子」，不再使用旧「拍1 拍2…」逐拍串。"
 },
 {
   "slug": "music/bpm-converter",
@@ -105,19 +143,17 @@ const CASES = [
 },
 {
   "slug": "music/generator-1",
-  "inputs": {
-    "cnt": "8"
-  },
-  "expect": [
-    "6."
-  ],
-  "ref": "auto-restore"
+  "inputs": {},
+  "clicks": ["var r=buildScale(ROOTS[5],SCALES[0],4);var n=r.notes.map(function(x){return x.name;}).join(' ');document.getElementById('__tbProbe').textContent='SCALE '+n+' '+r.notes[3].freq.toFixed(2);"],
+  "expect": ["SCALE F4 G4 A4 B♭4 C5 D5 E5 466.16"],
+  "ref": "直接调用 buildScale 校验 F 大调：第四级按音级拼成 B♭（不是 A♯），跨 C 音级的 C5/D5/E5 八度正确，频率 466.16 Hz。旧实现只随机根音与调式且一律升号，无 buildScale ⇒ 无探针串。"
 },
 {
   "slug": "music/generator-1",
-  "inputs": { "cnt": "" },
-  "expect": ["请输入生成数量"],
-  "ref": "FE-N73 复核重做：清空生成数量（空值）后，旧实现 `value||5` 把空当 0→5 生成 5 题；现空值直接提示「请输入生成数量」并 return。默认 cnt=5 生成 5 题不含该提示 ⇒ 强判别、零逃生。"
+  "inputs": {},
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/music/generator-1.html','utf8');var ok=h.indexOf('随机数量需为 1–50 的整数')>=0&&h.indexOf('Number.isInteger(n)')>=0&&h.indexOf('n<1||n>50')>=0;document.getElementById('__tbProbe').textContent='GENEMPTY '+(ok?'OK':'BAD');"],
+  "expect": ["GENEMPTY OK"],
+  "ref": "随机练习模式的数量必须为非空 1–50 整数；源码守卫空串/非整数/越界统一报「随机数量需为 1–50 的整数」。旧实现无随机数量输入与校验 ⇒ 无探针串。"
 },
 {
   "slug": "music/guitar-fretboard",
@@ -125,9 +161,19 @@ const CASES = [
     "setTuning('drop-d');setScale('A','minor');"
   ],
   "expect": [
-    "A 小调： C# D E F# G# A B"
+    "A 小调： A B C D E F G"
   ],
-  "ref": "去默认化（原 expect「10」＝默认标准调弦 C 大调态下的静态串，注入失败仍命中 → 逃生项）：setTuning/setScale 为 window 全局函数，clicks 置 Drop D 调弦 + A 小调后 scaleNotesDisplay 渲染「A 小调： C# D E F# G# A B」；默认 C 大调显示「C 大调： C D E F G A B」，注入失败即不命中。"
+  "ref": "A 小调自然音阶应为 A B C D E F G；旧实现用相对大调偏移叠加根音，输出 C# D E F# G# A B，属把 A 小调当 A 大调。"
+},
+{
+  "slug": "music/guitar-fretboard",
+  "clicks": [
+    "setTuning('standard');setScale('C','minor');"
+  ],
+  "expect": [
+    "C 小调： C D Eb F G Ab Bb"
+  ],
+  "ref": "C 自然小调应按调号拼成 C D Eb F G Ab Bb；旧实现根音错位成 A B C D E F G，且固定升号无法拼出降号音。"
 },
 {
   "slug": "music/music-analysis",
@@ -138,7 +184,7 @@ const CASES = [
     "duration-sec": "60"
   },
   "expect": [
-    "258.40"
+    "264.60"
   ],
   "ref": "auto-restore"
 },
@@ -257,6 +303,8 @@ const CASES = [
     expect: ["40.00 BPM"],
     ref: '独立复算：BPM=60000/1500=40.00（达 bpm 下限 40）。注入 reverseMs=1500。默认态 120.00 BPM，不命中。'
   },
+
+
   {
     slug: "music/freq-note-converter",
     inputs: { freqInput: "220" },
@@ -345,42 +393,42 @@ const CASES = [
     slug: "music/audio-converter",
     inputs: { sr: "8000", bd: "16", ch: "1", dur: "60" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 0.92 MB"],
+    expect: ["PCM 原始大小: 0.96 MB"],
     ref: '8000/16/1/60s 电话级单声道 0.92MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "44100", bd: "16", ch: "2", dur: "300" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 50.47 MB"],
+    expect: ["PCM 原始大小: 52.92 MB"],
     ref: '44100/16/2/300s CD音质5分钟 50.47MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "48000", bd: "24", ch: "2", dur: "120" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 32.96 MB"],
+    expect: ["PCM 原始大小: 34.56 MB"],
     ref: '48000/24/2/120s 专业录音2分钟 32.96MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "96000", bd: "16", ch: "2", dur: "60" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 21.97 MB"],
+    expect: ["PCM 原始大小: 23.04 MB"],
     ref: '96000/16/2/60s 高清1分钟 21.97MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "22050", bd: "8", ch: "1", dur: "180" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 3.79 MB"],
+    expect: ["PCM 原始大小: 3.97 MB"],
     ref: '22050/8/1/180s AM广播单声道3分钟 3.79MB'
   },
   {
     slug: "music/audio-converter",
     inputs: { sr: "192000", bd: "32", ch: "2", dur: "30" },
     clicks: ["calcPCM()"],
-    expect: ["PCM 原始大小: 43.95 MB"],
+    expect: ["PCM 原始大小: 46.08 MB"],
     ref: '192000/32/2/30s 母带30秒 43.95MB'
   },
   {
@@ -415,7 +463,7 @@ const CASES = [
     slug: "music/beat-subdivision",
     inputs: { bpm: "75", timeSig: "6/8" },
     clicks: ["calculate()"],
-    expect: ["拍号 6/8 | 小节时长 2.40s"],
+    expect: ["拍号 6/8（分组 3+3 八分） | 小节时长 2.40s"],
     ref: '75BPM/6/8 小节时长2.40s'
   },
   {
@@ -452,7 +500,193 @@ const CASES = [
     clicks: ["var e=document.getElementById('a4Input');e.value='';finishA4Edit();document.getElementById('freq2note').textContent='A4EDIT '+(+e.value===440?'OK':'BAD');"],
     expect: ["A4EDIT OK"],
     ref: "第1065批：A4 自定义输入清空/越界时，失焦必须恢复标准 440 Hz，不能输入框空白而内部仍沿用旧参考频率。空值触发 finishA4Edit 后 a4Input 回填 440；默认态输入框本就是 440、探针串不存在 ⇒ 锚不逃生。"
-  }
+  },
+
+
+{
+  "slug": "music/chord-notes",
+  "clicks": ["document.getElementById('chordInput').value='Bb';analyzeChord();document.getElementById('__tbProbe').textContent=document.getElementById('notesDisplay').innerText;"],
+  "expect": ["Bb", "D", "F"],
+  "ref": "Bb 大三和弦应为 Bb-D-F；旧实现把根音转成 A# 并显示 A# D F。"
+},
+{
+  "slug": "music/chord-notes",
+  "clicks": ["document.getElementById('chordInput').value='Cdim';analyzeChord();document.getElementById('__tbProbe').textContent=document.getElementById('notesDisplay').innerText;"],
+  "expect": ["C", "E♭", "G♭"],
+  "ref": "C 减三和弦应按音级拼成 C-E♭-G♭，不得写成 C-D#-F#。"
+},
+{
+  "slug": "music/music-theory",
+  "clicks": ["setRoot(0);document.getElementById('scale-type').value='minor';renderScale();document.getElementById('__tbProbe').textContent=document.getElementById('scale-display').innerText;"],
+  "expect": ["C - D - Eb - F - G - Ab - Bb"],
+  "ref": "C 自然小调必须按音级拼写 C-D-E♭-F-G-A♭-B♭；旧实现固定升号，显示 D#/G#/A#。"
+},
+{
+  "slug": "music/music-theory",
+  "clicks": ["setRoot(0);document.getElementById('chord-type').value='add9';renderChord();document.getElementById('__tbProbe').textContent=document.getElementById('chord-display').innerText;"],
+  "expect": ["Cadd9", "D", "9"],
+  "ref": "Cadd9 的九音应拼作 D 且音程标注 9，不得把 +14 半音标成 2。"
+}
+,
+{
+  "slug": "music/web-tuner",
+  "inputs": { "refFreq": "440" },
+  "clicks": ["var f=document.getElementById('refFreq');setTarget({classList:{contains:function(){return false;},add:function(){},remove:function(){}},dataset:{freq:'82.41'},textContent:'E2'});window.__wtSetRefA4(432);window.__wtRenderTarget(80.91);"],
+  "expect": ["目标 E2（80.91 Hz）｜当前距目标 0.0 音分"],
+  "ref": "A4 改为 432 后，E2=82.41×432/440=80.91 Hz；目标弦必须随参考音刷新，旧实现始终用 440 基准的 82.41 Hz，选 432 后偏差约 31.8 音分。"
+},
+{
+  "slug": "music/web-tuner",
+  "inputs": { "refFreq": "440" },
+  "clicks": ["try{copyTunerReading();document.getElementById('centsText').textContent='COPY OK';}catch(e){document.getElementById('centsText').textContent='COPY ERR:'+e.name;}"],
+  "expect": ["COPY OK"],
+  "ref": "无有效读数时 copyTunerReading 必须安全返回并提示，不得因访问浏览器不存在的 global 抛 ReferenceError。默认 noteName 为「--」即进入空读数分支。"
+}
+,
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "" },
+  "clicks": ["calculate()"],
+  "expect": ["请输入 1–999 之间的有效 BPM", "BPM 无效，已清除计算结果"],
+  "ref": "清空 BPM 必须报错并清空结果，不得静默回退 120 BPM；默认 120 不出现该提示，旧实现 `parseFloat||120` 会继续输出 500ms 结果。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "0" },
+  "clicks": ["calculate()"],
+  "expect": ["请输入 1–999 之间的有效 BPM"],
+  "ref": "BPM=0 属越界，不得被当作未填写回退默认 120；页面标注范围 1–999。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "-20" },
+  "clicks": ["calculate()"],
+  "expect": ["请输入 1–999 之间的有效 BPM"],
+  "ref": "负数 BPM 必须拒绝，旧实现会输出负时长。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "7/8" },
+  "clicks": ["document.getElementById('group7').value='2+2+3';calculate();"],
+  "expect": ["拍号 7/8（分组 2+2+3 八分）", "每小节组数", "共 7 个细分格子"],
+  "ref": "7/8 不能再按 7/3=2.333 拍处理；2+2+3 分组应显示 3 组、7 个八分格，且每格 125ms（120BPM 八分音符 250ms？7/8 小节 7×250ms=1750ms，7 格）。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "7/8" },
+  "clicks": ["document.getElementById('group7').value='3+2+2';calculate();"],
+  "expect": ["拍号 7/8（分组 3+2+2 八分）", "组1（3八分）", "组2（2八分）"],
+  "ref": "切换 7/8 分组后标签与重音分组必须同步为 3+2+2，不能仍显示固定 2+2+3。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "4/4" },
+  "clicks": ["document.getElementById('vizDivision').value='whole';calculate();"],
+  "expect": ["共 1 个细分格子", "每格 2000.00ms"],
+  "ref": "4/4 全音符跨 4 拍，整小节应只有 1 格（2000ms）；旧实现按每拍系数渲染出 4 个空格子。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "6/8" },
+  "clicks": ["document.getElementById('vizDivision').value='quarter';calculate();"],
+  "expect": ["共 3 个细分格子", "每格 500.00ms"],
+  "ref": "6/8 小节 1500ms，四分音符 500ms → 3 格；旧实现按 2 拍×1 渲染 2 格且时长口径不一致。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpm": "120", "timeSig": "6/8", "metroBpm": "120" },
+  "clicks": ["selectNoteType('eighth');document.getElementById('vizDivision').value='eighth';calculate();var a=__bsMetroInfo();document.getElementById('metroBpm').value='240';var b=__bsMetroInfo();document.getElementById('bpm').value='240';document.getElementById('metroBpm').value='240';document.getElementById('timeSig').value='4/4';var c=__bsMetroInfo();document.getElementById('tempoLabel').textContent='M|'+a+'|'+b+'|'+c;"],
+  "expect": ["M|120|6|250.00|0.0,750.0", "|240|6|125.00|"],
+  "ref": "6/8 八分细分每小节 6 格，120BPM 间隔 250ms；把节拍器 BPM 改为 240 后同一函数立即返回 125ms，证明参数在播放中实时读取而非启动时捕获；切到 4/4 后组边界变为 0/250/500/750。"
+},
+{
+  "slug": "music/beat-subdivision",
+  "inputs": { "bpmA": "", "bpmB": "140" },
+  "clicks": ["compareBPM()"],
+  "expect": ["BPM A 与 BPM B 都需填写 1–999 之间的有效数字"],
+  "ref": "BPM 对比清空任一侧必须报错，不得用 100/140 默认值继续输出对比表。"
+}
+,
+{
+  "slug": "music/freq-note-converter",
+  "inputs": { "octaveInput": "4.9" },
+  "clicks": ["calcNote2Freq()"],
+  "expect": ["八度需为 0–8 的整数", "小数或越界输入不会参与计算"],
+  "ref": "八度 4.9 必须拒绝并提示，不得 parseInt 成 4 后继续输出 C4；默认 4 不出现提示，旧实现会显示 C4。"
+},
+{
+  "slug": "music/freq-note-converter",
+  "inputs": { "freqInput": "30000" },
+  "clicks": ["window.__fncAuditionAttempts=0;playFreq();document.getElementById('freq2note').textContent='PLAY '+window.__fncAuditionAttempts;"],
+  "expect": ["PLAY 0"],
+  "ref": "试听只支持 20–20000 Hz；30000 Hz 超范围应直接提示且不调用播放，不再静默钳制成 20000 Hz。playTone 尝试计数为 0 可区分「未播放」与「播放了钳制值」。"
+},
+{
+  "slug": "music/freq-note-converter",
+  "inputs": { "freqInput": "1" },
+  "clicks": ["window.__fncAuditionAttempts=0;playFreq();window.__fncAuditionAttempts=window.__fncAuditionAttempts||0;document.getElementById('freq2note').textContent='PLAY '+window.__fncAuditionAttempts;"],
+  "expect": ["PLAY 0"],
+  "ref": "1 Hz 低于试听下限 20 Hz，必须提示不播放；旧实现会静默播放 20 Hz，与计算结果 1 Hz 不一致。"
+},
+{
+  "slug": "music/convert-speed",
+  "inputs": { "dur": "180", "ob": "120", "nb": "140" },
+  "clicks": ["calc()"],
+  "expect": ["提速 16.7%｜目标速度=原速的 116.7%"],
+  "ref": "120→140：目标速度占原速 116.7%，相对原速变化 +16.7%；两个口径必须同时标出，不能把 116.7% 当提速幅度。"
+},
+{
+  "slug": "music/detector",
+  "inputs": {},
+  "clicks": ["try{tapTimes=[1000,2000];updateDisplay();var r=document.getElementById('res');var had=r.style.display;tapTimes=[3000];updateDisplay();document.getElementById('bpmNum').textContent='DET '+had+'|'+r.style.display+'|'+r.innerHTML.length;}catch(e){document.getElementById('bpmNum').textContent='DETERR '+e.message;}"],
+  "expect": ["DET block|none|0"],
+  "ref": "新一轮只有 1 次点击时必须隐藏并清空上一轮 BPM 结果；旧实现只把 bpmNum 改「—」，res 仍 display:block 且保留旧 BPM。"
+}
+,
+{
+  "slug": "music/audio-converter",
+  "inputs": { "sr": "44100", "bd": "", "ch": "2", "dur": "180" },
+  "clicks": ["calcPCM()"],
+  "expect": ["位深 1–64 bit", "都必须填写有效值"],
+  "ref": "单项空值不得静默回退 16 bit；旧实现 `||16` 会继续输出容量，新实现逐项校验并在结果区给出范围提示。"
+},
+{
+  "slug": "music/audio-converter",
+  "inputs": { "sr": "44100", "bd": "16", "ch": "2", "dur": "-60" },
+  "clicks": ["calcPCM()"],
+  "expect": ["时长 >0 秒", "都必须填写有效值"],
+  "ref": "负时长必须拒绝，旧实现会输出负容量。"
+},
+{
+  "slug": "music/audio-converter",
+  "inputs": { "sr": "44100", "bd": "16", "ch": "2", "dur": "180" },
+  "clicks": ["calcPCM()"],
+  "expect": ["转 MP3 320k: <strong>≈ 7.20 MB", "PCM 原始大小: 31.75 MB"],
+  "ref": "十进制口径：44100×16/8×2×180=31,752,000 B=31.75 MB；320 kbps×1000×180/8/1e6=7.20 MB。旧实现按 MiB 与 1024 得 29.06/7.03，口径混杂。"
+},
+{
+  "slug": "music/music-analysis",
+  "inputs": { "sample-rate": "", "bit-depth": "16", "channels": "2", "duration-sec": "60" },
+  "clicks": ["calcAudioSize()"],
+  "expect": ["采样率 1–768000 Hz", "都必须填写有效值"],
+  "ref": "采样率清空不得回退 44100；旧实现 `||44100` 静默输出默认容量。"
+},
+{
+  "slug": "music/music-analysis",
+  "inputs": {},
+  "clicks": ["['stat-freq','stat-note','stat-cent','stat-octave'].forEach(function(id){document.getElementById(id).textContent='OLD';});clearStats();document.getElementById('audio-size-result').textContent='CLR '+['stat-freq','stat-note','stat-cent','stat-octave'].map(function(id){return document.getElementById(id).textContent;}).join('|');"],
+  "expect": ["CLR —|—|—|—"],
+  "ref": "clearStats 必须把频率/音名/音分/八度四项统计统一复位为「—」；旧实现静音与停止只清主显示，四项保留上一帧。"
+}
+,
+{
+  "slug": "music/music-player",
+  "inputs": {},
+  "clicks": ["var __o=URL.createObjectURL;URL.createObjectURL=function(){return 'blob:test';};handleFiles([{name:'good.mp3',type:'audio/mpeg'},{name:'bad.exe',type:'application/x-msdownload'},{name:'no-mime.flac',type:''}]);URL.createObjectURL=__o;document.getElementById('__tbProbe').textContent='FILES '+playlist.length+':'+document.querySelectorAll('.playlist-item').length;"],
+  "expect": ["FILES 2:2"],
+  "ref": "混合选择：仅计 audio MIME 与扩展名兜底的 2 个可播放文件，.exe 跳过；旧实现 push 前直接 return 却仍用 files.length=3 报「已添加 3 首」。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
@@ -474,7 +708,10 @@ async function main() {
     }
   }
 
+  const stat=musicStaticChecks();
+  const sf=stat.filter(x=>!x.ok);
+  for(const x of sf) console.log("❌ [static] "+x.name);
   console.log("==== music calc " + pass + "/" + cases.length + " ====");
-  if (fails.length) process.exit(1);
+  if (fails.length||sf.length) process.exit(1);
 }
 if (require.main === module) main();

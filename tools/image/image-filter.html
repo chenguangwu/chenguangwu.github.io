@@ -31,9 +31,13 @@
 .preview-box{text-align:center;margin:16px 0;}
 .preview-box img{max-width:100%;max-height:400px;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,0.1);}
 .filter-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;margin:12px 0;}
-.filter-btn{padding:8px;background:var(--result-bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;text-align:center;color:var(--text);transition:all 0.15s;}
+.filter-btn{padding:8px;background:var(--result-bg);border:1px solid var(--border);border-radius:6px;cursor:pointer;font-size:12px;text-align:center;color:var(--text);transition:all 0.15s;font:inherit;width:100%;}
 .filter-btn:hover{background:var(--bg-hover);}
 .filter-btn.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.filter-btn:focus-visible{outline:3px solid var(--primary);outline-offset:2px;}
+.filter-anim-note{display:none;margin-top:10px;padding:9px 12px;border:1px solid #f59e0b;background:#fffbeb;color:#92400e;border-radius:8px;font-size:13px;line-height:1.6;}
+.preview-box{position:relative;}
+.compare-badge{position:absolute;left:10px;top:10px;background:rgba(17,24,39,.82);color:#fff;border-radius:6px;padding:4px 9px;font-size:12px;pointer-events:none;}
 .slider-row{display:flex;align-items:center;gap:12px;margin:8px 0;}
 .slider-row label{margin:0;min-width:80px;font-size:13px;}
 .slider-row input[type="range"]{flex:1;}
@@ -139,12 +143,13 @@
 <div class="container" role="main">
   <div class="card tool-card-accent" style="--tool-accent:#B23A08;">
     <h2 data-zh="🖼️ 图片滤镜工具">Image Filter Studio</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="使用 CSS Filter 和 Canvas 应用滤镜效果">Image Filter</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="上传单张图片，用 20 个预设或亮度/对比/饱和/色相/模糊/灰度/褐度/反色滑块调色，按住可对比原图，PNG 本地导出不上传。">Filter one local image with 20 presets and brightness, contrast, saturation, hue, blur, grayscale, sepia and invert sliders; hold to compare with the original and export a PNG locally without uploading.</p>
 
     <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
       📁 点击或拖拽图片到这里
       <input type="file" id="file-input" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none;" onchange="handleFile(this.files[0])" aria-label="选择图片文件">
     </div>
+    <div class="filter-anim-note" id="filterAnimNotice" role="status" aria-live="polite"></div>
 
     <div id="imgfChart" style="margin-top:14px;"></div>
 
@@ -164,10 +169,12 @@
 
       <div class="preview-box">
         <img alt="Filter preview"  id="preview-img">
+        <div class="compare-badge" id="compareBadge" hidden>原图</div>
       </div>
 
       <div class="toolbar">
         <button type="button" class="btn" onclick="resetFilter()">↻ 重置</button>
+        <button type="button" class="btn" id="compareBtn" aria-pressed="false">按住查看原图</button>
         <button type="button" class="btn primary" onclick="downloadFiltered()">⬇ 下载滤镜图片</button>
       </div>
     </div>
@@ -196,7 +203,7 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>照片偏暗想提亮，或想做复古灰阶风格。</li>
-<li>统一一批图色调，让合集看起来更协调。</li>
+<li>需要给多张图分别套用相近参数时，可保留滑杆值逐张处理；本页一次处理一张图。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">提亮 + 加饱和</div><div class="dd-ex-body">亮度 100→130、饱和度 100→120，原图偏灰变通透，其余参数保持 100 不变。</div></div>
 <div class="dd-example"><div class="dd-ex-title">复古灰阶</div><div class="dd-ex-body">勾选 grayscale，亮度 100、对比 110，得到黑白胶片感；再叠加 sepia 0→40 出褐黄怀旧调。</div></div>
@@ -249,37 +256,96 @@
 let originalImg = null;
 let originalUrl = '';
 let currentFilter = 'none';
+let currentPresetFilter = null;
+let activePreset = 0;
+let loadToken = 0;
+let imageLoading = false;
+let comparing = false;
+
+function __imgfIsEn(){
+  return !!(typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+}
+function __imgfT(zh, en){ return __imgfIsEn() ? en : zh; }
 
 const PRESETS = [
-  { name: '原图', filter: 'none' },
-  { name: '黑白', filter: 'grayscale(100%)' },
-  { name: '复古', filter: 'sepia(80%) contrast(120%)' },
-  { name: '冷色', filter: 'hue-rotate(180deg) saturate(120%)' },
-  { name: '暖色', filter: 'sepia(40%) saturate(140%) brightness(105%)' },
-  { name: '明亮', filter: 'brightness(120%) contrast(110%) saturate(120%)' },
-  { name: '暗淡', filter: 'brightness(80%) contrast(120%)' },
-  { name: '高对比', filter: 'contrast(180%) saturate(140%)' },
-  { name: '低饱和', filter: 'saturate(40%)' },
-  { name: '高饱和', filter: 'saturate(180%)' },
-  { name: '反色', filter: 'invert(100%)' },
-  { name: '模糊', filter: 'blur(3px)' },
-  { name: '锐化感', filter: 'contrast(140%) brightness(105%)' },
-  { name: '梦幻', filter: 'blur(1px) brightness(110%) saturate(130%)' },
-  { name: '黄昏', filter: 'sepia(60%) hue-rotate(-20deg) saturate(140%)' },
-  { name: '青调', filter: 'hue-rotate(120deg) saturate(120%) brightness(95%)' },
-  { name: '电影感', filter: 'contrast(115%) saturate(85%) brightness(95%) sepia(15%)' },
-  { name: '粉嫩', filter: 'sepia(30%) hue-rotate(310deg) saturate(150%)' },
-  { name: '绿色调', filter: 'sepia(50%) hue-rotate(70deg) saturate(130%)' },
-  { name: '蓝调', filter: 'sepia(40%) hue-rotate(160deg) saturate(120%)' }
+  { nameZh: '原图', nameEn: 'Original', filter: 'none' },
+  { nameZh: '黑白', nameEn: 'Black & white', filter: 'grayscale(100%)' },
+  { nameZh: '复古', nameEn: 'Vintage', filter: 'sepia(80%) contrast(120%)' },
+  { nameZh: '冷色', nameEn: 'Cool', filter: 'hue-rotate(180deg) saturate(120%)' },
+  { nameZh: '暖色', nameEn: 'Warm', filter: 'sepia(40%) saturate(140%) brightness(105%)' },
+  { nameZh: '明亮', nameEn: 'Bright', filter: 'brightness(120%) contrast(110%) saturate(120%)' },
+  { nameZh: '暗淡', nameEn: 'Dark', filter: 'brightness(80%) contrast(120%)' },
+  { nameZh: '高对比', nameEn: 'High contrast', filter: 'contrast(180%) saturate(140%)' },
+  { nameZh: '低饱和', nameEn: 'Low saturation', filter: 'saturate(40%)' },
+  { nameZh: '高饱和', nameEn: 'High saturation', filter: 'saturate(180%)' },
+  { nameZh: '反色', nameEn: 'Invert', filter: 'invert(100%)' },
+  { nameZh: '模糊', nameEn: 'Blur', filter: 'blur(3px)' },
+  { nameZh: '锐化感', nameEn: 'Sharpened', filter: 'contrast(140%) brightness(105%)' },
+  { nameZh: '梦幻', nameEn: 'Dreamy', filter: 'blur(1px) brightness(110%) saturate(130%)' },
+  { nameZh: '黄昏', nameEn: 'Sunset', filter: 'sepia(60%) hue-rotate(340deg) saturate(140%)' },
+  { nameZh: '青调', nameEn: 'Teal', filter: 'hue-rotate(120deg) saturate(120%) brightness(95%)' },
+  { nameZh: '电影感', nameEn: 'Cinematic', filter: 'contrast(115%) saturate(85%) brightness(95%) sepia(15%)' },
+  { nameZh: '粉嫩', nameEn: 'Pink', filter: 'sepia(30%) hue-rotate(310deg) saturate(150%)' },
+  { nameZh: '绿色调', nameEn: 'Green tint', filter: 'sepia(50%) hue-rotate(70deg) saturate(130%)' },
+  { nameZh: '蓝调', nameEn: 'Blue tint', filter: 'sepia(40%) hue-rotate(160deg) saturate(120%)' }
 ];
+function __imgfPresetName(p){ return __imgfIsEn() ? p.nameEn : p.nameZh; }
 
 function __svgFileBlocked(file) {
+  file = file || {};
   var t = String(file.type || '').toLowerCase(), n = String(file.name || '').toLowerCase();
   if (t.indexOf('image/svg') === 0 || /\.svg$/i.test(n)) {
-    ToolBox.showToast('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'error');
+    if (typeof ToolBox !== 'undefined' && ToolBox.showToast) {
+      ToolBox.showToast(__imgfT('仅支持位图（PNG/JPG/WebP），不支持 SVG', 'Only bitmap images (PNG/JPG/WebP) are supported; SVG is not'), 'error');
+    }
     return true;
   }
   return false;
+}
+var __IMGF_MAX_SIDE = 16384;
+var __IMGF_MAX_PIXELS = 67108864;
+function __imgfCanvasLimit(w, h){
+  w = Number(w); h = Number(h);
+  if(!isFinite(w) || !isFinite(h) || w <= 0 || h <= 0){
+    return {ok:false, message:__imgfT('图片尺寸无效，无法创建导出画布。', 'The image size is invalid, so an export canvas cannot be created.')};
+  }
+  if(w > __IMGF_MAX_SIDE || h > __IMGF_MAX_SIDE || (w * h) > __IMGF_MAX_PIXELS){
+    return {ok:false, message:__imgfT(
+      '图片尺寸 ' + w + '×' + h + ' 超过浏览器安全画布上限（最长边 ' + __IMGF_MAX_SIDE + ' px / 总像素 ' + __IMGF_MAX_PIXELS.toLocaleString('en-US') + '）；请先缩小图片后再导出。',
+      'Image size ' + w + '×' + h + ' exceeds the safe canvas limit (longest side ' + __IMGF_MAX_SIDE + ' px / total pixels ' + __IMGF_MAX_PIXELS.toLocaleString('en-US') + '); resize the image before exporting.'
+    )};
+  }
+  return {ok:true, message:''};
+}
+window.__imgfCanvasLimit = __imgfCanvasLimit;
+
+function __imgfSetNotice(file){
+  var n = document.getElementById('filterAnimNotice');
+  if(!n) return;
+  var type = String(file && file.type || '').toLowerCase();
+  if(type === 'image/gif' || type === 'image/webp'){
+    n.textContent = type === 'image/gif'
+      ? __imgfT('当前输入是 GIF，预览可能播放动画，下载结果是首帧静态 PNG；需要完整动画请保留原文件。','This is a GIF input. The preview may play the animation, but the download is a static PNG of the first frame; keep the original file for the full animation.')
+      : __imgfT('当前输入是 WebP；如果是动态 WebP，预览可能播放动画，下载结果是首帧静态 PNG；需要完整动画请保留原文件。','This is a WebP input. If it is animated, the preview may play the animation, but the download is a static PNG of the first frame; keep the original file for the full animation.');
+    n.style.display = 'block';
+  } else {
+    n.textContent = '';
+    n.style.display = 'none';
+  }
+}
+function __imgfFail(token, myUrl, prevUrl){
+  if(token !== loadToken){ if(myUrl) URL.revokeObjectURL(myUrl); return; }
+  imageLoading = false;
+  if(prevUrl && prevUrl !== myUrl) URL.revokeObjectURL(prevUrl);
+  if(myUrl) URL.revokeObjectURL(myUrl);
+  originalUrl = '';
+  originalImg = null;
+  var img = document.getElementById('preview-img');
+  if(img){ img.removeAttribute('src'); img.style.filter = 'none'; }
+  document.getElementById('controls').style.display = 'none';
+  var n = document.getElementById('filterAnimNotice'); if(n){ n.textContent = ''; n.style.display = 'none'; }
+  showOriginal(false);
+  ToolBox.showToast(__imgfT('图片加载失败，请换一张有效图片重试。','Could not load the image. Please try another valid file.'), 'error');
 }
 function handleFile(file) {
   if (!file || __svgFileBlocked(file)) {
@@ -290,46 +356,91 @@ function handleFile(file) {
     ToolBox.showToast(i18nText('toast.msg933'), 'warn');
     return;
   }
-  originalImg = new Image();
-  const prevUrl = originalUrl;
-  originalUrl = URL.createObjectURL(file);
-  originalImg.onload = () => {
-    if (prevUrl) URL.revokeObjectURL(prevUrl);
-    const img = document.getElementById('preview-img');
-    img.src = originalImg.src;
+  var token = ++loadToken;
+  imageLoading = true;
+  var prevUrl = originalUrl;
+  var myUrl = '';
+  try { myUrl = URL.createObjectURL(file); }
+  catch(e){
+    imageLoading = false;
+    ToolBox.showToast(__imgfT('无法读取该图片文件，请重试。','Could not read this image file. Please try again.'), 'error');
+    return;
+  }
+  originalUrl = myUrl;
+  originalImg = null;
+  var img = document.getElementById('preview-img');
+  if(img){ img.removeAttribute('src'); img.style.filter = 'none'; }
+  document.getElementById('controls').style.display = 'none';
+  showOriginal(false);
+  __imgfSetNotice(file);
+  var newImg = new Image();
+  newImg.onload = function() {
+    if (token !== loadToken) { URL.revokeObjectURL(myUrl); return; }
+    imageLoading = false;
+    if (prevUrl && prevUrl !== myUrl) URL.revokeObjectURL(prevUrl);
+    originalImg = newImg;
+    originalUrl = myUrl;
+    var preview = document.getElementById('preview-img');
+    preview.src = myUrl;
     document.getElementById('controls').style.display = '';
     renderPresets();
-    applyFilter();
+    resetFilter();
+    __imgfSetNotice(file);
   };
-  originalImg.src = originalUrl;
+  newImg.onerror = function() { __imgfFail(token, myUrl, prevUrl); };
+  newImg.src = myUrl;
 }
 
 function renderPresets() {
   const html = PRESETS.map((p, i) => `
-    <div class="filter-btn ${i === 0 ? 'active' : ''}" onclick="applyPreset(${i})">${p.name}</div>
+    <button type="button" class="filter-btn ${i === activePreset ? 'active' : ''}" aria-pressed="${i === activePreset ? 'true' : 'false'}" onclick="applyPreset(${i})">${__imgfPresetName(p)}</button>
   `).join('');
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preset-grid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preset-grid').innerHTML=__h0;
+  const grid = document.getElementById('preset-grid');
+  if(grid) grid.innerHTML = html;
+}
+
+function syncPresetState(){
+  document.querySelectorAll('.filter-btn').forEach(function(b, i){
+    var on = i === activePreset;
+    b.classList.toggle('active', on);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
 }
 
 function applyPreset(i) {
-  var preset = PRESETS[i].filter || '';
-  // 预设必须回写滑杆：否则下一次拖动任一滑杆会按旧滑杆值重建 filter，预设立即丢失。
+  var preset = PRESETS[i].filter || 'none';
+  // 预设定义里的滤镜顺序会影响颜色；保留原始顺序，而不是把参数拆回固定顺序重排。
+  currentPresetFilter = preset;
+  activePreset = i;
   ['brightness','contrast','saturate'].forEach(function(id){ document.getElementById(id).value = 100; });
   ['grayscale','sepia','invert','blur','hue'].forEach(function(id){ document.getElementById(id).value = 0; });
   var m;
   if((m=preset.match(/brightness\((\d+)%\)/))) document.getElementById('brightness').value = m[1];
   if((m=preset.match(/contrast\((\d+)%\)/))) document.getElementById('contrast').value = m[1];
   if((m=preset.match(/saturate\((\d+)%\)/))) document.getElementById('saturate').value = m[1];
-  if((m=preset.match(/hue-rotate\((-?\d+)deg\)/))) document.getElementById('hue').value = m[1];
+  if((m=preset.match(/hue-rotate\((-?\d+)deg\)/))) {
+    var angle = parseInt(m[1], 10);
+    document.getElementById('hue').value = ((angle % 360) + 360) % 360;
+  }
   if((m=preset.match(/blur\((\d+(?:\.\d+)?)px\)/))) document.getElementById('blur').value = Math.round(parseFloat(m[1]));
   if((m=preset.match(/grayscale\((\d+)%\)/))) document.getElementById('grayscale').value = m[1];
   if((m=preset.match(/sepia\((\d+)%\)/))) document.getElementById('sepia').value = m[1];
   if((m=preset.match(/invert\((\d+)%\)/))) document.getElementById('invert').value = m[1];
-  applyFilter();
-  document.querySelectorAll('.filter-btn').forEach(function(b, idx){ b.classList.toggle('active', idx === i); });
+  applyFilter(true);
+  renderPresets();
 }
 
-function applyFilter() {
+function __imgfSliderLabels() {
+  var ids = ['brightness','contrast','saturate','grayscale','sepia','invert'];
+  ids.forEach(function(id){ var el=document.getElementById(id+'-val'); if(el) el.textContent = document.getElementById(id).value + '%'; });
+  var hue=document.getElementById('hue-val'); if(hue) hue.textContent = document.getElementById('hue').value + '°';
+  var blur=document.getElementById('blur-val'); if(blur) blur.textContent = document.getElementById('blur').value + 'px';
+}
+
+function applyFilter(preserveOrder) {
+  __imgfSliderLabels();
+  if(!originalImg || imageLoading) return;
+  if(!preserveOrder){ activePreset = -1; currentPresetFilter = null; }
   const b = document.getElementById('brightness').value;
   const c = document.getElementById('contrast').value;
   const s = document.getElementById('saturate').value;
@@ -338,61 +449,94 @@ function applyFilter() {
   const g = document.getElementById('grayscale').value;
   const se = document.getElementById('sepia').value;
   const inv = document.getElementById('invert').value;
-  document.getElementById('brightness-val').textContent = b + '%';
-  document.getElementById('contrast-val').textContent = c + '%';
-  document.getElementById('saturate-val').textContent = s + '%';
-  document.getElementById('hue-val').textContent = h + '°';
-  document.getElementById('blur-val').textContent = bl + 'px';
-  document.getElementById('grayscale-val').textContent = g + '%';
-  document.getElementById('sepia-val').textContent = se + '%';
-  document.getElementById('invert-val').textContent = inv + '%';
-  const filter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) hue-rotate(${h}deg) blur(${bl}px) grayscale(${g}%) sepia(${se}%) invert(${inv}%)`;
-  document.getElementById('preview-img').style.filter = filter;
+  const baseFilter = `brightness(${b}%) contrast(${c}%) saturate(${s}%) hue-rotate(${h}deg) blur(${bl}px) grayscale(${g}%) sepia(${se}%) invert(${inv}%)`;
+  const filter = (preserveOrder && currentPresetFilter != null) ? currentPresetFilter : baseFilter;
+  document.getElementById('preview-img').style.filter = comparing ? 'none' : filter;
   currentFilter = filter;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  syncPresetState();
   try { __imgfChart(); } catch (e) {}
 }
 
 function resetFilter() {
+  activePreset = 0;
+  currentPresetFilter = 'none';
   ['brightness','contrast','saturate'].forEach(id => document.getElementById(id).value = 100);
   ['grayscale','sepia','invert','blur','hue'].forEach(id => document.getElementById(id).value = 0);
-  applyFilter();
-  document.querySelectorAll('.filter-btn').forEach((b, i) => b.classList.toggle('active', i === 0));
+  applyFilter(false);
+  activePreset = 0;
   currentFilter = 'none';
-  document.getElementById('preview-img').style.filter = 'none';
+  if(!comparing) document.getElementById('preview-img').style.filter = 'none';
+  renderPresets();
+  showOriginal(false);
+}
+
+function showOriginal(on){
+  if(!originalImg || imageLoading){ on = false; }
+  comparing = !!on;
+  var img = document.getElementById('preview-img');
+  var badge = document.getElementById('compareBadge');
+  var btn = document.getElementById('compareBtn');
+  if(img) img.style.filter = comparing ? 'none' : currentFilter;
+  if(badge){ badge.hidden = !comparing; badge.textContent = __imgfT('原图','Original'); }
+  if(btn) btn.setAttribute('aria-pressed', comparing ? 'true' : 'false');
+}
+function __imgfBindCompare(){
+  var btn = document.getElementById('compareBtn');
+  if(!btn || btn.dataset.bound) return;
+  btn.dataset.bound = '1';
+  btn.addEventListener('pointerdown', function(e){ e.preventDefault(); showOriginal(true); });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(ev){ btn.addEventListener(ev, function(){ showOriginal(false); }); });
+  btn.addEventListener('keydown', function(e){
+    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); showOriginal(true); }
+  });
+  btn.addEventListener('keyup', function(e){
+    if(e.key === ' ' || e.key === 'Enter'){ e.preventDefault(); showOriginal(false); }
+  });
+  btn.addEventListener('blur', function(){ showOriginal(false); });
+  btn.textContent = __imgfT('按住查看原图','Hold to view original');
 }
 
 function downloadFiltered() {
-  if (!originalImg) return;
+  if (!originalImg || imageLoading) {
+    ToolBox.showToast(__imgfT('图片尚未加载完成，请稍后再导出。','The image is not ready; try exporting again in a moment.'), 'warn');
+    return;
+  }
   const w = originalImg.naturalWidth;
   const h = originalImg.naturalHeight;
-  const canvas = document.createElement('canvas');
-  canvas.width = w; canvas.height = h;
-  const ctx = canvas.getContext('2d');
-  // 预览被 CSS 缩到 max-height:400px；同一个 blur(Npx) 在原图上视觉强度只有预览的 1/缩放倍。
-  // 导出时按 naturalWidth / 预览 clientWidth 放大 blur，使成图接近所见。
-  var previewEl = document.getElementById('preview-img');
-  var displayW = previewEl ? previewEl.clientWidth : 0;
-  var exportFilter = currentFilter;
-  if(displayW > 0 && w > displayW){
-    var scale = w / displayW;
-    exportFilter = exportFilter.replace(/blur\((\d+(?:\.\d+)?)px\)/g, function(_, n){ return 'blur(' + (parseFloat(n) * scale).toFixed(2) + 'px)'; });
-  }
-  ctx.filter = exportFilter;
-  ctx.drawImage(originalImg, 0, 0, w, h);
-  try { canvas.toBlob(blob => {
-    if (!blob) {
-      ToolBox.showToast('导出失败：画布可能超出浏览器上限，请换一张更小的图片。', 'error');
-      return;
+  var limit = __imgfCanvasLimit(w, h);
+  if(!limit.ok){ ToolBox.showToast(limit.message, 'error'); return; }
+  var canvas = document.createElement('canvas');
+  try {
+    canvas.width = w; canvas.height = h;
+    const ctx = canvas.getContext('2d');
+    if(!ctx) throw new Error(__imgfT('无法创建画布上下文','Could not create a canvas context'));
+    // 预览被 CSS 缩到 max-height:400px；同一个 blur(Npx) 在原图上视觉强度只有预览的 1/缩放倍。
+    // 导出时按 naturalWidth / 预览 clientWidth 放大 blur，使成图接近所见。
+    var previewEl = document.getElementById('preview-img');
+    var displayW = previewEl ? previewEl.clientWidth : 0;
+    var exportFilter = currentFilter;
+    if(displayW > 0 && w > displayW){
+      var scale = w / displayW;
+      exportFilter = exportFilter.replace(/blur\((\d+(?:\.\d+)?)px\)/g, function(_, n){ return 'blur(' + (parseFloat(n) * scale).toFixed(2) + 'px)'; });
     }
-    const a = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    a.href = url;
-    a.download = `filtered-${Date.now()}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-    ToolBox.showToast(i18nText('toast.msg141'), 'success');
-  }, 'image/png'); } catch (e) { ToolBox.showToast('导出失败：' + ((e && (e.name || e.message)) || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error'); }
+    ctx.filter = exportFilter;
+    ctx.drawImage(originalImg, 0, 0, w, h);
+    canvas.toBlob(function(blob){
+      if (!blob) {
+        ToolBox.showToast(__imgfT('导出失败：画布可能超出浏览器上限，请换一张更小的图片。','Export failed: the canvas may exceed the browser limit; try a smaller image.'), 'error');
+        return;
+      }
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = `filtered-${Date.now()}.png`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      ToolBox.showToast(i18nText('toast.msg141'), 'success');
+    }, 'image/png');
+  } catch (e) {
+    ToolBox.showToast(__imgfT('导出失败：','Export failed: ') + ((e && (e.name || e.message)) || __imgfT('未知错误','Unknown error')), 'error');
+  }
 }
 
 const dz = document.getElementById('drop-zone');
@@ -403,6 +547,7 @@ dz.addEventListener('drop', e => {
   dz.classList.remove('dragover');
   if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
 });
+__imgfBindCompare();
 
 function __imgfChart() {
   if (typeof TBKit === 'undefined' || !TBKit.chart) return;
@@ -437,7 +582,7 @@ function __imgfInit() {
   }
 }
 __imgfInit();
-window.addEventListener('toolbox:langchange', function () { try { __imgfChart(); } catch (e) {} });
+window.addEventListener('toolbox:langchange', function () { try { renderPresets(); __imgfBindCompare(); var b=document.getElementById('compareBtn'); if(b) b.textContent=__imgfT('按住查看原图','Hold to view original'); var badge=document.getElementById('compareBadge'); if(badge) badge.textContent=__imgfT('原图','Original'); __imgfChart(); } catch (e) {} });
 ToolBox.initToolTheme();
 </script><script>
 // tool-intro折叠交互
@@ -462,12 +607,12 @@ document.addEventListener('DOMContentLoaded',function(){
   <div class="related-tools-grid">
     <a href="generator-15.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG）</span><span class="rt-desc">圆角图片生成器。在前端上传图片并生成带指定圆角的 PNG（可批量、右键保存），图片不离开设备，用于头…</span></span>
+      <span class="rt-info"><span class="rt-name">圆角图片（生成带圆角的PNG）</span><span class="rt-desc">上传 1–12 张 PNG/JPEG/WebP，按短边百分比或固定像素生成圆角，四角透明并导出 PN…</span></span>
     </a>
     
     <a href="image-converter.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
-      <span class="rt-info"><span class="rt-name">图片转换</span><span class="rt-desc">将图片在 JPEG/PNG/WebP 等格式间转换并输出多种格式，便于网页优化、体积压缩与兼容性处理…</span></span>
+      <span class="rt-info"><span class="rt-name">图片转换</span><span class="rt-desc">把 PNG/JPEG/WebP/GIF 图片转换为 JPEG/PNG/WebP，可一次输出多种格式…</span></span>
     </a>
     <a href="gif-split.html" class="related-tool-card">
       <span class="rt-icon">🖼️</span>
@@ -475,7 +620,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="image-compress.html" class="related-tool-card">
       <span class="rt-icon">🗜️</span>
-      <span class="rt-info"><span class="rt-name">图片压缩工具</span><span class="rt-desc">在线压缩图片，支持 JPEG / WebP / PNG 格式、质量调节、尺寸限制与批量处理，所有处理…</span></span>
+      <span class="rt-info"><span class="rt-name">图片压缩工具</span><span class="rt-desc">压缩 JPEG / WebP / PNG / GIF / BMP 图片，支持质量调节、尺寸限制与批量…</span></span>
     </a>
     <a href="image-collage.html" class="related-tool-card">
       <span class="rt-icon">🧩</span>
@@ -493,17 +638,18 @@ document.addEventListener('DOMContentLoaded',function(){
     <p data-zh="上传本地图片后，通过 CSS Filter 与 Canvas 实时叠加灰度、模糊、对比度、饱和度等滤镜效果，支持参数滑动调节与结果预览，所有处理在浏览器本地完成，适合快速美化或统一图片风格">上传本地图片后，通过 CSS Filter 与 Canvas 实时叠加灰度、模糊、对比度、饱和度等滤镜效果，支持参数滑动调节与结果预览，所有处理在浏览器本地完成，适合快速美化或统一图片风格</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
-      <li>纯前端图片处理，无需上传</li>
-      <li>支持多种图片格式</li>
-      <li>处理速度快，即时预览</li>
+      <li>纯前端单图处理，无需上传</li>
+      <li>支持 PNG、JPEG、WebP、GIF 静态图</li>
+      <li>20 个预设与自定义滑块，即时预览</li>
+      <li>按住查看原图，保留当前参数</li>
       <li>保护隐私，图片不离开设备</li>
     </ul>
     <h4><span class="h4-icon">🎯</span>使用场景</h4>
     <ul class="intro-scenes">
-      <li>快速图片编辑与格式转换</li>
-      <li>图片压缩与优化</li>
-      <li>批量图片处理</li>
-      <li>隐私敏感的图片处理需求</li>
+      <li>单张照片快速调色</li>
+      <li>为同一组图片分别套用相近参数</li>
+      <li>设计稿或社交配图的滤镜预览</li>
+      <li>隐私敏感、不希望上传的图片处理</li>
     </ul>
     </div>
 </div>

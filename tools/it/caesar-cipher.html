@@ -225,6 +225,13 @@
 
   <div class="card">
     <h2>📋 历史记录</h2>
+    <div style="margin-bottom:10px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--result-bg);">
+      <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;cursor:pointer;">
+        <input type="checkbox" id="saveHistoryOptIn" onchange="onHistoryOptInChange()" style="margin-top:2px;">
+        <span id="saveHistoryOptLabel">在本机保留历史（含明文/密文，默认关闭）</span>
+      </label>
+      <div id="saveHistoryOptNote" style="font-size:12px;color:var(--text-muted);margin-top:6px;line-height:1.6;">默认不保存；已有历史不会被自动删除，可用下方“清空历史”清除。</div>
+    </div>
     <div id="historyList" style="max-height:300px;overflow-y:auto;"></div>
     <div class="toolbar" style="margin-top:12px;">
       <button type="button" class="btn danger" onclick="clearHistory()">清空历史</button>
@@ -461,8 +468,32 @@ function escapeHtml(text){
 }
 
 // IT-N141: oninput 每次按键都写历史 → 前缀刷满 20 条。改为 500ms 防抖，停止输入后只落一条完整结果。
+function __cipherHistoryIsEn(){
+  return (typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()) || /lang=en-US/i.test(location.search);
+}
+function __cipherHistoryEnabled(){
+  var cb=document.getElementById('saveHistoryOptIn');
+  return !!(cb&&cb.checked);
+}
+function onHistoryOptInChange(){
+  if(__cipherHistoryEnabled()) return;
+  if(typeof cancelHistory==='function'){ cancelHistory(); return; }
+  if(__caesarHistoryTimer){ clearTimeout(__caesarHistoryTimer); __caesarHistoryTimer=null; }
+}
+function renderHistoryPrivacyLabels(){
+  var en=__cipherHistoryIsEn();
+  var label=document.getElementById('saveHistoryOptLabel');
+  var note=document.getElementById('saveHistoryOptNote');
+  if(label) label.textContent=en?'Keep history on this device (includes plaintext/ciphertext; off by default)':'在本机保留历史（含明文/密文，默认关闭）';
+  if(note) note.textContent=en?'Nothing is saved by default. Existing entries are not deleted automatically; use “Clear history” below to remove them.':'默认不保存；已有历史不会被自动删除，可用下方“清空历史”清除。';
+}
+document.addEventListener('DOMContentLoaded',renderHistoryPrivacyLabels);
 var __caesarHistoryTimer = null;
 function __caesar_cipherScheduleHistory(input, output, shift, mode){
+  if(!__cipherHistoryEnabled()){
+    if(__caesarHistoryTimer){ clearTimeout(__caesarHistoryTimer); __caesarHistoryTimer=null; }
+    return;
+  }
   if(__caesarHistoryTimer){ clearTimeout(__caesarHistoryTimer); __caesarHistoryTimer=null; }
   __caesarHistoryTimer = setTimeout(function(){
     __caesarHistoryTimer=null;
@@ -732,7 +763,7 @@ else document.addEventListener('DOMContentLoaded', __caesar_cipherBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

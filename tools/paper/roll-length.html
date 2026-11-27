@@ -271,47 +271,53 @@ function switchTab(name, btn) {
   document.getElementById('tab-' + name).classList.add('active');
 }
 
+function __en(){try{if(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return true;}catch(e){}return /(^|[?&])lang=en/i.test(location.search)||(document.documentElement.lang||'').toLowerCase().indexOf('en')===0;}
+function __msg(zh,en){return __en()?en:zh;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function calcLen() {
-  var D = parseFloat(document.getElementById('outerDia').value) || 0;
-  var d = parseFloat(document.getElementById('coreDia').value) || 0;
-  var t = parseFloat(document.getElementById('paperThk').value) || 0;
+  var D = readNum('outerDia');
+  var d = readNum('coreDia');
+  var t = readNum('paperThk');
+  if(isNaN(d)){ToolBox.setResult('lenResult','<p style="color:var(--danger);">'+__msg('纸芯内径不能留空；若没有纸芯请明确输入 0，不能把空值当作 0。','Core diameter cannot be blank. Enter 0 explicitly if there is no core; a blank is not treated as 0.')+'</p>');return;}
+  if(isNaN(D)||isNaN(t)){ToolBox.setResult('lenResult','<p style="color:var(--danger);">'+__msg('外径和厚度必须是有限数值，不能留空或含文字。','Outer diameter and thickness must be finite numbers; blanks and text are not accepted.')+'</p>');return;}
   if (t <= 0 || D <= d || d < 0) {
-    ToolBox.setResult('lenResult', '<p style="color:var(--danger);">请检查输入：厚度需>0，外径需>纸芯内径，纸芯内径需≥0</p>');
+    ToolBox.setResult('lenResult', '<p style="color:var(--danger);">'+__msg('请检查输入：厚度需>0，外径需>纸芯内径，纸芯内径需≥0','Check inputs: thickness > 0, outer diameter > core diameter, core diameter ≥ 0.')+'</p>');
     return;
   }
   var lengthMm = Math.PI * (D * D - d * d) / (4 * t);
   var lengthM = lengthMm / 1000;
   var layers = Math.round((D - d) / (2 * t));
   if (layers < 1) {
-    ToolBox.setResult('lenResult', '<p style="color:var(--danger);">外径与纸芯差值不足一个纸厚，无法形成有效缠绕层数</p>');
+    ToolBox.setResult('lenResult', '<p style="color:var(--danger);">'+__msg('外径与纸芯差值不足一个纸厚，无法形成有效缠绕层数','The outer-core difference is less than one sheet thickness; no valid winding layers.')+'</p>');
     return;
   }
-  var html = '<p>纸卷总长度：<strong>' + lengthM.toFixed(2) + ' m</strong></p>';
-  html += '<p>总长度：<strong>' + lengthMm.toFixed(0) + ' mm</strong></p>';
-  html += '<p>缠绕层数：约 <strong>' + layers + ' 层</strong></p>';
-  html += '<p>每圈平均周长：<strong>' + (lengthM / layers * 1000).toFixed(0) + ' mm</strong></p>';
+  var html = '<p>'+__msg('纸卷总长度：','Total roll length: ')+'<strong>' + lengthM.toFixed(2) + ' m</strong></p>';
+  html += '<p>'+__msg('总长度：','Total length: ')+'<strong>' + lengthMm.toFixed(0) + ' mm</strong></p>';
+  html += '<p>'+__msg('缠绕层数：约 ','Winding layers: about ')+'<strong>' + layers + __msg(' 层</strong>',' layers</strong>')+'</p>';
+  html += '<p>'+__msg('每圈平均周长：','Average circumference per turn: ')+'<strong>' + (lengthM / layers * 1000).toFixed(0) + ' mm</strong></p>';
   const __g1=html;ToolBox.setResult('lenResult',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
 function calcDia() {
-  var L = parseFloat(document.getElementById('targetLen').value) || 0;
-  var d = parseFloat(document.getElementById('coreDia2').value);
-  var t = parseFloat(document.getElementById('paperThk2').value) || 0;
-  if (!isFinite(d) || d < 0) {
-    ToolBox.setResult('diaResult', '<p style="color:var(--danger);">纸芯内径需为 ≥0 的数值</p>');
+  var L = readNum('targetLen');
+  var d = readNum('coreDia2');
+  var t = readNum('paperThk2');
+  if (isNaN(d) || d < 0) {
+    ToolBox.setResult('diaResult', '<p style="color:var(--danger);">'+__msg('纸芯内径不能留空，且需为 ≥0 的数值；没有纸芯请明确输入 0。','Core diameter cannot be blank and must be a number ≥ 0. Enter 0 explicitly if there is no core.')+'</p>');
     return;
   }
+  if(isNaN(L)||isNaN(t)){ToolBox.setResult('diaResult','<p style="color:var(--danger);">'+__msg('目标长度和厚度必须是有限数值，不能留空或含文字。','Target length and thickness must be finite numbers; blanks and text are not accepted.')+'</p>');return;}
   if (t <= 0 || L <= 0) {
-    ToolBox.setResult('diaResult', '<p style="color:var(--danger);">长度和厚度需大于 0</p>');
+    ToolBox.setResult('diaResult', '<p style="color:var(--danger);">'+__msg('长度和厚度需大于 0','Length and thickness must be greater than 0')+'</p>');
     return;
   }
   var Lmm = L * 1000;
   var D = Math.sqrt((4 * t * Lmm) / Math.PI + d * d);
   var layers = Math.round((D - d) / (2 * t));
-  var html = '<p>所需纸卷外径：<strong>' + D.toFixed(1) + ' mm</strong></p>';
-  html += '<p>纸卷半径：<strong>' + (D/2).toFixed(1) + ' mm</strong></p>';
-  html += '<p>缠绕层数：约 <strong>' + layers + ' 层</strong></p>';
-  html += '<p>纸卷厚度（壁厚）：<strong>' + ((D - d) / 2).toFixed(1) + ' mm</strong></p>';
+  var html = '<p>'+__msg('所需纸卷外径：','Required roll outer diameter: ')+'<strong>' + D.toFixed(1) + ' mm</strong></p>';
+  html += '<p>'+__msg('纸卷半径：','Roll radius: ')+'<strong>' + (D/2).toFixed(1) + ' mm</strong></p>';
+  html += '<p>'+__msg('缠绕层数：约 ','Winding layers: about ')+'<strong>' + layers + __msg(' 层</strong>',' layers</strong>')+'</p>';
+  html += '<p>'+__msg('纸卷厚度（壁厚）：','Roll wall thickness: ')+'<strong>' + ((D - d) / 2).toFixed(1) + ' mm</strong></p>';
   const __g2=html;ToolBox.setResult('diaResult',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
 }
 
@@ -319,29 +325,29 @@ function copyResult() {
   var activeTab = document.querySelector('.tab-content.active').id;
   var text;
   if (activeTab === 'tab-len') {
-    var D = parseFloat(document.getElementById('outerDia').value) || 0;
-    var d = parseFloat(document.getElementById('coreDia').value) || 0;
-    var t = parseFloat(document.getElementById('paperThk').value) || 0;
-    if (!(t > 0) || !(D > d) || d < 0) {
-      ToolBox.showToast('请检查输入：厚度需>0，外径需>纸芯内径', 'warning');
+    var D = readNum('outerDia');
+    var d = readNum('coreDia');
+    var t = readNum('paperThk');
+    if (isNaN(d) || isNaN(D) || isNaN(t) || !(t > 0) || !(D > d) || d < 0) {
+      ToolBox.showToast(__msg('请检查输入：厚度需>0，外径需>纸芯内径','Check inputs: thickness > 0 and outer diameter > core diameter.'), 'warning');
       return;
     }
     if (Math.round((D - d) / (2 * t)) < 1) {
-      ToolBox.showToast('外径与纸芯差值不足一个纸厚，无法形成有效缠绕层数', 'warning');
+      ToolBox.showToast(__msg('外径与纸芯差值不足一个纸厚，无法形成有效缠绕层数','The outer-core difference is less than one sheet thickness; no valid winding layers.'), 'warning');
       return;
     }
     var L = (Math.PI * (D*D - d*d) / (4 * t) / 1000).toFixed(2);
-    text = '纸卷长度: ' + L + ' m (外径' + D + 'mm, 纸芯' + d + 'mm, 厚度' + t + 'mm)';
+    text = __msg('纸卷长度: ','Roll length: ') + L + ' m (' + __msg('外径','outer dia ') + D + 'mm, ' + __msg('纸芯','core ') + d + 'mm, ' + __msg('厚度','thickness ') + t + 'mm)';
   } else {
-    var L2 = parseFloat(document.getElementById('targetLen').value) || 0;
-    var d2 = parseFloat(document.getElementById('coreDia2').value);
-    var t2 = parseFloat(document.getElementById('paperThk2').value) || 0;
-    if (!(t2 > 0) || !(L2 > 0) || !isFinite(d2) || d2 < 0) {
-      ToolBox.showToast('请检查输入：长度与厚度需>0，纸芯内径需≥0', 'warning');
+    var L2 = readNum('targetLen');
+    var d2 = readNum('coreDia2');
+    var t2 = readNum('paperThk2');
+    if (isNaN(d2) || isNaN(L2) || isNaN(t2) || !(t2 > 0) || !(L2 > 0) || d2 < 0) {
+      ToolBox.showToast(__msg('请检查输入：长度与厚度需>0，纸芯内径需≥0','Check inputs: length and thickness > 0, core diameter ≥ 0.'), 'warning');
       return;
     }
     var D2 = Math.sqrt((4 * t2 * L2 * 1000) / Math.PI + d2 * d2).toFixed(1);
-    text = '纸卷外径: ' + D2 + ' mm (长度' + L2 + 'm, 纸芯' + d2 + 'mm, 厚度' + t2 + 'mm)';
+    text = __msg('纸卷外径: ','Roll outer diameter: ') + D2 + ' mm (' + __msg('长度','length ') + L2 + 'm, ' + __msg('纸芯','core ') + d2 + 'mm, ' + __msg('厚度','thickness ') + t2 + 'mm)';
   }
   ToolBox.copyText(text, i18nText('msg600'));
 }

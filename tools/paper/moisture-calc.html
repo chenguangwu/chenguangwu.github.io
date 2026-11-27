@@ -140,7 +140,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据纸张湿重和绝干重计算含水率，支持干基/湿基两种计算方式">Moisture Calc</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">水分重量 = 湿重 − 干重；湿基含水率 = 水分 ÷ 湿重 × 100%；干基含水率 = 水分 ÷ 干重 × 100%；绝干率 = 100% − 湿基含水率。校验：湿重与干重均须大于 0，且干重不得大于湿重。判据：湿基 4–10% 属标准范围，&lt;4% 偏干，&gt;10% 且 ≤12% 偏高，&gt;12% 过高。</div>
+      <div class="formula-eq">水分重量 = 湿重 − 干重；湿基含水率 = 水分 ÷ 湿重 × 100%；干基含水率 = 水分 ÷ 干重 × 100%；绝干率 = 100% − 湿基含水率。校验：湿重与干重均须大于 0，且干重不得大于湿重。参考区间：湿基 4–10% 仅为文化用纸常见平衡水分，不是所有纸种的标准限值；&lt;4% 偏低、&gt;12% 明显偏高，实际应按纸种与验收口径判定。</div>
       <p class="formula-desc">根据纸张湿重和绝干重计算含水率，支持干基/湿基两种计算方式</p>
     </div>
 
@@ -169,10 +169,10 @@
     <div id="moisture_calcHist"></div>
 
     <div class="info-box">
-      <strong>计算方式：</strong>湿基含水率 = (湿重 - 干重) / 湿重 × 100%；干基含水率 = (湿重 - 干重) / 干重 × 100%。纸张标准含水率一般为 4-10%。
+      <strong>计算方式：</strong>湿基含水率 = (湿重 - 干重) / 湿重 × 100%；干基含水率 = (湿重 - 干重) / 干重 × 100%。4%–10% 仅为文化用纸常见参考区间，不是所有纸种的标准限值。
     </div>
 
-    <h3 style="margin-top:20px;">常见纸种标准含水率</h3>
+    <h3 style="margin-top:20px;">常见纸种参考含水率</h3>
     <div id="refTable"></div>
   </div>
 
@@ -250,45 +250,59 @@
 </div>
 
 <script>
+var __moistureValid=false;
+function __mEn(zh,en){try{return document.documentElement.lang==='en-US'?en:zh;}catch(e){return zh;}}
+function readNum(id){
+  var e=document.getElementById(id);if(!e)return NaN;
+  var raw=String(e.value==null?'':e.value).trim();
+  if(raw==='')return NaN;
+  if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;
+  var v=Number(raw);return isFinite(v)?v:NaN;
+}
+function validateMoisture(){
+  var wet=readNum('wetWeight'),dry=readNum('dryWeight');
+  if(isNaN(wet)||isNaN(dry)) return {ok:false,msg:__mEn('请填写有效的湿重与绝干重（不能留空或输入文字）','Enter valid wet and oven-dry weights (no blanks or text)')};
+  if(wet<=0||dry<=0) return {ok:false,msg:__mEn('湿重与绝干重均须大于 0','Both wet and oven-dry weights must be greater than 0')};
+  if(dry>wet) return {ok:false,msg:__mEn('干重不应大于湿重，请检查输入','Oven-dry weight cannot exceed wet weight')};
+  return {ok:true,wet:wet,dry:dry};
+}
 function calc() {
-  var wet = parseFloat(document.getElementById('wetWeight').value) || 0;
-  var dry = parseFloat(document.getElementById('dryWeight').value) || 0;
-  if (wet <= 0 || dry <= 0) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">重量需大于 0</p>');
-    return;
-  }
-  if (dry > wet) {
-    ToolBox.setResult('result', '<p style="color:var(--danger);">干重不应大于湿重，请检查输入</p>');
-    return;
-  }
+  var v=validateMoisture();
+  if(!v.ok){__moistureValid=false;ToolBox.setResult('result','<p style="color:var(--danger);">'+v.msg+'</p>');return;}
+  var wet=v.wet,dry=v.dry;
   var water = wet - dry;
   var wetBasis = (water / wet) * 100;
   var dryBasis = (water / dry) * 100;
   var grade = '';
   var gradeClass = '';
-  if (wetBasis >= 4 && wetBasis <= 10) { grade = '标准含水率范围'; gradeClass = 'grade-excellent'; }
-  else if (wetBasis < 4) { grade = '含水率偏低（偏干）'; gradeClass = 'grade-pass'; }
-  else if (wetBasis <= 12) { grade = '含水率偏高'; gradeClass = 'grade-good'; }
-  else { grade = '含水率过高'; gradeClass = 'grade-fail'; }
+  if (wetBasis >= 4 && wetBasis <= 10) { grade = __mEn('处于文化用纸常见参考区间','Within the common reference range for printing/writing paper'); gradeClass = 'grade-excellent'; }
+  else if (wetBasis < 4) { grade = __mEn('低于文化用纸常见参考区间','Below the common reference range'); gradeClass = 'grade-pass'; }
+  else if (wetBasis <= 12) { grade = __mEn('高于文化用纸常见参考区间','Above the common reference range'); gradeClass = 'grade-good'; }
+  else { grade = __mEn('明显高于文化用纸常见参考区间','Well above the common reference range'); gradeClass = 'grade-fail'; }
 
-  var html = '<p>水分重量：<strong>' + water.toFixed(2) + ' g</strong></p>';
-  html += '<p>湿基含水率：<strong>' + wetBasis.toFixed(2) + '%</strong></p>';
-  html += '<p>干基含水率：<strong>' + dryBasis.toFixed(2) + '%</strong></p>';
-  html += '<p>绝干率：<strong>' + (100 - wetBasis).toFixed(2) + '%</strong></p>';
-  html += '<p>评估：<span class="grade-tag ' + gradeClass + '">' + grade + '</span></p>';
+  var html = '<p>'+__mEn('水分重量','Water mass')+'：<strong>' + water.toFixed(2) + ' g</strong></p>';
+  html += '<p>'+__mEn('湿基含水率','Wet-basis moisture')+'：<strong>' + wetBasis.toFixed(2) + '%</strong></p>';
+  html += '<p>'+__mEn('干基含水率','Dry-basis moisture')+'：<strong>' + dryBasis.toFixed(2) + '%</strong></p>';
+  html += '<p>'+__mEn('绝干率','Oven-dry rate')+'：<strong>' + (100 - wetBasis).toFixed(2) + '%</strong></p>';
+  html += '<p>'+__mEn('参考评估','Reference assessment')+'：<span class="grade-tag ' + gradeClass + '">' + grade + '</span></p>';
+  html += '<p style="font-size:12px;color:var(--text-muted);">'+__mEn('注：4%–10% 仅为文化用纸常见平衡水分参考，不是所有纸种的标准限值；实际应结合纸种、温湿度与客户验收口径。','Note: 4%–10% is a common equilibrium-moisture reference for printing/writing paper, not a standard limit for all grades. Consider paper grade, humidity and customer acceptance criteria.')+'</p>';
+  __moistureValid=true;
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
 function copyResult() {
-  var wet = parseFloat(document.getElementById('wetWeight').value) || 0;
-  var dry = parseFloat(document.getElementById('dryWeight').value) || 0;
+  var v=validateMoisture();
+  if(!v.ok||!__moistureValid){if(ToolBox.showToast)ToolBox.showToast(v.ok?'请先执行有效计算，暂无可复制结果':v.msg,'warning');return;}
+  var wet = v.wet;
+  var dry = v.dry;
   var water = wet - dry;
-  var wb = wet > 0 ? (water / wet * 100).toFixed(2) : '0';
-  var db = dry > 0 ? (water / dry * 100).toFixed(2) : '0';
+  var wb = (water / wet * 100).toFixed(2);
+  var db = (water / dry * 100).toFixed(2);
   var text = '湿基含水率: ' + wb + '%, 干基含水率: ' + db + '% (湿重' + wet + 'g, 干重' + dry + 'g)';
   ToolBox.copyText(text, i18nText('msg465'));
 }
 
+document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
 var refData = [
   ['新闻纸', '4-8', '易吸水，需控湿'],
   ['胶版纸', '5-8', '印刷适性佳'],

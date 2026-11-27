@@ -169,7 +169,7 @@
     <div id="pulp_yieldHist"></div>
 
     <div class="info-box">
-      <strong>得率说明：</strong>纸浆得率 = 纸浆重量 / 原料重量 × 100%。机械浆得率约 90-95%，化学浆得率约 40-50%，半化学浆得率约 60-80%。
+      <strong>得率说明：</strong>纸浆得率 = 纸浆重量 / 原料重量 × 100%。典型范围为机械浆约 90–95%、化学浆约 40–50%、半化学浆约 60–80%；但得率区间不能单独判定浆种，需结合制浆工艺、纤维形态与卡伯价。
     </div>
 
     <h3 style="margin-top:20px;">常见制浆方式得率参考</h3>
@@ -250,32 +250,47 @@
 </div>
 
 <script>
+function __en(){try{if(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return true;}catch(e){}return /(^|[?&])lang=en/i.test(location.search)||(document.documentElement.lang||'').toLowerCase().indexOf('en')===0;}
+function __msg(zh,en){return __en()?en:zh;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function calc() {
-  var raw = parseFloat(document.getElementById('rawInput').value) || 0;
-  var pulp = parseFloat(document.getElementById('pulpInput').value) || 0;
+  var raw = readNum('rawInput');
+  var pulp = readNum('pulpInput');
+  if(isNaN(raw)||isNaN(pulp)){ToolBox.setResult('result','<p style="color:var(--danger);">'+__msg('原料重量和纸浆重量必须是有限数值，不能留空或含文字。','Raw material and pulp weights must be finite numbers; blanks and text are not accepted.')+'</p>');return;}
   if (raw <= 0) {
     ToolBox.setResult('result', '<p style="color:var(--danger);">原料重量需大于 0</p>');
+    return;
+  }
+  if (pulp < 0) {
+    ToolBox.setResult('result', '<p style="color:var(--danger);">'+__msg('纸浆重量不能为负；零产浆可填 0，但不应得到负得率。','Pulp weight cannot be negative. Enter 0 for zero pulp output; a negative yield is invalid.')+'</p>');
     return;
   }
   var yieldRate = (pulp / raw) * 100;
   var grade = '';
   var gradeClass = '';
-  if (yieldRate >= 85) { grade = '高得率浆（机械浆）'; gradeClass = 'grade-excellent'; }
-  else if (yieldRate >= 60) { grade = '半化学浆'; gradeClass = 'grade-good'; }
-  else if (yieldRate >= 40) { grade = '化学浆'; gradeClass = 'grade-pass'; }
-  else { grade = '得率偏低'; gradeClass = 'grade-fail'; }
+  if (yieldRate >= 85) { grade = '高得率区间（≥85%）'; gradeClass = 'grade-excellent'; }
+  else if (yieldRate >= 60) { grade = '中高得率区间（60–85%）'; gradeClass = 'grade-good'; }
+  else if (yieldRate >= 40) { grade = '中低得率区间（40–60%）'; gradeClass = 'grade-pass'; }
+  else { grade = '低得率区间（<40%）'; gradeClass = 'grade-fail'; }
 
-  var html = '<p>纸浆得率：<strong>' + yieldRate.toFixed(2) + '%</strong></p>';
-  html += '<p>浆料类型：<span class="grade-tag ' + gradeClass + '">' + grade + '</span></p>';
-  html += '<p>每吨原料产浆：<strong>' + (pulp / raw).toFixed(4) + ' 吨</strong></p>';
+  var html = '<p>'+__msg('纸浆得率：','Pulp yield: ')+'<strong>' + yieldRate.toFixed(2) + '%</strong></p>';
+  html += '<p>'+__msg('得率区间参考：','Yield range (reference):')+'<span class="grade-tag ' + gradeClass + '">' + __msg(grade, grade.replace('高得率区间（≥85%）','High yield (≥85%)').replace('中高得率区间（60–85%）','Medium-high yield (60–85%)').replace('中低得率区间（40–60%）','Medium-low yield (40–60%)').replace('低得率区间（<40%）','Low yield (<40%)')) + '</span></p>';
+  html += '<p>'+__msg('每吨原料产浆：','Pulp output per ton of raw material: ')+'<strong>' + (pulp / raw).toFixed(4) + __msg(' 吨</strong>',' t</strong>')+'</p>';
+  html += '<p style="color:var(--text-muted);font-size:13px;">'+__msg('得率区间不能单独判定浆种：机械浆、化学浆、半化学浆需结合制浆工艺、纤维形态、卡伯价等指标。','Yield alone cannot determine the pulp type: mechanical, chemical, and semi-chemical pulp also require pulping process, fiber morphology, and Kappa number.')+'</p>';
+  if(yieldRate>100){html += '<p style="color:var(--danger);">'+__msg('得率超过 100%：请检查绝干/风干计量口径、水分或添加物，不能直接当作浆种结论。','Yield exceeds 100%: check oven-dry/air-dry basis, moisture, or additives; do not treat it as a pulp-type conclusion.')+'</p>';}
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
 function copyResult() {
-  var raw = parseFloat(document.getElementById('rawInput').value) || 0;
-  var pulp = parseFloat(document.getElementById('pulpInput').value) || 0;
-  var yieldRate = raw > 0 ? (pulp / raw * 100).toFixed(2) : '0';
-  var text = '纸浆得率: ' + yieldRate + '% (原料' + raw + 'kg, 纸浆' + pulp + 'kg)';
+  var raw = readNum('rawInput');
+  var pulp = readNum('pulpInput');
+  if(isNaN(raw)||isNaN(pulp)||raw<=0||pulp<0){
+    ToolBox.showToast(__msg('原料需>0、纸浆需≥0，暂无可复制结果','Raw material must be > 0 and pulp must be ≥ 0; nothing to copy.'), 'warning');
+    return;
+  }
+  var yieldRate = (pulp / raw * 100).toFixed(2);
+  var text = __msg('纸浆得率: ','Pulp yield: ') + yieldRate + '% (' + __msg('原料','raw ') + raw + 'kg, ' + __msg('纸浆','pulp ') + pulp + 'kg)';
+  if(parseFloat(yieldRate)>100) text += __msg('；注意：得率>100%，请检查计量口径或添加物','; note: yield > 100%, check measurement basis or additives');
   ToolBox.copyText(text, i18nText('msg387'));
 }
 

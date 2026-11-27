@@ -500,6 +500,9 @@ var waveColor = '#FF6B35';
 var smoothing = 0.8;
 var rafId = null;
 var overviewCache = null; // 静态概览的降采样缓存
+var __overviewState = 'idle'; // idle/loading/ok/fail
+var __overviewFile = null;
+var __overviewError = '';
 
 var canvas = document.getElementById('vizCanvas');
 var ctx2d = canvas.getContext('2d');
@@ -585,6 +588,9 @@ function handleFile(file){
   }
   audioBuffer = null;
   overviewCache = null;
+  __overviewState = 'loading';
+  __overviewError = '';
+  __overviewFile = file;
 
   ensureAudioCtx();
   if(!audioCtx) return;
@@ -639,32 +645,81 @@ function handleFile(file){
   }
 
   // 同时解码一份用于静态概览
-  var reader = new FileReader();
-  reader.onload = function(ev){
-    audioCtx.decodeAudioData(
-      ev.target.result.slice(0),
-      function(buf){
-        if(__req!==__audioLoadSeq) return;
-        audioBuffer = buf;
-        buildOverviewCache();
-        if(mode === 'overview') drawOverview();
-        ToolBox.showToast('tool.audio_load_ok', 'success');
-      },
-      function(){
-        if(__req!==__audioLoadSeq) return;
-        // 解码失败不影响实时播放
-        if(mode === 'overview'){
-          placeholder.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"This format cannot be decoded into a static overview":"该格式无法解码为静态概览");
-          placeholder.style.display = 'flex';
-        }
-      }
-    );
-  };
-  reader.readAsArrayBuffer(file);
+  decodeOverview(file, __req);
 
   ToolBox.showToast(i18nText('toast.msg457'), 'info');
 }
 
+function __awEn(){
+  return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn());
+}
+function showOverviewState(){
+  if(!placeholder) return;
+  if(__overviewState === 'idle'){
+    placeholder.textContent = __awEn() ? 'Upload an audio file first' : '请先上传音频文件';
+    placeholder.style.display = 'flex';
+    return;
+  }
+  if(__overviewState === 'loading'){
+    placeholder.textContent = __awEn() ? 'Decoding static overview…' : '正在解码静态概览…';
+    placeholder.style.display = 'flex';
+    return;
+  }
+  if(__overviewState === 'fail'){
+    placeholder.innerHTML = (__awEn() ? 'Static overview decode failed' : '静态概览解码失败')
+      + (__overviewError ? '<div style="font-size:12px;opacity:.75;margin-top:4px">' + __overviewError + '</div>' : '')
+      + '<div style="margin-top:10px"><button class="btn" type="button" id="overviewRetry">' + (__awEn() ? 'Retry decode' : '重试解码') + '</button></div>';
+    placeholder.style.display = 'flex';
+    var btn = document.getElementById('overviewRetry');
+    if(btn) btn.addEventListener('click', retryOverview);
+    return;
+  }
+  placeholder.style.display = 'none';
+}
+function decodeOverview(file, req){
+  if(!file || !audioCtx) return;
+  __overviewState = 'loading';
+  if(mode === 'overview') showOverviewState();
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    if(req !== __audioLoadSeq) return;
+    var __dec = audioCtx.decodeAudioData(
+      ev.target.result.slice(0),
+      function(buf){
+        if(req !== __audioLoadSeq) return;
+        audioBuffer = buf;
+        __overviewState = 'ok';
+        __overviewError = '';
+        buildOverviewCache();
+        if(mode === 'overview'){ showOverviewState(); drawOverview(); }
+        ToolBox.showToast('tool.audio_load_ok', 'success');
+      },
+      function(err){
+        if(req !== __audioLoadSeq) return;
+        __overviewState = 'fail';
+        __overviewError = (err && err.message) ? String(err.message) : '';
+        if(mode === 'overview') showOverviewState();
+      }
+    );
+    if(__dec && __dec.catch) __dec.catch(function(){});
+  };
+  reader.onerror = function(){
+    if(req !== __audioLoadSeq) return;
+    __overviewState = 'fail';
+    __overviewError = __awEn() ? 'File read failed' : '文件读取失败';
+    if(mode === 'overview') showOverviewState();
+  };
+  reader.readAsArrayBuffer(file);
+}
+function retryOverview(){
+  if(!__overviewFile || !audioCtx) return;
+  audioBuffer = null;
+  overviewCache = null;
+  __overviewState = 'loading';
+  var req = ++__audioLoadSeq;
+  showOverviewState();
+  decodeOverview(__overviewFile, req);
+}
 function formatSize(bytes){
   if(bytes < 1024) return bytes + ' B';
   if(bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
@@ -705,7 +760,7 @@ function playAudio(){
     document.getElementById('playBtn').textContent = '⏸';
     startRender();
   }).catch(function(err){
-    ToolBox.showToast('播放失败：' + (err.message || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error');
+    ToolBox.showToast((__awEn()?'Playback failed: ':'播放失败：') + (err.message || (__awEn()?'Unknown error':'未知错误')), 'error');
   });
 }
 
@@ -775,10 +830,10 @@ window.switchMode = function(newMode){
 
   if(newMode === 'overview'){
     if(audioBuffer){
+      showOverviewState();
       drawOverview();
     }else{
-      placeholder.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Upload an audio file first":"请先上传音频文件");
-      placeholder.style.display = 'flex';
+      showOverviewState();
     }
   }else{
     if(audioEl){
@@ -903,7 +958,7 @@ function drawOscilloscope(staticFrame){
   ctx2d.shadowBlur = 0;
 
   // 标签
-  drawLabel('时域波形 Oscilloscope');
+  drawLabel(__awEn()?'Oscilloscope':'时域波形 Oscilloscope');
 }
 
 /* ===== 频域频谱（FFT）===== */
@@ -917,15 +972,17 @@ function drawSpectrum(staticFrame){
   drawBg();
 
   var barCount = Math.min(bufLen, Math.floor(s.w / 3));
-  var step = Math.floor(bufLen / barCount);
   var barWidth = s.w / barCount;
   var gap = barWidth > 4 ? 1 : 0;
 
   for(var i = 0; i < barCount; i++){
-    // 取该区间内的最大值
+    // 按比例边界覆盖全部频点，不能整除时最后一个桶包含尾部高频
+    var start = Math.floor(i * bufLen / barCount);
+    var end = Math.floor((i + 1) * bufLen / barCount);
+    if(end <= start) end = start + 1;
     var val = 0;
-    for(var j = 0; j < step; j++){
-      if(dataArray[i * step + j] > val) val = dataArray[i * step + j];
+    for(var j = start; j < end && j < bufLen; j++){
+      if(dataArray[j] > val) val = dataArray[j];
     }
     var barHeight = (val / 255) * s.h * 0.92;
     var x = i * barWidth;
@@ -939,33 +996,35 @@ function drawSpectrum(staticFrame){
     ctx2d.fillRect(x, y, Math.max(1, barWidth - gap), barHeight);
   }
 
-  drawLabel('频域频谱 Spectrum (FFT=' + fftSize + ')');
+  drawLabel((__awEn()?'Spectrum':'频域频谱 Spectrum') + ' (FFT=' + fftSize + ')');
 }
 
 /* ===== 静态波形概览 ===== */
 function buildOverviewCache(){
   if(!audioBuffer) return;
-  var channelData = audioBuffer.getChannelData(0);
-  var samples = channelData.length;
+  var samples = audioBuffer.length;
+  var channels = audioBuffer.numberOfChannels;
   var s = getCanvasSize();
   var targetPoints = Math.floor(s.w * 2); // 2x 超采样
   if(targetPoints < 100) targetPoints = 100;
-  var block = Math.floor(samples / targetPoints);
-  if(block < 1) block = 1;
-
+  var bucketCount = Math.min(targetPoints, Math.max(1, samples));
   var peaks = [];
-  for(var i = 0; i < targetPoints; i++){
-    var start = i * block;
-    var end = Math.min(start + block, samples);
+  for(var i = 0; i < bucketCount; i++){
+    var start = Math.floor(i * samples / bucketCount);
+    var end = Math.floor((i + 1) * samples / bucketCount);
+    if(end <= start) end = start + 1;
     var min = 1, max = -1;
-    for(var j = start; j < end; j++){
-      var v = channelData[j];
-      if(v < min) min = v;
-      if(v > max) max = v;
+    for(var ch = 0; ch < channels; ch++){
+      var data = audioBuffer.getChannelData(ch);
+      for(var j = start; j < end && j < data.length; j++){
+        var v = data[j];
+        if(v < min) min = v;
+        if(v > max) max = v;
+      }
     }
     peaks.push({ min: min, max: max });
   }
-  overviewCache = { peaks: peaks, duration: audioBuffer.duration, sampleRate: audioBuffer.sampleRate, channels: audioBuffer.numberOfChannels };
+  overviewCache = { peaks: peaks, duration: audioBuffer.duration, sampleRate: audioBuffer.sampleRate, channels: channels, samples: samples };
 }
 
 function drawOverview(){
@@ -1053,7 +1112,7 @@ function drawOverview(){
   }
 
   // 信息标签
-  var info = '波形概览 Overview | 时长 ' + formatTime(duration) + ' | ' + overviewCache.sampleRate + 'Hz | ' + overviewCache.channels + 'ch';
+  var info = (__awEn()?'Overview':'波形概览 Overview') + ' | ' + (__awEn()?'Duration ':'时长 ') + formatTime(duration) + ' | ' + overviewCache.sampleRate + 'Hz | ' + overviewCache.channels + (__awEn()?'ch all-channel peaks':'ch 全声道峰值');
   drawLabel(info);
 }
 
@@ -1188,7 +1247,7 @@ try{
   __awPresets();
   if(typeof TBKit!=='undefined')__awRefTbl();
   document.addEventListener('DOMContentLoaded',function(){try{__awPresets();if(typeof TBKit!=='undefined')__awRefTbl();}catch(e){}});
-  document.addEventListener('toolbox:langchange',function(){try{__awPresets();__awRefTbl();}catch(e){}});
+  document.addEventListener('toolbox:langchange',function(){try{__awPresets();__awRefTbl();if(mode==='overview'){ if(audioBuffer) drawOverview(); else showOverviewState(); }else if(mode==='oscilloscope'){drawOscilloscope(true);}else if(mode==='spectrum'){drawSpectrum(true);} if(audioEl&&__overviewState==='fail')showOverviewState();}catch(e){}});
 }catch(e){}
 }catch(e){}})();
 </script>

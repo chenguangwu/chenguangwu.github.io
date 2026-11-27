@@ -50,6 +50,33 @@ const CASES = [
     "inputs": { "bl": "50", "bw": "40", "bh": "60", "wt": "0", "over": "5", "sharp": "0" },
     "expect": ["180 cm", "90 cm", "85 cm", "120.0 L", "144.0 L", "0.012 mm"],
     "ref": "塑料袋公式独立复算：袋口周长=2×(50+40)=180；折径=90；袋长=60+40/2+5=85；桶容积=50×40×60/1000=120 L；建议袋容积=144 L；0 kg 与 0% 尖锐物取最薄档 0.012 mm。旧空态守卫若把 0 当未填写会不输出结果 ⇒ 强判别。"
+  },
+  {
+    "slug": "daily-goods/trash-bag-size",
+    "inputs": {},
+    "expect": ["加大（70×80 cm）", "有现成规格"],
+    "ref": "默认桶 40×30、高 50、外翻 10 ⇒ 折径 70、袋长 75；候选必须同时满足宽度和长度，最小可用规格为 70×80。旧 bagCode 只按折径返回 60×80，袋口宽不足。"
+  },
+  {
+    "slug": "daily-goods/trash-bag-size",
+    "inputs": { "bl": "60", "bw": "50", "bh": "100", "wt": "5", "over": "10", "sharp": "20" },
+    "expect": ["定制（≥110×135 cm）", "需定制"],
+    "ref": "深桶：折径 110、袋长 100+25+10=135；最大现成 100×120 仍不满足，必须明确标为定制，不能推荐 100×120。"
+  },
+  {
+    "slug": "daily-goods/trash-bag-size",
+    "inputs": {},
+    "clicks": [
+      "calcTool();document.getElementById('bl').value='';calcTool();var cv=document.getElementById('fitChart');var em=document.getElementById('chartEmpty');document.getElementById('__tbProbe').textContent='CHART '+cv.getAttribute('data-empty')+'|'+(em.hidden?'hidden':'shown')+'|'+document.getElementById('result').textContent.slice(0,30);"
+    ],
+    "expect": ["CHART 1|shown|"],
+    "ref": "先合法计算再清空桶口长：结果区提示为空，旧图表必须清空并显示等待参数的空态；data-empty=1、chartEmpty 可见。"
+  },
+  {
+    "slug": "daily-goods/trash-bag-size",
+    "inputs": { "bl": "40abc", "bw": "30", "bh": "50", "wt": "6", "over": "10", "sharp": "20" },
+    "expect": ["参数无效"],
+    "ref": "严格数值校验：`40abc` 不得被 parseFloat 截成 40 参与计算，必须报参数无效并清空图表。"
   }
 ];
 

@@ -143,6 +143,7 @@
     <div class="card" style="margin-top:14px;">
       <h3 data-zh="桶容积与建议袋容积对比">桶容积与建议袋容积对比</h3>
       <canvas id="fitChart" width="620" height="220" style="width:100%;max-width:620px;height:auto;"></canvas>
+      <div id="chartEmpty" class="result-placeholder" hidden>等待有效参数后绘制容积对比</div>
     </div>
     <div style="margin-top:14px;">
       <div class="history-header"><h3>🕘 最近计算</h3><button class="btn" type="button" style="padding:6px 12px;font-size:12px;" onclick="clearHist()">清空</button></div>
@@ -157,9 +158,10 @@
           <tbody>
             <tr><td>小号</td><td>45 × 55</td><td>约 25–30</td><td>桌面纸篓、卫生间小桶</td></tr>
             <tr><td>中号</td><td>50 × 60</td><td>约 35–45</td><td>卧室、办公室纸篓</td></tr>
-            <tr><td>大号</td><td>60 × 80</td><td>约 55–70</td><td>厨房 10–15 L 桶</td></tr>
-            <tr><td>加大</td><td>80 × 100</td><td>约 100–120</td><td>厨房 20–30 L 桶、商铺</td></tr>
-            <tr><td>特大</td><td>100 × 120</td><td>约 160–200</td><td>物业、餐饮后厨、户外大桶</td></tr>
+            <tr><td>大号</td><td>60 × 80</td><td>约 50–65</td><td>厨房 10–15 L 桶</td></tr>
+            <tr><td>加大</td><td>70 × 80</td><td>约 70–90</td><td>厨房 15–20 L 桶、商铺</td></tr>
+            <tr><td>特大</td><td>80 × 100</td><td>约 100–120</td><td>厨房 20–30 L 桶、物业</td></tr>
+            <tr><td>超大</td><td>100 × 120</td><td>约 160–200</td><td>餐饮后厨、户外大桶</td></tr>
           </tbody>
         </table>
       </div>
@@ -172,6 +174,7 @@
         <li>袋口周长按 2 ×（桶口长 + 桶口宽）计算，实际购买时建议再留 5%–10% 余量，方便套桶和收口。</li>
         <li>平口袋折径 ≈ 袋口周长 ÷ 2，因为袋子平铺时两侧各贡献一半周长。</li>
         <li>袋长需覆盖桶高、桶底短边的一半与外翻余量；桶口越大、桶越深，袋长应越长。</li>
+        <li>推荐规格会同时检查折径和袋长，选择满足要求的最小现成规格；没有合适规格时明确标为“定制”，不再推荐装不下的袋型。</li>
         <li>厚度按垃圾重量分档：≤3 kg 约 0.012 mm，3–8 kg 约 0.018 mm，8 kg 以上约 0.024 mm；尖锐物占比每增加 20%，建议再加 0.002 mm。</li>
         <li>结果为选购参考，实际承重还受袋口收束方式、袋底焊接强度与垃圾分布影响，重物建议分袋或使用加厚袋。</li>
       </ul>
@@ -194,11 +197,11 @@
     </a>
     <a href="../it/properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="../it/api-sign-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
-      <span class="rt-info"><span class="rt-name">API 签名生成器</span><span class="rt-desc">生成带时间戳与随机数的接口签名</span></span>
+      <span class="rt-info"><span class="rt-name">API 签名生成器</span><span class="rt-desc">可选加入时间戳与随机数的接口签名</span></span>
     </a>
     <a href="../it/ascii-tree-generator.html" class="related-tool-card">
       <span class="rt-icon">✨</span>
@@ -211,7 +214,7 @@
   </div>
 </div>
 <script>
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function num(id){const raw=String(document.getElementById(id).value||'').trim();if(!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;const v=Number(raw);return isFinite(v)?v:NaN;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function csvDownload(name,rows){
   const csv='\ufeff'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -236,12 +239,19 @@ function thicknessFor(wt,sharp){
   t+=Math.min(100,Math.max(0,sharp))/100*0.010;
   return Math.min(0.035,t);
 }
-function bagCode(flat){
-  if(flat<50)return '小号（约 45×55）';
-  if(flat<60)return '中号（约 50×60）';
-  if(flat<75)return '大号（约 60×80）';
-  if(flat<95)return '加大（约 80×100）';
-  return '特大（约 100×120，或定制）';
+const BAG_SPECS=[
+  {code:'小号',flat:45,len:55},
+  {code:'中号',flat:50,len:60},
+  {code:'大号',flat:60,len:80},
+  {code:'加大',flat:70,len:80},
+  {code:'特大',flat:80,len:100},
+  {code:'超大',flat:100,len:120}
+];
+function bagCode(flat,needLen){
+  // 同时检查平铺宽度（折径）和长度；选满足条件的最小规格，避免只按折径推荐后袋口或袋长不足。
+  const hit=BAG_SPECS.find(function(x){return x.flat>=flat&&x.len>=needLen;});
+  if(hit) return {code:hit.code,spec:hit.flat+'×'+hit.len,flat:hit.flat,len:hit.len,fit:true};
+  return {code:'定制',spec:'≥'+Math.ceil(flat)+'×'+Math.ceil(needLen),flat:Math.ceil(flat),len:Math.ceil(needLen),fit:false};
 }
 function applyPreset(type){
   const m={kitchen:[40,30,50,6,10,20],office:[30,25,32,2,6,10],outdoor:[60,45,80,15,12,30]};
@@ -258,8 +268,8 @@ function calcData(){
     return {valid:false,msg:'参数无效：桶口长宽与桶高须>0，垃圾重量≥0，袋口外翻余量 2–30 cm，尖锐物占比 0–100%'};
   }
   const per=2*(bl+bw), flat=per/2, bagLen=bh+bw/2+over, binVol=bl*bw*bh/1000;
-  const recVol=binVol*1.2, thick=thicknessFor(wt,sharp), code=bagCode(flat);
-  return {valid:true,bl,bw,bh,wt,over,sharp,per,flat,bagLen,binVol,recVol,thick,code};
+  const recVol=binVol*1.2, thick=thicknessFor(wt,sharp), bag=bagCode(flat,bagLen);
+  return {valid:true,bl,bw,bh,wt,over,sharp,per,flat,bagLen,binVol,recVol,thick,bag};
 }
 function drawChart(d){
   const cv=document.getElementById('fitChart');if(!cv)return;const ctx=cv.getContext('2d');if(!ctx)return;
@@ -270,21 +280,27 @@ function drawChart(d){
   bars.forEach((b,i)=>{const x=pad+i*(bw+50),h=(b[1]/max)*(H-pad-30);
     ctx.fillStyle=b[2];ctx.fillRect(x,H-pad-h,bw,h);ctx.fillStyle='#334155';ctx.fillText(b[0],x,H-pad+18);ctx.fillText(b[1].toFixed(1)+' L',x,H-pad-h-6);});
   ctx.fillStyle='#64748b';ctx.fillText('袋口周长 '+d.per.toFixed(0)+' cm · 折径 '+d.flat.toFixed(0)+' cm',pad,18);
+  cv.setAttribute('data-empty','0');
+  const em=document.getElementById('chartEmpty');if(em)em.hidden=true;
+}
+function clearChart(){
+  const cv=document.getElementById('fitChart');if(cv){const ctx=cv.getContext('2d');if(ctx){ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#94a3b8';ctx.font='14px sans-serif';ctx.fillText('等待有效参数后绘制容积对比',42,60);}cv.setAttribute('data-empty','1');}
+  const em=document.getElementById('chartEmpty');if(em)em.hidden=false;
 }
 function exportCSV(){
   const d=calcData();if(!d.valid){alert(d.msg);return;}
-  csvDownload('trash-bag-size.csv',[['项目','数值','单位'],['桶口长',d.bl,'cm'],['桶口宽',d.bw,'cm'],['桶高',d.bh,'cm'],['袋口周长',d.per.toFixed(1),'cm'],['推荐折径',d.flat.toFixed(1),'cm'],['推荐袋长',d.bagLen.toFixed(1),'cm'],['桶容积',d.binVol.toFixed(1),'L'],['建议袋容积',d.recVol.toFixed(1),'L'],['建议厚度',d.thick.toFixed(3),'mm'],['推荐袋型',d.code,'']]);
+  csvDownload('trash-bag-size.csv',[['项目','数值','单位'],['桶口长',d.bl,'cm'],['桶口宽',d.bw,'cm'],['桶高',d.bh,'cm'],['袋口周长',d.per.toFixed(1),'cm'],['推荐折径',d.flat.toFixed(1),'cm'],['推荐袋长',d.bagLen.toFixed(1),'cm'],['桶容积',d.binVol.toFixed(1),'L'],['建议袋容积',d.recVol.toFixed(1),'L'],['建议厚度',d.thick.toFixed(3),'mm'],['推荐袋型',d.bag.code,''],['推荐袋尺寸',d.bag.spec+' cm',''],['规格满足',d.bag.fit?'是':'需定制','']]);
 }
 function calcTool(){
   const d=calcData();
-  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';return;}
-  const rows=[[d.code,'推荐袋型'],[d.flat.toFixed(0)+' cm','平口袋折径'],[d.bagLen.toFixed(0)+' cm','建议袋长'],[d.per.toFixed(0)+' cm','袋口所需周长'],[d.binVol.toFixed(1)+' L','垃圾桶容积'],[d.recVol.toFixed(1)+' L','建议袋容积'],[d.thick.toFixed(3)+' mm','建议厚度']];
+  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
+  const rows=[[d.bag.code+'（'+d.bag.spec+' cm）','推荐袋型'],[d.bag.fit?'有现成规格':'需定制','规格匹配'],[d.flat.toFixed(0)+' cm','平口袋折径'],[d.bagLen.toFixed(0)+' cm','建议袋长'],[d.per.toFixed(0)+' cm','袋口所需周长'],[d.binVol.toFixed(1)+' L','垃圾桶容积'],[d.recVol.toFixed(1)+' L','建议袋容积'],[d.thick.toFixed(3)+' mm','建议厚度']];
   let html=dataGrid(rows);
   if(d.wt>12)html+='<div class="info-box" style="margin-top:12px;">⚠️ 单袋垃圾 '+d.wt+' kg 已偏重，建议分袋盛装，或选用 0.025 mm 以上加厚袋并检查袋底焊接强度。</div>';
   if(d.sharp>=50)html+='<div class="info-box" style="margin-top:8px;">尖锐/硬物占比 '+d.sharp+'%，破袋风险较高，建议使用加厚袋并先用硬纸盒包裹尖锐物。</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
-  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.bl+'×'+d.bw+'×'+d.bh+' cm → '+d.code+' / '+d.thick.toFixed(3)+' mm');
+  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.bl+'×'+d.bw+'×'+d.bh+' cm → '+d.bag.code+' '+d.bag.spec+' / '+d.thick.toFixed(3)+' mm');
 }
 function resetForm(){['bl','bw','bh','wt','over','sharp'].forEach((id,i)=>document.getElementById(id).value=[40,30,50,6,10,20][i]);calcTool();}
 renderHist(HIST_KEY);calcTool();
@@ -299,7 +315,7 @@ renderHist(HIST_KEY);calcTool();
 <li>物业与餐饮采购：按每日垃圾重量和桶容量批量选袋，兼顾承重、厚度与采购成本。</li>
 <li>尖锐垃圾处置：碎玻璃、竹签、贝壳较多时，按尖锐物占比提高厚度，降低刺穿漏水风险。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：桶口 40 × 30 cm、桶高 50 cm、垃圾 6 kg</div><div class="dd-ex-body">袋口周长 = 2 × (40 + 30) = 140 cm；平口袋折径 ≈ 140 ÷ 2 = 70 cm；袋长 ≈ 50 + 30 ÷ 2 + 10 = 75 cm，考虑 5 cm 余量后推荐 70 × 80 cm 大号袋；桶容积 = 40 × 30 × 50 ÷ 1000 = 60 L，建议袋容积至少 72 L。垃圾 6 kg 且尖锐物 20% 时，建议厚度约 0.018–0.020 mm。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：桶口 40 × 30 cm、桶高 50 cm、垃圾 6 kg</div><div class="dd-ex-body">袋口周长 = 2 × (40 + 30) = 140 cm；平口袋折径 ≈ 140 ÷ 2 = 70 cm；袋长 ≈ 50 + 30 ÷ 2 + 10 = 75 cm，考虑 5 cm 余量后推荐 70 × 80 cm 加大袋；桶容积 = 40 × 30 × 50 ÷ 1000 = 60 L，建议袋容积至少 72 L。垃圾 6 kg 且尖锐物 20% 时，建议厚度约 0.018–0.020 mm。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么折径是袋口周长的一半？</dt><dd>平口垃圾袋平铺时是两片薄膜，展开后两侧共同构成袋口周长，因此平铺宽度（折径）约为展开周长的一半；袋口有折边或压边时需再留余量。</dt>

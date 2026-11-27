@@ -455,7 +455,14 @@ function padZero(n, len) {
 }
 
 function formatDateTime(date) {
-  return `${date.getFullYear()}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(date.getSeconds())}`;
+  return `${String(date.getFullYear()).padStart(4,'0')}-${padZero(date.getMonth() + 1)}-${padZero(date.getDate())} ${padZero(date.getHours())}:${padZero(date.getMinutes())}:${padZero(date.getSeconds())}`;
+}
+function tsMakeDate(y,m,d,h,mi,sec,ms){
+  // 显式使用 setFullYear 保留 0–99 的完整年份；new Date(0–99,...) 会被映射到 1900 年代。
+  const dt = new Date(0);
+  dt.setFullYear(Number(y), Number(m), Number(d));
+  dt.setHours(Number(h) || 0, Number(mi) || 0, Number(sec) || 0, Number(ms) || 0);
+  return dt;
 }
 
 function makeLocalDate(y,m,d,h,mi,sec){
@@ -478,26 +485,43 @@ function parseDate(str) {
   return isNaN(parsed.getTime()) ? null : parsed;
 }
 
+function tsClearConverted(message, danger){
+  // 输入清空/非法时清掉另一方向与旧结果，避免继续显示上一组成功内容。
+  const out = document.getElementById('convertResults');
+  out.innerHTML = message ? '<p style="color:' + (danger ? 'var(--danger)' : '#777') + '">' + message + '</p>' : '';
+  document.getElementById('dateInput').value = '';
+  document.getElementById('timezoneGrid').innerHTML = '';
+  window.__lastTsDate = null;
+  window.__lastTsSec = null;
+}
 function fromTimestamp(type) {
+  const en = tsEn();
   let ms;
   if (type === 'sec') {
-    const sec = parseFloat(document.getElementById('timestampSec').value);
-    if (isNaN(sec)) return;
+    const raw = String(document.getElementById('timestampSec').value || '').trim();
+    document.getElementById('timestampMs').value = '';
+    if (raw === '') { tsClearConverted(tsT('请输入秒级时间戳。','Enter a Unix timestamp in seconds.'), false); return; }
+    const sec = Number(raw);
+    if (!Number.isFinite(sec)) { tsClearConverted(tsT('秒级时间戳必须是有效数字。','The seconds timestamp must be a valid number.'), true); return; }
     ms = Math.round(sec * 1000);
     document.getElementById('timestampMs').value = String(ms);
   } else {
-    ms = parseFloat(document.getElementById('timestampMs').value);
-    if (isNaN(ms)) return;
+    const raw = String(document.getElementById('timestampMs').value || '').trim();
+    document.getElementById('timestampSec').value = '';
+    if (raw === '') { tsClearConverted(tsT('请输入毫秒时间戳。','Enter a Unix timestamp in milliseconds.'), false); return; }
+    ms = Number(raw);
+    if (!Number.isFinite(ms)) { tsClearConverted(tsT('毫秒时间戳必须是有效数字。','The milliseconds timestamp must be a valid number.'), true); return; }
     document.getElementById('timestampSec').value = formatSecMs(ms);
   }
   const ts = ms / 1000;
   const date = new Date(ms);
   if(isNaN(date.getTime())){
     document.getElementById('dateInput').value = '';
-    var en = tsEn();
     document.getElementById('convertResults').innerHTML = '<p style="color:var(--danger)">' +
       (en ? 'Timestamp is outside the supported range (about ±8.64e15 ms)' : '时间戳超出可表示范围（约 ±8.64e15 毫秒）') + '</p>';
     document.getElementById('timezoneGrid').innerHTML = '';
+    window.__lastTsDate = null;
+    window.__lastTsSec = null;
     return;
   }
   document.getElementById('dateInput').value = formatDateTime(date);
@@ -514,6 +538,8 @@ function fromDate() {
     document.getElementById('timezoneGrid').innerHTML = '';
     document.getElementById('timestampSec').value = '';
     document.getElementById('timestampMs').value = '';
+    window.__lastTsDate = null;
+    window.__lastTsSec = null;
     return;
   }
   
@@ -570,8 +596,10 @@ function renderTimezones(date) {
 function getDayOfYear(date) {
   // 用 UTC 归一后的年月日相减：直接拿毫秒差整除会在夏令时切换后少算一天
   // （America/New_York 2024-03-11 00:00 本地实际只经过 1655 小时，floor 得 69，而当天应为第 70 天）。
-  const start = Date.UTC(date.getFullYear(), 0, 1);
-  const cur = Date.UTC(date.getFullYear(), date.getMonth(), date.getDate());
+  // 不能使用 Date.UTC(year,...)：它会将 0–99 年映射到 1900–1999 年，0000-03-01 会被算成第 60 天。
+  const y=date.getFullYear(), m=date.getMonth(), d=date.getDate();
+  const start=new Date(0); start.setUTCFullYear(y,0,1); start.setUTCHours(0,0,0,0);
+  const cur=new Date(0); cur.setUTCFullYear(y,m,d); cur.setUTCHours(0,0,0,0);
   return Math.round((cur - start) / 86400000) + 1;
 }
 
@@ -632,13 +660,15 @@ function smartConvert() {
 function quickTs(type) {
   const now = new Date();
   let target;
-  
+  const endTypes = ['todayEnd','weekEnd','monthEnd','yearEnd'];
+  const isEnd = endTypes.includes(type);
+
   switch(type) {
     case 'todayStart':
       target = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       break;
     case 'todayEnd':
-      target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+      target = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
       break;
     case 'weekStart':
       const day = now.getDay() || 7;
@@ -646,28 +676,38 @@ function quickTs(type) {
       break;
     case 'weekEnd':
       const day2 = now.getDay() || 7;
-      target = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day2 + 7, 23, 59, 59);
+      target = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day2 + 7, 23, 59, 59, 999);
       break;
     case 'monthStart':
       target = new Date(now.getFullYear(), now.getMonth(), 1);
       break;
     case 'monthEnd':
-      target = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+      target = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
       break;
     case 'yearStart':
       target = new Date(now.getFullYear(), 0, 1);
       break;
     case 'yearEnd':
-      target = new Date(now.getFullYear(), 11, 31, 23, 59, 59);
+      target = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
       break;
   }
-  
+
+  let nextStart = null;
+  if (type === 'todayEnd') nextStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  else if (type === 'weekEnd') { const day3 = now.getDay() || 7; nextStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - day3 + 8); }
+  else if (type === 'monthEnd') nextStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  else if (type === 'yearEnd') nextStart = new Date(now.getFullYear() + 1, 0, 1);
+
+  const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'local'; } catch(e) { return 'local'; } })();
   const ts = target.getTime() / 1000;
   document.getElementById('quickResult').setAttribute('data-type', type);
   const __h2=`
     <p><strong>${tsT('时间戳（秒）','Timestamp (s)')}:</strong> ${formatSecMs(target.getTime())}</p>
     <p><strong>${tsT('时间戳（毫秒）','Timestamp (ms)')}:</strong> ${target.getTime()}</p>
-    <p><strong>${tsT('日期时间','Date & time')}:</strong> ${formatDateTime(target)}</p>
+    <p><strong>${tsT('日期时间','Date & time')}:</strong> ${formatDateTime(target)}${isEnd ? '.999' : ''}</p>
+    <p style="font-size:12px;color:var(--text-muted);">${isEnd
+      ? tsT('结束边界含最后一毫秒 23:59:59.999（本地时区 '+tz+'）。若下一周期零点（排他上界）为 '+formatDateTime(nextStart)+'，其时间戳为 '+formatSecMs(nextStart.getTime())+' 秒。','End boundary includes the last millisecond 23:59:59.999 (local time zone '+tz+'). The next period starts at '+formatDateTime(nextStart)+', timestamp '+formatSecMs(nextStart.getTime())+' s (exclusive upper bound).')
+      : tsT('起点 00:00:00.000（本地时区 '+tz+'）。','Period start 00:00:00.000 (local time zone '+tz+').')}</p>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('quickResult').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('quickResult').innerHTML=__h2;
   
   document.getElementById('timestampSec').value = formatSecMs(target.getTime());
@@ -675,7 +715,6 @@ function quickTs(type) {
   document.getElementById('dateInput').value = formatDateTime(target);
   renderResults(target, ts);
 }
-
 function calculateDate() {
   const start = parseDate(document.getElementById('calcStartDate').value);
   const out=document.getElementById('calcResult1');
@@ -703,13 +742,13 @@ function calculateDate() {
       const rule=ruleEl?ruleEl.value:'clamp';
       const h=start.getHours(),mi=start.getMinutes(),sec=start.getSeconds(),ms=start.getMilliseconds();
       if(rule==='overflow'){
-        result=new Date(start.getFullYear(),start.getMonth()+months,start.getDate(),h,mi,sec,ms);
+        result=tsMakeDate(start.getFullYear(),start.getMonth()+months,start.getDate(),h,mi,sec,ms);
         method=tsT('月/年使用浏览器原生 setMonth/setFullYear：目标月不存在该日期时会溢出到下月（如 1月31日 +1月 → 3月2/3日）。','Months/years use the browser native setMonth/setFullYear: if the target month lacks that day, the date overflows into the next month (e.g. Jan 31 + 1 month → Mar 2/3).');
       }else{
-        const probe=new Date(start.getFullYear(),start.getMonth()+months,1,h,mi,sec,ms);
+        const probe=tsMakeDate(start.getFullYear(),start.getMonth()+months,1,h,mi,sec,ms);
         const ty=probe.getFullYear(),tm=probe.getMonth();
-        const lastDay=new Date(ty,tm+1,0).getDate();
-        result=new Date(ty,tm,Math.min(start.getDate(),lastDay),h,mi,sec,ms);
+        const lastDay=tsMakeDate(ty,tm+1,0).getDate();
+        result=tsMakeDate(ty,tm,Math.min(start.getDate(),lastDay),h,mi,sec,ms);
         method=tsT('月/年按目标月最后一天截断：1月31日 +1月 → 2月28/29日；闰日 +1年 → 2月28日。跨夏令时实际可能经过 23/25 小时。','Months/years clamp to the last day of the target month: Jan 31 + 1 month → Feb 28/29; Feb 29 + 1 year → Feb 28. Across DST the elapsed time may be 23/25 hours.');
       }
     }
@@ -995,7 +1034,7 @@ else document.addEventListener('DOMContentLoaded', __timestamp_converterBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

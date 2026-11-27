@@ -260,6 +260,7 @@
       <div class="upload-text">点击或拖拽音频文件到此处</div>
       <div class="upload-hint">支持 MP3 / WAV / OGG / M4A / FLAC 等格式</div>
     </div>
+    <div id="loadStatus" style="font-size:13px;color:var(--text-muted);margin:8px 0 0;"></div>
 
     <!-- 播放器区域 -->
     <div id="playerSection" style="display:none;">
@@ -482,7 +483,7 @@ var dropZone = document.getElementById('dropZone');
 var playerSection = document.getElementById('playerSection');
 var speedSlider = document.getElementById('speedSlider');
 var progressBar = document.getElementById('progressBar');
-var currentFile = null;
+var currentFile = null, playerUrl = '', loadSeq = 0, pendingFile = null, mediaSeq = 0;
 
 /* ---------- 工具函数 ---------- */
 function fmtTime(sec){
@@ -529,45 +530,83 @@ dropZone.addEventListener('drop', function(e){
   if(f) loadFile(f);
 });
 
+function releasePlayerUrl(){
+  if(playerUrl){ try{ URL.revokeObjectURL(playerUrl); }catch(e){} playerUrl=''; }
+}
+function speedIsEn(){ return typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn(); }
+function setLoadStatus(zh, en, isErr){
+  var el=document.getElementById('loadStatus');
+  if(el){ el.textContent=(speedIsEn()?en:zh)||''; el.style.color=isErr?'var(--danger)':'var(--text-muted)'; }
+}
 function loadFile(file){
   if(!file.type.startsWith('audio/') && !/\.(mp3|wav|ogg|m4a|flac|aac|opus|webm)$/i.test(file.name)){
     ToolBox.showToast('tool.audio_type_error', 'error');
     return;
   }
-  currentFile = file;
-  document.getElementById('fileName').textContent = file.name;
-  document.getElementById('fileSize').textContent = fmtSize(file.size);
-
-  var url = URL.createObjectURL(file);
-  player.src = url;
+  var seq=++loadSeq;
+  mediaSeq=seq;
+  pendingFile=null;
+  currentFile=null;
+  releasePlayerUrl();
+  player.pause();
+  player.removeAttribute('src');
   player.load();
-  playerSection.style.display = 'block';
+  playerSection.style.display='none';
+  document.getElementById('exportBtn').disabled=true;
+  setLoadStatus('加载中：'+file.name+' …', 'Loading: '+file.name+' …', false);
 
   // 重置速度与音调设置
   setSpeed(1, true);
-  document.getElementById('preservePitch').checked = false;
+  document.getElementById('preservePitch').checked=false;
   setPreservePitch(false);
-  const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+  pendingFile=file;
 
-  ToolBox.showToast('tool.audio_load_ok', 'success');
+  var url=URL.createObjectURL(file);
+  playerUrl=url;
+  player.src=url;
+  player.load();
 }
-
 function clearFile(){
+  loadSeq++; mediaSeq=loadSeq;
+  pendingFile=null;
+  currentFile=null;
   player.pause();
-  if(player.src) URL.revokeObjectURL(player.src);
-  player.src = '';
-  currentFile = null;
-  playerSection.style.display = 'none';
-  fileInput.value = '';
-  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+  releasePlayerUrl();
+  player.removeAttribute('src');
+  player.load();
+  playerSection.style.display='none';
+  fileInput.value='';
+  document.getElementById('exportBtn').disabled=true;
+  setLoadStatus('已清除当前文件', 'Current file cleared', false);
   dropZone.classList.remove('dragover');
+  const __h1='';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
 }
 
 /* ---------- 播放控制 ---------- */
 player.addEventListener('loadedmetadata', function(){
+  if(mediaSeq!==loadSeq || !pendingFile || player.currentSrc!==playerUrl) return;
+  currentFile=pendingFile;
+  pendingFile=null;
+  document.getElementById('fileName').textContent=currentFile.name;
+  document.getElementById('fileSize').textContent=fmtSize(currentFile.size);
+  playerSection.style.display='block';
+  document.getElementById('exportBtn').disabled=false;
   document.getElementById('durTime').textContent = fmtTime(player.duration);
-  // 确保音调设置生效
+  setLoadStatus('已就绪：'+currentFile.name+' · '+fmtTime(player.duration), 'Ready: '+currentFile.name+' · '+fmtTime(player.duration), false);
   setPreservePitch(document.getElementById('preservePitch').checked);
+  ToolBox.showToast('tool.audio_load_ok', 'success');
+});
+player.addEventListener('error', function(){
+  if(!pendingFile) return;
+  var bad=pendingFile.name;
+  pendingFile=null; currentFile=null;
+  playerSection.style.display='none';
+  document.getElementById('exportBtn').disabled=true;
+  releasePlayerUrl();
+  player.removeAttribute('src');
+  player.load();
+  setLoadStatus('无法加载：'+bad+'（文件损坏或编码不受支持）', 'Cannot load: '+bad+' (corrupt or unsupported codec)', true);
+  ToolBox.showToast(speedIsEn()?'Cannot load audio: the file is corrupt or uses an unsupported codec':'无法加载音频：文件损坏或编码不受支持', 'error');
 });
 player.addEventListener('timeupdate', function(){
   var pct = player.duration ? (player.currentTime / player.duration) * 100 : 0;
@@ -728,10 +767,12 @@ async function exportWav(){
   var progFill = document.getElementById('exportProgressFill');
 
   exportBtn.disabled = true;
+  document.getElementById('result').textContent = speedIsEn()?'Rendering…':'正在渲染…';
   const __h5='⏳ 渲染中...';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){exportBtn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}exportBtn.innerHTML=__h5;
   prog.classList.add('active');
   progFill.style.width = '20%';
 
+  var audioCtx = null;
   try{
     var AudioCtx = window.AudioContext || window.webkitAudioContext;
     var OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -742,9 +783,9 @@ async function exportWav(){
     // 读取文件并解码
     var arrayBuffer = await readFileAsArrayBuffer(resultFile);
     progFill.style.width = '40%';
-    var audioCtx = new AudioCtx();
+    audioCtx = new AudioCtx();
     var audioBuffer = await decodeAudioData(audioCtx, arrayBuffer);
-    try { await audioCtx.close(); } catch(e){}
+    try { await audioCtx.close(); audioCtx=null; } catch(e){}
 
     progFill.style.width = '60%';
 
@@ -783,10 +824,13 @@ async function exportWav(){
     ToolBox.showToast(i18nText('toast.msg022'), 'success');
   } catch(err){
     console.error('Export error:', err);
-    ToolBox.showToast('导出失败：' + (err.message || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error');
+    var failMsg = err.message || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误");
+    document.getElementById('result').textContent = (speedIsEn()?'Export failed: ':'导出失败：') + failMsg;
+    ToolBox.showToast((speedIsEn()?'Export failed: ':'导出失败：') + failMsg, 'error');
     prog.classList.remove('active');
     progFill.style.width = '0%';
   } finally {
+    if(audioCtx){ try{ await audioCtx.close(); }catch(e){} audioCtx=null; }
     exportBtn.disabled = false;
     const __h7=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"⬇ Export variable-speed WAV":"⬇ 导出变速 WAV");if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){exportBtn.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}exportBtn.innerHTML=__h7;
   }
@@ -935,10 +979,10 @@ function __audio_speedExport(){
 }
 function __audio_speedPresets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#audio_speedPresets',[{label:'默认参数',labelEn:'Default',values:{'speedSlider':'1'}},
+    TBKit.preset.bar('#audio_speedPresets',[{label:'默认参数',labelEn:'Default',values:{'speedSlider':'1','preservePitch':false}},
   {"label":"0.75 倍速听课","labelEn":"0.75x for lectures","values":{"speedSlider":0.75,"preservePitch":true}},
   {"label":"1.25 倍速播客","labelEn":"1.25x for podcasts","values":{"speedSlider":1.25,"preservePitch":true}},
-  {"label":"2 倍速通勤收听","labelEn":"2x commute listening","values":{"speedSlider":2,"preservePitch":true}}],function(){ setSpeed(parseFloat(document.getElementById('speedSlider').value)||1); });
+  {"label":"2 倍速通勤收听","labelEn":"2x commute listening","values":{"speedSlider":2,"preservePitch":true}}],function(){ setSpeed(parseFloat(document.getElementById('speedSlider').value)||1, true); setPreservePitch(!!document.getElementById('preservePitch').checked); });
 }
 var __audio_speed_f0=(typeof clearFile==='function')?clearFile:null;
 if(__audio_speed_f0){

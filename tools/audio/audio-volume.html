@@ -345,11 +345,11 @@ input[type=range].vol-range::-moz-range-thumb{
           <input type="range" class="vol-range" id="volRange" min="0" max="200" value="100" step="1" oninput="setVolume(this.value)" aria-label="🔋 音量增益滑块">
         </div>
         <div class="volume-presets">
-          <button class="vol-preset" onclick="setVolume(0)">&#128263; 静音</button>
-          <button class="vol-preset" onclick="setVolume(50)">50%</button>
-          <button class="vol-preset active" onclick="setVolume(100)">100%</button>
-          <button class="vol-preset" onclick="setVolume(150)">150%</button>
-          <button class="vol-preset" onclick="setVolume(200)">200%</button>
+          <button class="vol-preset" data-vol="0" onclick="setVolume(0)">&#128263; 静音</button>
+          <button class="vol-preset" data-vol="50" onclick="setVolume(50)">50%</button>
+          <button class="vol-preset active" data-vol="100" onclick="setVolume(100)">100%</button>
+          <button class="vol-preset" data-vol="150" onclick="setVolume(150)">150%</button>
+          <button class="vol-preset" data-vol="200" onclick="setVolume(200)">200%</button>
         </div>
       </div>
 
@@ -365,7 +365,7 @@ input[type=range].vol-range::-moz-range-thumb{
         </div>
       </div>
       <div class="info-box" style="margin-top:10px;font-size:12.5px;">
-        淡入/淡出在<strong>导出 WAV</strong>时生效；实时播放时仅应用基础音量增益。可调节范围 0 ~ 10 秒。
+        淡入/淡出同时作用于<strong>试听</strong>与<strong>导出 WAV</strong>，暂停、拖动进度后从头续播会按当前位置重新计算包络。可调节范围 0 ~ 10 秒。
       </div>
 
       <!-- VU 表 -->
@@ -384,6 +384,9 @@ input[type=range].vol-range::-moz-range-thumb{
       <div class="toolbar">
         <button type="button" class="btn primary" id="exportBtn" onclick="exportWav()">&#11015; 导出调整后的 WAV</button>
         <button type="button" class="btn" onclick="resetSettings()">重置设置</button>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-secondary);">
+          <input type="checkbox" id="limitClip" checked> 导出自动限幅（预测削波时整体缩放到 0.99）
+        </label>
       </div>
       <div class="export-progress" id="exportProgress" style="display:none;">
         <div class="ep-bar"><div class="ep-fill" id="epFill"></div></div>
@@ -476,7 +479,7 @@ input[type=range].vol-range::-moz-range-thumb{
       <li>音频音量过小需要放大</li>
       <li>录音文件音量过大需要降低</li>
       <li>制作带淡入淡出效果的音频</li>
-      <li>统一多个音频文件的响度</li>
+      <li>统一多个音频素材的基础增益（响度标准化需另行测量 LUFS）</li>
       <li>音频后期处理与剪辑</li>
       <li>播客/视频配音音量调整</li>
     </ul>
@@ -579,6 +582,8 @@ var fadeInTime = 0;        // 淡入秒数
 var fadeOutTime = 0;       // 淡出秒数
 var rafId = null;          // requestAnimationFrame id（进度+VU）
 var vuSegments = [];       // VU 段 DOM 引用
+var peakLinear = 0;        // 全量扫描的真实峰值（线性 0~1）
+var lastExportFail = false;
 
 /* ===== DOM 引用 ===== */
 var $ = function(id){ return document.getElementById(id); };
@@ -668,21 +673,24 @@ function handleFile(file){
   ToolBox.showToast(i18nText('toast.msg463'), 'info');
   var reader = new FileReader();
   reader.onload = function(e){
+    if(__req!==__audioLoadSeq) return;
     var arrayBuffer = e.target.result;
     // 创建/复用 AudioContext
     if(!audioCtx || audioCtx.state === 'closed'){
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-    audioCtx.decodeAudioData(arrayBuffer, function(buffer){
+    var decodePromise = audioCtx.decodeAudioData(arrayBuffer, function(buffer){
       if(__req!==__audioLoadSeq) return;
       audioBuffer = buffer;
       fileName = file.name;
       onAudioDecoded(file);
     }, function(err){
       if(__req!==__audioLoadSeq) return;
-      ToolBox.showToast(i18nText('toast.msg992'), 'error');
+      ToolBox.showToast(i18nText('toast.msg992') + (audioBuffer && fileName ? (volEn()?' Current file kept: ':' 已保留当前文件：') + fileName : ''), 'error');
+      fileInput.value='';
       console.error('Decode error:', err);
     });
+    if(decodePromise && typeof decodePromise.catch==='function') decodePromise.catch(function(){});
   };
   reader.onerror = function(){
     if(__req!==__audioLoadSeq) return;
@@ -702,8 +710,9 @@ function onAudioDecoded(file){
   statDuration.textContent = fmtTime(audioBuffer.duration);
   statSampleRate.textContent = (audioBuffer.sampleRate/1000).toFixed(1) + 'k';
   statChannels.textContent = audioBuffer.numberOfChannels;
-  var peak = computePeak(audioBuffer);
-  statPeak.textContent = peak.toFixed(2);
+  peakLinear = computePeak(audioBuffer);
+  statPeak.textContent = peakLinear > 0 ? (20*Math.log10(peakLinear)).toFixed(1) + ' dBFS' : '-∞ dBFS';
+  showVolumeInfo(Math.round(currentVolume*100));
 
   // 显示音量区与导出区
   volumeArea.style.display = 'block';
@@ -724,7 +733,7 @@ function computePeak(buffer){
   var peak = 0;
   for(var ch=0; ch<buffer.numberOfChannels; ch++){
     var data = buffer.getChannelData(ch);
-    for(var i=0; i<data.length; i+=100){ // 采样步进提升性能
+    for(var i=0; i<data.length; i++){
       var v = Math.abs(data[i]);
       if(v > peak) peak = v;
     }
@@ -768,6 +777,33 @@ function buildGraph(){
   };
 }
 
+function applyRealtimeEnvelope(offset){
+  if(!gainNode || !audioCtx || !audioBuffer) return;
+  var dur=audioBuffer.duration, f=effectiveFades(dur);
+  var now=audioCtx.currentTime;
+  gainNode.gain.cancelScheduledValues(now);
+  var inT=f.in, outT=f.out, outStart=dur-outT;
+  if(inT>0 && offset<inT){
+    gainNode.gain.setValueAtTime(currentVolume*Math.max(0,offset/inT), now);
+    gainNode.gain.linearRampToValueAtTime(currentVolume, now+(inT-offset));
+  } else {
+    gainNode.gain.setValueAtTime(currentVolume, now);
+  }
+  if(outT>0){
+    if(offset<outStart){
+      gainNode.gain.setValueAtTime(currentVolume, now+(outStart-offset));
+      gainNode.gain.linearRampToValueAtTime(0, now+(dur-offset));
+    } else {
+      gainNode.gain.setValueAtTime(currentVolume*Math.max(0,(dur-offset)/outT), now);
+      gainNode.gain.linearRampToValueAtTime(0, now+(dur-offset));
+    }
+  }
+}
+function refreshRealtimeEnvelope(){
+  if(!isPlaying || !audioCtx) return;
+  applyRealtimeEnvelope(Math.max(0,audioCtx.currentTime-startTime));
+}
+
 /* ===== 播放/暂停切换 ===== */
 window.togglePlay = function(){
   if(!audioBuffer) return;
@@ -780,6 +816,7 @@ window.togglePlay = function(){
 
 function play(){
   buildGraph();
+  applyRealtimeEnvelope(pauseOffset);
   sourceNode.start(0, pauseOffset);
   startTime = audioCtx.currentTime - pauseOffset;
   isPlaying = true;
@@ -906,37 +943,66 @@ window.setVolume = function(val){
   }
   // 预设高亮
   var presets = document.querySelectorAll('.vol-preset');
-  presets.forEach(function(b){ b.classList.remove('active'); });
-  var matchVal = String(val);
+  var n = Math.round(+val);
   presets.forEach(function(b){
-    if(b.getAttribute('onclick') && b.getAttribute('onclick').indexOf(matchVal) > -1){
-      b.classList.add('active');
-    }
+    b.classList.toggle('active', parseInt(b.getAttribute('data-vol'), 10) === n);
   });
   // 结果显示
   showVolumeInfo(val);
 };
 
+function volEn(){ return typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn(); }
 function showVolumeInfo(val){
   var db = currentVolume > 0 ? (20 * Math.log10(currentVolume)).toFixed(1) : '-∞';
   var note = '';
-  if(val == 0) note = '（静音）';
-  else if(val < 100) note = '（衰减）';
-  else if(val == 100) note = '（原始音量）';
-  else note = '（放大' + (val/100).toFixed(1) + '倍）';
-  const __h6='<p>当前音量：<strong>' + val + '%</strong>' + note + '</p>' +
-    '<p>增益：<strong>' + db + ' dB</strong></p>' +
-    '<p style="font-size:12px;color:var(--text-muted);">系数：' + currentVolume.toFixed(3) + ' × 原始信号</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h6;
+  if(val == 0) note = volEn()?' (Muted)':'（静音）';
+  else if(val < 100) note = volEn()?' (Attenuated)':'（衰减）';
+  else if(val == 100) note = volEn()?' (Original level)':'（原始音量）';
+  else note = volEn()?' (Boost '+(val/100).toFixed(1)+'x)':'（放大' + (val/100).toFixed(1) + '倍）';
+  var peakOut = peakLinear * currentVolume;
+  var peakOutDb = peakLinear > 0 ? (20*Math.log10(peakOut)).toFixed(1) : '-∞';
+  var srcDb = peakLinear > 0 ? (20*Math.log10(peakLinear)).toFixed(1) : '-∞';
+  var clip = '';
+  if(peakOut > 1 && peakLinear > 0){
+    clip = volEn()
+      ? '<p style="color:var(--danger);">⚠ Predicted peak ' + peakOutDb + ' dBFS exceeds 0 dBFS: auto-limit scales the whole file to 0.99, otherwise 16-bit hard clipping is used.</p>'
+      : '<p style="color:var(--danger);">⚠ 预计峰值 ' + peakOutDb + ' dBFS，超过 0 dBFS：勾选自动限幅会整体缩放到 0.99，取消勾选将按 16bit 硬截幅。</p>';
+  } else if(peakLinear > 0){
+    clip = volEn()
+      ? '<p style="font-size:12px;color:var(--text-muted);">Predicted peak ' + peakOutDb + ' dBFS, within full scale.</p>'
+      : '<p style="font-size:12px;color:var(--text-muted);">预计峰值 ' + peakOutDb + ' dBFS，未超过满量程。</p>';
+  }
+  const __h6= volEn()
+    ? '<p>Current volume: <strong>' + val + '%</strong>' + note + '</p>' +
+      '<p>Gain: <strong>' + db + ' dB</strong></p>' +
+      '<p style="font-size:12px;color:var(--text-muted);">Factor: ' + currentVolume.toFixed(3) + ' × source; source peak ' + srcDb + ' dBFS</p>' + clip
+    : '<p>当前音量：<strong>' + val + '%</strong>' + note + '</p>' +
+      '<p>增益：<strong>' + db + ' dB</strong></p>' +
+      '<p style="font-size:12px;color:var(--text-muted);">系数：' + currentVolume.toFixed(3) + ' × 原始信号；源峰值 ' + srcDb + ' dBFS</p>' + clip;if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h6;
 }
-
+function effectiveFades(duration){
+  var fi=fadeInTime, fo=fadeOutTime, changed=false;
+  if(fi+fo>duration){
+    fi=Math.min(fi, duration/2); fo=Math.min(fo, duration/2);
+    if(fi+fo>duration){ fi=duration/2; fo=duration/2; }
+    fadeInTime=fi; fadeOutTime=fo; changed=true;
+    var ir=$('fadeInRange'), or=$('fadeOutRange');
+    if(ir) ir.value=fi; if(or) or.value=fo;
+    $('fadeInVal').textContent=fi.toFixed(1)+'s';
+    $('fadeOutVal').textContent=fo.toFixed(1)+'s';
+  }
+  return {in:fi, out:fo};
+}
 /* ===== 渐入渐出 ===== */
 window.updateFadeIn = function(val){
   fadeInTime = +val;
   $('fadeInVal').textContent = fadeInTime.toFixed(1) + 's';
+  refreshRealtimeEnvelope();
 };
 window.updateFadeOut = function(val){
   fadeOutTime = +val;
   $('fadeOutVal').textContent = fadeOutTime.toFixed(1) + 's';
+  refreshRealtimeEnvelope();
 };
 
 /* ===== VU 表更新 ===== */
@@ -995,97 +1061,107 @@ window.exportWav = function(){
   var exportProgress = $('exportProgress');
   var epFill = $('epFill');
   var epText = $('epText');
+  var progressTimer = null;
+
+  // 启动时冻结所有处理参数，渲染期间改文件/音量/渐变不影响本次结果
+  var snapBuffer = audioBuffer;
+  var snapName = fileName;
+  var snapVolume = currentVolume;
+  var duration = snapBuffer.duration;
+  var fades = effectiveFades(duration);
+  var snapFadeIn = fades.in, snapFadeOut = fades.out;
+  var snapLimit = $('limitClip') ? !!$('limitClip').checked : true;
+
+  function failExport(err){
+    if(progressTimer){ clearInterval(progressTimer); progressTimer=null; }
+    exportProgress.style.display = 'none';
+    epFill.style.width = '0%';
+    exportBtn.disabled = false;
+    var msg = err && err.message ? err.message : (volEn()?'Unknown error':'未知错误');
+    result.textContent = (volEn()?'Export failed: ':'导出失败：') + msg;
+    ToolBox.showToast((volEn()?'Export failed: ':'导出失败：') + msg, 'error');
+    console.error('Export error:', err);
+  }
 
   exportBtn.disabled = true;
   exportProgress.style.display = 'block';
   epFill.style.width = '0%';
-  epText.textContent = '正在初始化离线渲染...';
+  epText.textContent = volEn()?'Initializing offline render…':'正在初始化离线渲染...';
 
-  var duration = audioBuffer.duration;
-  var sampleRate = audioBuffer.sampleRate;
-  var channels = audioBuffer.numberOfChannels;
+  try{
+    var OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    if(!OfflineCtx) throw new Error(volEn()?'OfflineAudioContext is not supported':'当前浏览器不支持 OfflineAudioContext');
 
-  // 校验淡入淡出时间
-  var fadeOutStart = duration - fadeOutTime;
-  if(fadeInTime + fadeOutTime > duration){
-    ToolBox.showToast(i18nText('toast.msg498'), 'warning');
-    fadeInTime = Math.min(fadeInTime, duration / 2);
-    fadeOutTime = Math.min(fadeOutTime, duration / 2);
-    fadeOutStart = duration - fadeOutTime;
+    var offlineCtx = new OfflineCtx(snapBuffer.numberOfChannels, Math.max(1,Math.ceil(duration * snapBuffer.sampleRate)), snapBuffer.sampleRate);
+    var oSource = offlineCtx.createBufferSource();
+    oSource.buffer = snapBuffer;
+
+    var oGain = offlineCtx.createGain();
+    var gainParam = oGain.gain;
+    var fadeOutStart = duration - snapFadeOut;
+
+    if(snapFadeIn > 0){
+      gainParam.setValueAtTime(0, 0);
+      gainParam.linearRampToValueAtTime(snapVolume, snapFadeIn);
+    } else {
+      gainParam.setValueAtTime(snapVolume, 0);
+    }
+    // 两段恰好相接（fadeOutStart === snapFadeIn）时也必须安排淡出
+    if(snapFadeOut > 0 && fadeOutStart >= snapFadeIn){
+      gainParam.setValueAtTime(snapVolume, fadeOutStart);
+      gainParam.linearRampToValueAtTime(0, duration);
+    } else if(snapFadeOut <= 0){
+      gainParam.setValueAtTime(snapVolume, duration);
+    }
+
+    oSource.connect(oGain);
+    oGain.connect(offlineCtx.destination);
+    oSource.start(0);
+
+    progressTimer = setInterval(function(){
+      var cur = parseFloat(epFill.style.width) || 0;
+      if(cur < 90){ epFill.style.width = (cur + 5) + '%'; }
+    }, 100);
+    epText.textContent = (volEn()?'Rendering audio ':'正在渲染音频（') + (volEn()?'(gain ':'（增益 ') + Math.round(snapVolume*100) + '%, ' + (volEn()?'fade-in ':'淡入 ') + snapFadeIn.toFixed(1) + 's, ' + (volEn()?'fade-out ':'淡出 ') + snapFadeOut.toFixed(1) + 's)...';
+
+    offlineCtx.startRendering().then(function(renderedBuffer){
+      if(progressTimer){ clearInterval(progressTimer); progressTimer=null; }
+      epFill.style.width = '100%';
+      epText.textContent = volEn()?'Encoding WAV file...':'正在编码 WAV 文件...';
+
+      var renderedPeak = computePeak(renderedBuffer);
+      var scale = 1;
+      if(snapLimit && renderedPeak > 0.99) scale = 0.99 / renderedPeak;
+      var wav = audioBufferToWav(renderedBuffer, scale);
+      var blob = new Blob([wav], {type:'audio/wav'});
+      var url = URL.createObjectURL(blob);
+
+      var baseName = (snapName || 'audio').replace(/\.[^.]+$/, '') || 'audio';
+      var volTag = Math.round(snapVolume*100);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = baseName + '_vol' + volTag + '.wav';
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
+
+      exportBtn.disabled = false;
+      setTimeout(function(){ exportProgress.style.display = 'none'; }, 1500);
+      var clipped = renderedPeak > 1;
+      var limitNote = clipped ? (snapLimit ? (volEn()?'Auto-limited to 0.99 full scale.':'已自动缩放至 0.99 满量程。') : (volEn()?'Hard-clipped because auto-limit is off.':'自动限幅已关闭，按 16bit 硬截幅。')) : (volEn()?'No clipping.':'未发生削波。');
+      result.innerHTML = '<p>✅ '+(volEn()?'Export complete':'导出成功')+'</p>' +
+        '<p>'+ (volEn()?'Gain ':'增益 ') + Math.round(snapVolume*100) + '%, ' + (volEn()?'fade-in ':'淡入 ') + snapFadeIn.toFixed(1) + 's / ' + (volEn()?'fade-out ':'淡出 ') + snapFadeOut.toFixed(1) + 's</p>' +
+        '<p>'+ (volEn()?'Rendered peak ':'渲染峰值 ') + (renderedPeak>0?(20*Math.log10(renderedPeak)).toFixed(1):'-∞') + ' dBFS' + (volEn()?'. ':'；') + limitNote + '</p>' +
+        '<p style="font-size:12px;color:var(--text-muted);">'+ (volEn()?'File ':'文件 ') + baseName + '_vol' + volTag + '.wav · ' + fmtSize(blob.size) + '</p>';
+      ToolBox.showToast(i18nText('toast.msg023'), 'success');
+    }).catch(function(err){ failExport(err); });
+  }catch(err){
+    failExport(err);
   }
-
-  // 使用 OfflineAudioContext 渲染
-  var OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
-  var offlineCtx = new OfflineCtx(channels, Math.ceil(duration * sampleRate), sampleRate);
-
-  var oSource = offlineCtx.createBufferSource();
-  oSource.buffer = audioBuffer;
-
-  var oGain = offlineCtx.createGain();
-  var gainParam = oGain.gain;
-
-  // 设置自动化曲线：基础增益 + 渐入渐出
-  if(fadeInTime > 0){
-    gainParam.setValueAtTime(0, 0);
-    gainParam.linearRampToValueAtTime(currentVolume, fadeInTime);
-    gainParam.setValueAtTime(currentVolume, fadeInTime);
-  } else {
-    gainParam.setValueAtTime(currentVolume, 0);
-  }
-
-  if(fadeOutTime > 0 && fadeOutStart > fadeInTime){
-    gainParam.setValueAtTime(currentVolume, fadeOutStart);
-    gainParam.linearRampToValueAtTime(0, duration);
-  } else {
-    gainParam.setValueAtTime(currentVolume, duration);
-  }
-
-  oSource.connect(oGain);
-  oGain.connect(offlineCtx.destination);
-  oSource.start(0);
-
-  // 进度模拟（OfflineAudioContext 无真实进度回调，用定时器模拟）
-  var progressTimer = setInterval(function(){
-    var cur = parseFloat(epFill.style.width) || 0;
-    if(cur < 90){ epFill.style.width = (cur + 5) + '%'; }
-  }, 100);
-
-  epText.textContent = '正在渲染音频（增益 ' + Math.round(currentVolume*100) + '%，淡入 ' + fadeInTime.toFixed(1) + 's，淡出 ' + fadeOutTime.toFixed(1) + 's）...';
-
-  offlineCtx.startRendering().then(function(renderedBuffer){
-    clearInterval(progressTimer);
-    epFill.style.width = '100%';
-    epText.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Encoding WAV file...":"正在编码 WAV 文件...");
-
-    // 编码为 WAV
-    var wav = audioBufferToWav(renderedBuffer);
-    var blob = new Blob([wav], {type:'audio/wav'});
-    var url = URL.createObjectURL(blob);
-
-    // 生成文件名
-    var baseName = fileName.replace(/\.[^.]+$/, '');
-    var volTag = Math.round(currentVolume*100);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = baseName + '_vol' + volTag + '.wav';
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
-
-    exportBtn.disabled = false;
-    setTimeout(function(){ exportProgress.style.display = 'none'; }, 1500);
-    ToolBox.showToast(i18nText('toast.msg023'), 'success');
-  }).catch(function(err){
-    clearInterval(progressTimer);
-    exportBtn.disabled = false;
-    exportProgress.style.display = 'none';
-    ToolBox.showToast('导出失败：' + (err.message || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Unknown error":"未知错误")), 'error');
-    console.error('Render error:', err);
-  });
 };
 
 /* ===== AudioBuffer 转 WAV ===== */
-function audioBufferToWav(buffer){
+function audioBufferToWav(buffer, scale){
   var numChannels = buffer.numberOfChannels;
   var sampleRate = buffer.sampleRate;
   var format = 1; // PCM
@@ -1126,7 +1202,7 @@ function audioBufferToWav(buffer){
   var offset = 44;
   for(var s=0; s<numSamples; s++){
     for(var c=0; c<numChannels; c++){
-      var sample = channels[c][s];
+      var sample = channels[c][s] * (scale || 1);
       // 钳制到 [-1, 1]
       sample = Math.max(-1, Math.min(1, sample));
       // 16-bit PCM
@@ -1154,11 +1230,14 @@ window.resetSettings = function(){
   $('fadeOutRange').value = 0;
   $('fadeInVal').textContent = '0.0s';
   $('fadeOutVal').textContent = '0.0s';
+  var lc=$('limitClip'); if(lc) lc.checked=true;
+  showVolumeInfo(100);
   ToolBox.showToast(i18nText('toast.msg599'), 'info');
 };
 
 /* ===== 重置全部 ===== */
 function resetAll(){
+  __audioLoadSeq++;
   stopPlayback();
   if(audioCtx && audioCtx.state !== 'closed'){
     audioCtx.close();
@@ -1166,12 +1245,14 @@ function resetAll(){
   }
   audioBuffer = null;
   fileName = '';
+  peakLinear = 0;
   fileInput.value = '';
   fileInfoWrap.style.display = 'none';
   volumeArea.style.display = 'none';
   exportSection.style.display = 'none';
   const __h7='';if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){result.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}result.innerHTML=__h7;
   playBtn.disabled = true;
+  statPeak.textContent = '--';
   pauseOffset = 0;
   resetVu();
   vuStatus.textContent = '待机';
@@ -1320,7 +1401,7 @@ function __audio_volumeExport(){
 function __audio_volumePresets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#audio_volumePresets',[{label:'默认参数',labelEn:'Default',values:{'volRange':'100', 'fadeInRange':'0', 'fadeOutRange':'0'}},
-  {"label":"播客标准化 淡入 2 秒","labelEn":"Podcast normalize, 2 s fade-in","values":{"volRange":100,"fadeInRange":2,"fadeOutRange":0}},
+  {"label":"播客原始音量 淡入 2 秒","labelEn":"Podcast original level, 2 s fade-in","values":{"volRange":100,"fadeInRange":2,"fadeOutRange":0}},
   {"label":"背景音乐 35% 淡入淡出","labelEn":"Background music 35% with fades","values":{"volRange":35,"fadeInRange":3,"fadeOutRange":5}},
   {"label":"铃声放大 150%","labelEn":"Ringtone boost to 150%","values":{"volRange":150,"fadeInRange":0,"fadeOutRange":1}}],function(){ showVolumeInfo(+document.getElementById('volRange').value); });
 }

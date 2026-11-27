@@ -237,6 +237,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);
     <div class="waveform-wrap" id="waveformWrap" title="点击波形可跳转播放位置" role="slider" aria-label="播放进度，点击可跳转" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
       <canvas id="waveform"></canvas>
     </div>
+    <div style="font-size:12px;color:var(--text-muted);margin:4px 0 2px;">波形展示全部声道幅度范围（各声道分别取峰值）</div>
     <div class="time-row">
       <span id="curTime">0:00</span>
       <span id="durTime">0:00</span>
@@ -294,6 +295,10 @@ input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);
       </div>
       <input type="range" id="mixSlider" min="0" max="100" step="1" value="40" aria-label="湿 / 干信号混合比（Wet / Dry Mix）滑块">
     </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 0;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;"><input type="checkbox" id="compEnable" checked style="width:auto;"> 动态压缩保护</label>
+      <span style="font-size:12px;color:var(--text-muted);">关闭后全干等信号不再经过压缩器；试听与导出同步。</span>
+    </div>
 
     <div class="signal-chain" id="signalChain"></div>
 
@@ -315,7 +320,7 @@ input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);
   <!-- 导出 -->
   <div class="card">
     <h3>💾 导出处理结果</h3>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">使用 OfflineAudioContext 离线渲染整段音频（含效果尾音），导出为 16-bit PCM WAV 文件。</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:10px;">使用 OfflineAudioContext 离线渲染整段音频（湿声大于 0 时包含效果尾音；纯干声按原时长导出），导出为 16-bit PCM WAV 文件。</p>
     <div class="export-row">
       <button class="btn primary" id="exportBtn" onclick="exportWav()">💾 导出 WAV</button>
       <span class="export-hint" id="exportHint">上传音频后即可导出</span>
@@ -371,8 +376,8 @@ input[type="range"]:disabled::-webkit-slider-thumb{background:var(--text-muted);
       <li>本工具纯前端运行，音频文件不会上传到服务器，保护隐私</li>
       <li>建议使用 Chrome / Edge / Firefox / Safari 最新版本浏览器</li>
       <li>首次播放时浏览器需要用户交互来启动音频上下文，属正常现象</li>
-      <li>反馈量过高时可能产生持续回授，已内置动态压缩器防止爆音</li>
-      <li>导出文件包含效果尾音，体积可能略大于原始文件</li>
+      <li>反馈量过高时可能产生持续回授，可保留动态压缩器防止爆音，也可在效果设置中关闭压缩保护</li>
+      <li>湿声大于 0 时导出包含效果尾音，纯干声按原音频时长导出；多声道输入导出时下混为立体声</li>
     </ul>
   </div>
 
@@ -514,6 +519,7 @@ var delayTime = 0.30;
 var feedback = 0.40;
 var mix = 40;          // 0~100
 var irDuration = 2.0;  // 秒
+var compEnabled = true;
 
 // 波形
 var peaks = null;
@@ -585,23 +591,37 @@ function createPersistentNodes(){
   effectInput.connect(dryGain);
   dryGain.connect(masterGain);
   wetGain.connect(masterGain);
-  masterGain.connect(compressor);
-  compressor.connect(audioCtx.destination);
+  applyCompressorRouting();
   applyMix();
 }
 
+function applyCompressorRouting(){
+  if(!masterGain || !audioCtx) return;
+  try{ masterGain.disconnect(); }catch(e){}
+  try{ compressor.disconnect(); }catch(e){}
+  if(compEnabled){
+    masterGain.connect(compressor);
+    compressor.connect(audioCtx.destination);
+  } else {
+    masterGain.connect(audioCtx.destination);
+  }
+}
+
 /* ===== 脉冲响应生成 ===== */
-function makeImpulse(ctx, duration, decay, channels){
-  var rate = ctx.sampleRate;
+function makeImpulse(ctx, duration, decay, channels, forcedRate){
+  // 采样率固定为源音频采样率；使用固定种子，保证同一参数下试听与导出、多次导出一致
+  var rate = forcedRate || ctx.sampleRate;
   var len = Math.max(1, Math.floor(rate * duration));
   channels = channels || 2;
   var buf = ctx.createBuffer(channels, len, rate);
+  var seed = (Math.round(duration * 1000) * 1103515245 + Math.round(decay * 1000) * 12345 + channels * 97 + Math.round(rate)) >>> 0;
+  function rnd(){ seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 4294967296; }
   for(var ch=0; ch<channels; ch++){
     var data = buf.getChannelData(ch);
     for(var i=0; i<len; i++){
       var t = i/len;
       // 指数衰减噪声
-      data[i] = (Math.random()*2 - 1) * Math.pow(1 - t, decay);
+      data[i] = (rnd()*2 - 1) * Math.pow(1 - t, decay);
     }
   }
   return buf;
@@ -629,7 +649,8 @@ function rebuildWetChain(){
     feedbackGain.connect(delayNode);
   } else {
     convolverNode = audioCtx.createConvolver();
-    convolverNode.buffer = makeImpulse(audioCtx, irDuration, IR_DECAY, 2);
+    var __irCh = (audioBuffer && audioBuffer.numberOfChannels === 1) ? 1 : 2;
+    convolverNode.buffer = makeImpulse(audioCtx, irDuration, IR_DECAY, __irCh, audioBuffer ? audioBuffer.sampleRate : audioCtx.sampleRate);
     effectInput.connect(convolverNode);
     convolverNode.connect(wetGain);
   }
@@ -650,7 +671,8 @@ function applyEchoParams(){
 }
 function applyReverbDecay(){
   if(convolverNode && audioCtx){
-    convolverNode.buffer = makeImpulse(audioCtx, irDuration, IR_DECAY, 2);
+    var __irCh = (audioBuffer && audioBuffer.numberOfChannels === 1) ? 1 : 2;
+    convolverNode.buffer = makeImpulse(audioCtx, irDuration, IR_DECAY, __irCh, audioBuffer ? audioBuffer.sampleRate : audioCtx.sampleRate);
   }
 }
 
@@ -661,7 +683,7 @@ function renderSignalChain(){
     + '<span class="node dry">干 Dry</span><span class="arrow">↘</span>'
     + '<span class="node wet">' + wetNode + ' → 湿 Wet</span><span class="arrow">↙</span>'
     + '<span class="node">混合 Master</span><span class="arrow">→</span>'
-    + '<span class="node">压缩保护</span><span class="arrow">→</span>'
+    + (compEnabled ? '<span class="node">压缩保护</span><span class="arrow">→</span>' : '<span class="node" style="opacity:.6;border-style:dashed;">压缩旁路</span><span class="arrow">→</span>')
     + '<span class="node">输出</span>';
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){signalChain.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}signalChain.innerHTML=__h0;
 }
@@ -685,8 +707,14 @@ function handleFile(file){
     ensureCtx();
     var arrayBuf = e.target.result;
     var decode = audioCtx.decodeAudioData;
-    // Promise 形式
-    var p = decode.call(audioCtx, arrayBuf);
+    // Promise 形式；同步抛错也按解码失败处理，保留已加载音频
+    var p;
+    try{ p = decode.call(audioCtx, arrayBuf); }
+    catch(err){
+      dzName.textContent = audioBuffer ? ('✓ ' + originalFileName + '（保留）') : '';
+      ToolBox.showToast('音频解码失败，已保留当前音频：' + (err.message||err.name), 'error');
+      return;
+    }
     p.then(function(decoded){
       if(__req!==__audioLoadSeq) return;
       audioBuffer = decoded;
@@ -694,7 +722,7 @@ function handleFile(file){
       peaks = computePeaks(decoded, 1000);
       playBtn.disabled = false;
       stopBtn.disabled = false;
-      exportHint.textContent = '可导出 ' + decoded.numberOfChannels + ' 声道 / ' + decoded.sampleRate + 'Hz';
+      exportHint.textContent = '可导出 ' + decoded.numberOfChannels + ' 声道 / ' + decoded.sampleRate + 'Hz' + (decoded.numberOfChannels > 2 ? '；多声道将下混为立体声导出' : '');
       const __h1='<strong>' + ToolBox.escHtml(file.name) + '</strong> · ' + decoded.duration.toFixed(1) + 's';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){playerMeta.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}playerMeta.innerHTML=__h1;
       durTimeEl.textContent = fmtTime(decoded.duration);
       curTimeEl.textContent = '0:00';
@@ -704,39 +732,42 @@ function handleFile(file){
       ToolBox.showToast('tool.audio_load_ok');
     }).catch(function(err){
       if(__req!==__audioLoadSeq) return;
-      dzName.textContent = '';
-      ToolBox.showToast('音频解码失败：' + (err.message||err.name), 'error');
+      dzName.textContent = audioBuffer ? ('✓ ' + originalFileName + '（保留）') : '';
+      ToolBox.showToast('音频解码失败，已保留当前音频：' + (err.message||err.name), 'error');
     });
   };
   reader.onerror = function(){
     if(__req!==__audioLoadSeq) return;
     ToolBox.showToast('toast.import_failed', 'error');
-    dzName.textContent = '';
+    dzName.textContent = audioBuffer ? ('✓ ' + originalFileName + '（保留）') : '';
   };
   reader.readAsArrayBuffer(file);
 }
 
 /* ===== 波形 ===== */
 function computePeaks(buffer, n){
-  var ch0 = buffer.getChannelData(0);
-  var ch1 = buffer.numberOfChannels > 1 ? buffer.getChannelData(1) : null;
-  var total = ch0.length;
-  n = Math.min(n, total);
-  var step = Math.max(1, Math.floor(total / n));
-  var mins = new Float32Array(n);
-  var maxs = new Float32Array(n);
-  for(var x=0; x<n; x++){
-    var start = x*step;
-    var end = Math.min(total, start + step);
+  var total = buffer.length;
+  var channels = buffer.numberOfChannels;
+  var buckets = Math.min(n, Math.max(1, total));
+  var mins = new Float32Array(buckets);
+  var maxs = new Float32Array(buckets);
+  for(var x=0; x<buckets; x++){
+    // 比例边界覆盖全部采样，最后一桶包含尾部余数
+    var start = Math.floor(x * total / buckets);
+    var end = Math.floor((x + 1) * total / buckets);
+    if(end <= start) end = start + 1;
     var mn = 0, mx = 0;
-    for(var i=start; i<end; i++){
-      var v = ch1 ? (ch0[i]+ch1[i])*0.5 : ch0[i];
-      if(v < mn) mn = v;
-      if(v > mx) mx = v;
+    for(var ch=0; ch<channels; ch++){
+      var data = buffer.getChannelData(ch);
+      for(var i=start; i<end && i<data.length; i++){
+        var v = data[i];
+        if(v < mn) mn = v;
+        if(v > mx) mx = v;
+      }
     }
     mins[x] = mn; maxs[x] = mx;
   }
-  return { mins: mins, maxs: maxs, n: n };
+  return { mins: mins, maxs: maxs, n: buckets };
 }
 function drawWaveform(){
   var en = /^en/i.test(document.documentElement.lang || '');
@@ -798,9 +829,15 @@ function togglePlay(){
   if(!audioBuffer){ ToolBox.showToast('tool.audio_select_hint', 'warning'); return; }
   if(isPlaying) pausePlay(); else startPlay();
 }
+function flushEffectTail(){
+  if(!audioCtx) return;
+  // 重建效果链：断开延迟反馈环/卷积节点，立即丢弃已产生的尾音
+  rebuildWetChain();
+}
 function startPlay(){
   if(!audioBuffer || isPlaying) return;
   ensureCtx();
+  flushEffectTail();
   if(audioCtx.state === 'suspended') audioCtx.resume();
   source = audioCtx.createBufferSource();
   source.buffer = audioBuffer;
@@ -820,6 +857,7 @@ function pausePlay(){
   if(pausedAt > audioBuffer.duration) pausedAt = audioBuffer.duration;
   isPlaying = false;
   if(source){ try{ source.onended = null; source.stop(); }catch(e){} source = null; }
+  flushEffectTail();
   updatePlayBtn();
   stopRaf();
   curTimeEl.textContent = fmtTime(pausedAt);
@@ -829,6 +867,7 @@ function stopPlay(){
   if(source){ try{ source.onended = null; source.stop(); }catch(e){} source = null; }
   isPlaying = false;
   pausedAt = 0;
+  flushEffectTail();
   updatePlayBtn();
   stopRaf();
   curTimeEl.textContent = '0:00';
@@ -970,46 +1009,82 @@ function audioBufferToWav(buffer){
 }
 
 /* ===== 导出 ===== */
+function downmixForExport(ctx, buffer){
+  var nch = buffer.numberOfChannels;
+  if(nch <= 2) return buffer;
+  var out = ctx.createBuffer(2, buffer.length, buffer.sampleRate);
+  var left = out.getChannelData(0), right = out.getChannelData(1);
+  var src = [];
+  for(var c=0;c<nch;c++) src.push(buffer.getChannelData(c));
+  for(var i=0;i<buffer.length;i++){
+    var l = 0, r = 0, ln = 0, rn = 0;
+    for(var c2=0;c2<nch;c2++){
+      if(c2 % 2 === 0){ l += src[c2][i]; ln++; } else { r += src[c2][i]; rn++; }
+    }
+    left[i] = ln ? l/ln : 0;
+    right[i] = rn ? r/rn : left[i];
+  }
+  return out;
+}
 function exportWav(){
   var __srcBuffer=audioBuffer;
   var __exportName=originalFileName || 'audio';
   if(!__srcBuffer){ ToolBox.showToast('tool.audio_select_hint', 'warning'); return; }
+  // 启动时快照音频、文件名与全部效果参数，异步渲染期间切换文件/改参数不影响本次结果
+  var snap = {
+    buffer: __srcBuffer,
+    name: __exportName,
+    type: effectType,
+    mix: mix,
+    delay: delayTime,
+    feedback: feedback,
+    irDuration: irDuration,
+    compEnabled: compEnabled
+  };
   exportBtn.disabled = true;
   exportBtn.textContent = '正在渲染...';
   exportHint.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Offline rendering in progress, please wait":"离线渲染中，请稍候");
   try{
-    var sr = __srcBuffer.sampleRate;
-    var numCh = __srcBuffer.numberOfChannels;
-    var fbLevel = Math.max(0, Math.min(0.99, feedback));
+    var sr = snap.buffer.sampleRate;
+    var srcCh = snap.buffer.numberOfChannels;
+    var numCh = srcCh > 2 ? 2 : srcCh;
+    var wetOn = snap.mix > 0;
+    var fbLevel = Math.max(0, Math.min(0.99, snap.feedback));
     var repeats = fbLevel > 0 ? Math.ceil(Math.log(0.001) / Math.log(fbLevel)) : 1;
-    var tailNeeded = effectType === 'reverb' ? (irDuration + 0.5) : (delayTime * Math.max(1, repeats) + delayTime);
-    var tail = Math.min(60, tailNeeded);
-    var truncWarning = '';
-    if(tailNeeded>60){truncWarning='尾音衰减需约 '+tailNeeded.toFixed(0)+' 秒，导出上限 60 秒，末段仍会被截断；可降低反馈量或延迟。';exportHint.textContent=truncWarning;}
-    var totalDur = __srcBuffer.duration + tail;
+    var tailNeeded = snap.type === 'reverb' ? (snap.irDuration + 0.5) : (snap.delay * Math.max(1, repeats) + snap.delay);
+    var tail = wetOn ? Math.min(60, tailNeeded) : 0;
+    var notes = [];
+    if(!wetOn){ notes.push('湿声为 0%，按原音频时长导出，不追加效果尾音。'); }
+    else if(tailNeeded>60){ notes.push('尾音衰减需约 '+tailNeeded.toFixed(0)+' 秒，导出上限 60 秒，末段仍会被截断；可降低反馈量或延迟。'); }
+    if(srcCh>2){ notes.push('原音频 '+srcCh+' 声道，已下混为立体声导出。'); }
+    if(notes.length) exportHint.textContent = notes.join(' ');
+    var totalDur = snap.buffer.duration + tail;
     var length = Math.ceil(totalDur * sr);
     var OC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
     var off = new OC(numCh, length, sr);
 
     var src = off.createBufferSource();
-    src.buffer = __srcBuffer;
+    src.buffer = srcCh > 2 ? downmixForExport(off, snap.buffer) : snap.buffer;
     var dry = off.createGain();
     var wet = off.createGain();
     var master = off.createGain();
     var comp = off.createDynamicsCompressor();
     comp.threshold.value = -10; comp.knee.value = 12; comp.ratio.value = 6;
     comp.attack.value = 0.003; comp.release.value = 0.25;
-    dry.connect(master); wet.connect(master); master.connect(comp); comp.connect(off.destination);
-    var m = mix/100;
+    dry.connect(master); wet.connect(master);
+    if(snap.compEnabled){ master.connect(comp); comp.connect(off.destination); }
+    else { master.connect(off.destination); }
+    var m = snap.mix/100;
     dry.gain.value = 1 - m; wet.gain.value = m;
 
-    if(effectType === 'echo'){
-      var d = off.createDelay(5.0); d.delayTime.value = delayTime;
-      var fb = off.createGain(); fb.gain.value = feedback;
+    if(snap.type === 'echo'){
+      var d = off.createDelay(5.0); d.delayTime.value = snap.delay;
+      var fb = off.createGain(); fb.gain.value = snap.feedback;
       src.connect(d); d.connect(wet); d.connect(fb); fb.connect(d);
     } else {
+      var irCh = numCh === 1 ? 1 : 2;
       var c = off.createConvolver();
-      c.buffer = makeImpulse(off, irDuration, IR_DECAY, numCh);
+      c.buffer = makeImpulse(off, snap.irDuration, IR_DECAY, irCh, sr);
       src.connect(c); c.connect(wet);
     }
     src.connect(dry);
@@ -1023,11 +1098,11 @@ function exportWav(){
         var blob = new Blob([wav], {type:'audio/wav'});
         var url = URL.createObjectURL(blob);
         var a = document.createElement('a');
-        var base = __exportName.replace(/\.[^.]+$/, '');
+        var base = snap.name.replace(/\.[^.]+$/, '');
         a.href = url; a.download = base + '-效果.wav';
         document.body.appendChild(a); a.click();
         setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 0);
-        exportHint.textContent = (truncWarning ? truncWarning + ' ' : '') + '导出完成：' + (rendered.duration).toFixed(1) + 's WAV';
+        exportHint.textContent = (notes.length ? notes.join(' ') + ' ' : '') + '导出完成：' + (rendered.duration).toFixed(1) + 's WAV';
         ToolBox.showToast(i18nText('toast.msg139'));
       }catch(encErr){
         exportHint.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Encoding failed":"编码失败");
@@ -1091,6 +1166,15 @@ mixSlider.addEventListener('input', function(){
   applyMix();
   clearActivePreset();
 });
+var compEnableEl = document.getElementById('compEnable');
+if(compEnableEl){
+  compEnabled = compEnableEl.checked;
+  compEnableEl.addEventListener('change', function(){
+    compEnabled = this.checked;
+    applyCompressorRouting();
+    renderSignalChain();
+  });
+}
 
 // 波形点击跳转
 wfCanvas.addEventListener('click', function(e){

@@ -312,20 +312,35 @@ let repeatMode = 'none';
 let shuffleMode = false;
 const audio = document.getElementById('audio-player');
 
+function isAudioFile(f) {
+  if (f.type && f.type.startsWith('audio/')) return true;
+  // 部分系统对 flac/ape/m4a 等不提供 MIME，按扩展名兜底
+  return /\.(mp3|wav|flac|m4a|aac|ogg|oga|opus|webm|aiff?|ape|wma)$/i.test(f.name || '');
+}
+
 function handleFiles(files) {
-  if (!files.length) return;
+  if (!files || !files.length) return;
+  const added = [];
+  let skipped = 0;
   Array.from(files).forEach(f => {
-    if (!f.type.startsWith('audio/')) return;
+    if (!isAudioFile(f)) { skipped++; return; }
     playlist.push({
       name: f.name.replace(/\.[^.]+$/, ''),
       artist: '本地文件',
       url: URL.createObjectURL(f),
       duration: 0
     });
+    added.push(f);
   });
   renderPlaylist();
-  ToolBox.showToast(`已添加 ${files.length} 首歌曲`, 'success');
-  if (currentIndex === -1) playTrack(0);
+  if (added.length && skipped) {
+    ToolBox.showToast(__tbL(`已添加 ${added.length} 首，跳过 ${skipped} 个不支持的文件`, `Added ${added.length}, skipped ${skipped} unsupported file(s)`), 'warning');
+  } else if (added.length) {
+    ToolBox.showToast(__tbL(`已添加 ${added.length} 首歌曲`, `Added ${added.length} track(s)`), 'success');
+  } else {
+    ToolBox.showToast(__tbL('未找到可播放的音频文件，请选择 MP3/WAV/FLAC/M4A/OGG 等格式', 'No playable audio found. Choose MP3/WAV/FLAC/M4A/OGG or similar.'), 'error');
+  }
+  if (currentIndex === -1 && playlist.length) playTrack(0);
 }
 
 function renderPlaylist() {
@@ -348,17 +363,45 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+function updatePlayUI(isPlaying) {
+  document.getElementById('play-btn').textContent = isPlaying ? '⏸' : '▶';
+  document.getElementById('album-art').classList.toggle('spinning', !!isPlaying);
+  renderPlaylist();
+}
+
+let __lastPlayErrorAt = 0;
+function showPlayError() {
+  const now = Date.now();
+  if (now - __lastPlayErrorAt < 2000) return;
+  __lastPlayErrorAt = now;
+  updatePlayUI(false);
+  ToolBox.showToast(__tbL('无法播放该文件，可能格式不受当前浏览器支持或文件已损坏', 'Cannot play this file. The format may be unsupported by this browser or the file may be damaged.'), 'error');
+}
+
+function attemptPlay() {
+  let p;
+  try { p = audio.play(); } catch (e) { showPlayError(); return Promise.resolve(false); }
+  if (p && typeof p.then === 'function') {
+    return p.then(() => { updatePlayUI(true); return true; }, () => { showPlayError(); return false; });
+  }
+  updatePlayUI(true);
+  return Promise.resolve(true);
+}
+
 function playTrack(i) {
-  if (i < 0 || i >= playlist.length) return;
+  if (i < 0 || i >= playlist.length) return Promise.resolve(false);
   currentIndex = i;
   const t = playlist[i];
   audio.src = t.url;
-  audio.play();
   document.getElementById('now-title').textContent = t.name;
   document.getElementById('now-artist').textContent = t.artist;
-  document.getElementById('play-btn').textContent = '⏸';
-  document.getElementById('album-art').classList.add('spinning');
-  renderPlaylist();
+  if (audio.paused) updatePlayUI(false);
+  return attemptPlay().then(ok => {
+    if (ok && playlist[i]) {
+      __tbHistSave({时间:__tbTime(),曲目:t.name,歌手:t.artist,列表:playlist.length+' 首',__v:playlist.length});
+    }
+    return ok;
+  });
 }
 
 function togglePlay() {
@@ -366,15 +409,8 @@ function togglePlay() {
     if (playlist.length > 0) playTrack(0);
     return;
   }
-  if (audio.paused) {
-    audio.play();
-    document.getElementById('play-btn').textContent = '⏸';
-    document.getElementById('album-art').classList.add('spinning');
-  } else {
-    audio.pause();
-    document.getElementById('play-btn').textContent = '▶';
-    document.getElementById('album-art').classList.remove('spinning');
-  }
+  if (audio.paused) attemptPlay();
+  else audio.pause();
 }
 
 function prevTrack() {
@@ -399,7 +435,7 @@ function nextTrack() {
 function onTrackEnd() {
   if (repeatMode === 'one') {
     audio.currentTime = 0;
-    audio.play();
+    attemptPlay();
   } else if (shuffleMode || repeatMode === 'all' || currentIndex < playlist.length - 1) {
     nextTrack();
   } else {
@@ -460,7 +496,7 @@ function clearPlaylist() {
   document.getElementById('play-btn').textContent = '▶';
   document.getElementById('album-art').classList.remove('spinning');
   renderPlaylist();
-  ToolBox.showToast(i18nText(), 'success');
+  ToolBox.showToast(__tbL('Playlist cleared', '播放列表已清空'), 'success');
 }
 
 function formatTime(s) {
@@ -471,6 +507,9 @@ function formatTime(s) {
 }
 
 audio.volume = 0.8;
+audio.addEventListener('play', () => updatePlayUI(true));
+audio.addEventListener('pause', () => updatePlayUI(false));
+audio.addEventListener('error', () => { if (audio.src) showPlayError(); });
 renderPlaylist();
 ToolBox.initToolTheme();
 
@@ -607,15 +646,6 @@ window.__tbEnTitle = "📈 Playback Records & History";
 
 window.__tbNoChart = 1;
 
-/* 出结果后自动落一条本机记录（包装原 playTrack，不改其计算逻辑） */
-var __tbF_playTrack = (typeof playTrack === 'function') ? playTrack : null;
-if (__tbF_playTrack) {
-  playTrack = function () {
-    var __r = __tbF_playTrack.apply(null, arguments);
-    try { __tbHistSave((function(){var t=playlist[i];if(!t)return null;return {时间:__tbTime(),曲目:t.name,歌手:t.artist,列表:playlist.length+' 首',__v:playlist.length};})()); } catch (e) {}
-    return __r;
-  };
-}
 
 </script><script>
 // tool-intro折叠交互
@@ -648,7 +678,7 @@ document.addEventListener('DOMContentLoaded',function(){
     </a>
     <a href="generator-1.html" class="related-tool-card">
       <span class="rt-icon">🎵</span>
-      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">音阶生成器按大调、小调与五声音阶等调式生成对应音名序列并支持试听，适合乐理学习、即兴创作与乐器练习的…</span></span>
+      <span class="rt-info"><span class="rt-name">音阶生成器（大调/小调/五声音阶）</span><span class="rt-desc">指定根音、调式与起始八度后生成按音级正确拼写的音名序列、十二平均律频率，并支持 Web Audio…</span></span>
     </a>
     <a href="bpm-converter.html" class="related-tool-card">
       <span class="rt-icon">🏎️</span>
@@ -659,8 +689,8 @@ document.addEventListener('DOMContentLoaded',function(){
       <span class="rt-info"><span class="rt-name">歌曲速度转换（BPM微调）</span><span class="rt-desc">输入原曲BPM与目标BPM，计算速度比例与新时长，给出提速/降速百分比，用于翻唱移调、练琴跟拍等音乐…</span></span>
     </a>
     <a href="audio-converter.html" class="related-tool-card">
-      <span class="rt-icon">🔄</span>
-      <span class="rt-info"><span class="rt-name">音频转换</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
+      <span class="rt-icon">🧊</span>
+      <span class="rt-info"><span class="rt-name">音频格式与容量估算</span><span class="rt-desc">对比 WAV/MP3/FLAC 等常见音频格式特点，输入采样率、位深与声道数计算 PCM 原始文件大…</span></span>
     </a>
   </div>
 </div>

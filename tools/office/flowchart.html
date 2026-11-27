@@ -86,6 +86,11 @@
 }
 .fc-save-state{font-size:11px;color:var(--text-muted);font-weight:400;}
 .fc-save-state.saved{color:var(--success);}
+.fc-label-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;margin-bottom:6px;}
+.fc-label-row > label{margin:0;}
+.fc-indent-toggle{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--text);font-weight:500;cursor:pointer;user-select:none;}
+.fc-indent-toggle input{width:14px;height:14px;accent-color:var(--tool-accent,#FF6B35);cursor:pointer;}
+.fc-indent-toggle:focus-within{outline:2px solid var(--tool-accent,#FF6B35);outline-offset:2px;border-radius:4px;}
 /* 图表类型标签在移动端可横向滚动 */
 #typeTabs{margin-bottom:14px;}
 @media(max-width:768px){
@@ -165,7 +170,31 @@
       "name": "绘制内容会丢失吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "编辑内容自动保存到浏览器本地，刷新页面不会丢失；导出时支持 SVG（矢量、可二次编辑）与 PNG（位图）两种格式。"
+        "text": "编辑内容按图表类型分别自动保存到浏览器本地，刷新页面会恢复该类型草稿；切换图表类型不会互相覆盖，加载示例或清空会先确认并可恢复上一版。导出时支持 SVG（矢量、可二次编辑）、PNG（位图）和 .mmd 源码。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "切换图表类型会覆盖当前内容吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。流程图、时序图、甘特图、类图、状态图、ER 图、饼图各自保存独立草稿；切回某类型会载入该类型上次编辑的代码。加载示例或清空只在当前类型内操作，并先确认、保留「恢复上一版」。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Tab 键会困住键盘焦点吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "默认不会。Tab 缩进默认关闭，Tab/Shift+Tab 按浏览器常规移动焦点；勾选「Tab 缩进」后才拦截 Tab，按 Esc 可退出。选中多行时按 Tab/Shift+Tab 会按行增加或减少两个空格并保留选区，不再删除选中内容。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "可以导入或导出 Mermaid 源码吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "可以。工具栏「导出源码」下载当前类型的 .mmd 文本；「导入源码」读取 .mmd/.txt 文件并载入编辑器。导入会覆盖当前内容前先确认，并保留「恢复上一版」。"
       }
     }
   ]
@@ -218,16 +247,25 @@
     <!-- 工具栏 -->
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="loadExample()">📋 加载示例</button>
+      <button type="button" class="btn" id="undoBtn" onclick="restoreSnapshot()" style="display:none;">↩ 恢复上一版</button>
       <button type="button" class="btn" onclick="clearEditor()">🗑️ 清空</button>
       <button type="button" class="btn" onclick="copyCode()">📄 复制代码</button>
       <button type="button" class="btn" onclick="downloadSVG()">⬇️ 下载 SVG</button>
       <button type="button" class="btn" onclick="downloadPNG()">🖼️ 下载 PNG</button>
+      <button type="button" class="btn" onclick="exportSource()">⬇️ 导出源码</button>
+      <button type="button" class="btn" onclick="document.getElementById('sourceInput').click()">📥 导入源码</button>
+      <input type="file" id="sourceInput" accept=".mmd,.txt,text/plain" style="display:none" aria-label="选择文件">
     </div>
 
     <!-- 左右分栏 -->
     <div class="fc-split">
       <div class="fc-pane">
-        <label for="editor">Mermaid 代码 <span class="fc-hint">（<kbd>Tab</kbd> 缩进 · 自动保存）</span> <span class="fc-save-state" id="saveState"></span></label>
+        <div class="fc-label-row">
+          <label for="editor">Mermaid 代码 <span class="fc-hint">（自动保存 · 各类型草稿独立）</span></label>
+          <label class="fc-indent-toggle" for="indentMode" title="勾选后 Tab 键插入缩进；按 Esc 可退出"><input type="checkbox" id="indentMode"> <span>Tab 缩进</span></label>
+          <span class="fc-hint">默认关闭，Tab 可正常切换焦点；Esc 退出缩进</span>
+          <span class="fc-save-state" id="saveState" aria-live="polite"></span>
+        </div>
         <textarea id="editor" placeholder="在此输入 Mermaid 代码，例如：&#10;flowchart TD&#10;    A[开始] --> B[结束]" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
       </div>
       <div class="fc-pane">
@@ -240,7 +278,7 @@
 
   <!-- 使用说明 -->
   <div class="info-box">
-    💡 提示：选择上方图表类型可加载对应示例；编辑代码后图表会自动渲染（500ms 防抖）。所有内容仅在本地浏览器处理，不会上传到服务器。
+    💡 提示：选择上方图表类型会载入该类型上次保存的草稿（各类型互不覆盖）；编辑代码后图表自动渲染（500ms 防抖）。Tab 缩进默认关闭，勾选后才拦截 Tab，按 Esc 可退出。加载示例或清空会先确认并保留「恢复上一版」。所有内容仅在本地浏览器处理，不会上传到服务器。
   </div>
 
   <!-- SEO 介绍区块 -->
@@ -284,7 +322,10 @@ graph TD
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>支持哪些图表类型？</dt><dd>内置七种图表类型可一键切换，涵盖流程图、时序图、类图、状态图等常见结构，切换后自动按对应语法重新渲染。</dd>
-<dt>绘制内容会丢失吗？</dt><dd>编辑内容自动保存到浏览器本地，刷新页面不会丢失；导出时支持 SVG（矢量、可二次编辑）与 PNG（位图）两种格式。</dd>
+<dt>绘制内容会丢失吗？</dt><dd>编辑内容按图表类型分别自动保存到浏览器本地，刷新页面会恢复该类型草稿；切换图表类型不会互相覆盖，加载示例或清空会先确认并可恢复上一版。导出时支持 SVG（矢量、可二次编辑）、PNG（位图）和 .mmd 源码。</dd>
+<dt>切换图表类型会覆盖当前内容吗？</dt><dd>不会。流程图、时序图、甘特图、类图、状态图、ER 图、饼图各自保存独立草稿；切回某类型会载入该类型上次编辑的代码。加载示例或清空只在当前类型内操作，并先确认、保留「恢复上一版」。</dd>
+<dt>Tab 键会困住键盘焦点吗？</dt><dd>默认不会。Tab 缩进默认关闭，Tab/Shift+Tab 按浏览器常规移动焦点；勾选「Tab 缩进」后才拦截 Tab，按 Esc 可退出。选中多行时按 Tab/Shift+Tab 会按行增加或减少两个空格并保留选区，不再删除选中内容。</dd>
+<dt>可以导入或导出 Mermaid 源码吗？</dt><dd>可以。工具栏「导出源码」下载当前类型的 .mmd 文本；「导入源码」读取 .mmd/.txt 文件并载入编辑器。导入会覆盖当前内容前先确认，并保留「恢复上一版」。</dd>
 </dl>
 </div>
 </section>
@@ -359,7 +400,7 @@ graph TD
     </a>
     <a href="excel-formula-reference.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">Excel 公式速查表</span><span class="rt-desc">速查常用 Excel 函数与语法</span></span>
+      <span class="rt-info"><span class="rt-name">Excel 公式速查表</span><span class="rt-desc">搜索 27 个常用 Excel 函数，查看语法、可复制示例、预期结果与版本</span></span>
     </a>
   </div>
 </div>
@@ -375,7 +416,7 @@ graph TD
       <ul class="intro-features">
         <li>七种图表类型一键切换</li>
         <li>实时渲染（500ms 防抖）</li>
-        <li>Tab 键缩进，编辑体验流畅</li>
+        <li>可选 Tab 缩进（默认关闭，保留正常焦点导航）</li>
         <li>自动保存到本地，刷新不丢失</li>
         <li>跟随深色 / 浅色主题</li>
         <li>导出 SVG 与 PNG</li>
@@ -409,10 +450,25 @@ const editor = document.getElementById('editor');
 const preview = document.getElementById('preview');
 const errorBox = document.getElementById('errorBox');
 const saveState = document.getElementById('saveState');
+const indentMode = document.getElementById('indentMode');
+const undoBtn = document.getElementById('undoBtn');
+const sourceInput = document.getElementById('sourceInput');
+
+function fcMsg(zh, en){
+  try { if (typeof TBKit !== 'undefined' && TBKit.util.isEn()) return en; } catch (e) {}
+  return zh;
+}
 
 /* ===== 常量 ===== */
 const STORAGE_KEY = 'toolbox_flowchart_code';
 const STORAGE_TYPE_KEY = 'toolbox_flowchart_type';
+const STORAGE_DRAFTS_KEY = 'toolbox_flowchart_drafts';
+const TYPE_NAMES = { flowchart:'流程图', sequence:'时序图', gantt:'甘特图', class:'类图', state:'状态图', er:'ER 图', pie:'饼图' };
+const TYPE_NAMES_EN = { flowchart:'flowchart', sequence:'sequence diagram', gantt:'Gantt chart', class:'class diagram', state:'state diagram', er:'ER diagram', pie:'pie chart' };
+let lastSnapshot = null;
+let renderVersion = 0;
+let renderInFlight = false;
+let previewStale = true;
 
 /* ===== 各图表类型示例代码 ===== */
 const EXAMPLES = {
@@ -532,15 +588,24 @@ function applyMermaidTheme() {
 
 /* ===== 渲染逻辑 ===== */
 async function renderChart() {
+  const token = ++renderVersion;
+  renderInFlight = true;
   const code = editor.value.trim();
   if (!code) {
-    const __h0='<div class="empty-tip"><span class="big">📊</span>' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Enter Mermaid code on the left; the diagram renders here in real time...':'在左侧输入 Mermaid 代码，<br>这里会实时渲染图表...') + '</div>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h0;
+    if (token !== renderVersion) return;
+    preview.innerHTML = '<div class="empty-tip"><span class="big">📊</span>' + fcMsg('在左侧输入 Mermaid 代码，<br>这里会实时渲染图表...', 'Enter Mermaid code on the left; the diagram renders here in real time...') + '</div>';
     errorBox.style.display = 'none';
+    errorBox.textContent = '';
+    previewStale = false;
+    renderInFlight = false;
     return;
   }
   if (typeof mermaid === 'undefined') {
-    preview.innerHTML = '<div class="empty-tip"><span class="big">⚠️</span>' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'The Mermaid library failed to load; diagram rendering is unavailable':'流程图库（Mermaid）加载失败，图表渲染暂不可用') + '</div>';
+    if (token !== renderVersion) return;
+    preview.innerHTML = '<div class="empty-tip"><span class="big">⚠️</span>' + fcMsg('流程图库（Mermaid）加载失败，图表渲染暂不可用', 'The Mermaid library failed to load; diagram rendering is unavailable') + '</div>';
     errorBox.style.display = 'none';
+    previewStale = false;
+    renderInFlight = false;
     return;
   }
   // 清理 Mermaid 上次渲染残留的临时节点，避免重复 id 冲突
@@ -550,21 +615,58 @@ async function renderChart() {
   if (oldD) oldD.remove();
   try {
     const { svg } = await mermaid.render('graphDiv', code);
-    const __h1=svg;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h1;
+    if (token !== renderVersion) return;
+    preview.innerHTML = svg;
     errorBox.style.display = 'none';
+    errorBox.textContent = '';
+    previewStale = false;
+    renderInFlight = false;
   } catch (err) {
-    const __h2='<div class="empty-tip"><span class="big">⚠️</span>' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Diagram rendering failed; please check the code syntax':'图表渲染失败，请检查代码语法') + '</div>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){preview.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}preview.innerHTML=__h2;
+    if (token !== renderVersion) return;
+    preview.innerHTML = '<div class="empty-tip"><span class="big">⚠️</span>' + fcMsg('图表渲染失败，请检查代码语法', 'Diagram rendering failed; please check the code syntax') + '</div>';
     errorBox.style.display = 'block';
     errorBox.textContent = err && (err.message || err.str) ? (err.message || err.str) : String(err);
+    previewStale = false;
+    renderInFlight = false;
   }
 }
 
 const renderDebounced = ToolBox.debounce(renderChart, 500);
+function scheduleRender() {
+  previewStale = true;
+  renderDebounced();
+}
+function exportReady() {
+  if (renderInFlight || previewStale) {
+    ToolBox.showToast(fcMsg('预览正在更新，请等待渲染完成后再导出', 'Preview is updating; wait for rendering to finish before exporting.'), 'warning');
+    return false;
+  }
+  return true;
+}
 
-/* ===== 本地存储 ===== */
+/* ===== 本地存储（按图表类型分草稿） ===== */
+function readDrafts() {
+  try {
+    const raw = localStorage.getItem(STORAGE_DRAFTS_KEY);
+    if (!raw) return {};
+    const obj = JSON.parse(raw);
+    return obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : {};
+  } catch (e) {
+    return {};
+  }
+}
+function writeDrafts(drafts) {
+  try { localStorage.setItem(STORAGE_DRAFTS_KEY, JSON.stringify(drafts)); } catch (e) {}
+}
+function saveDraft(type, code) {
+  const drafts = readDrafts();
+  drafts[type] = code;
+  writeDrafts(drafts);
+}
 function saveCode() {
   let ok = false;
   try {
+    saveDraft(currentType, editor.value);
     localStorage.setItem(STORAGE_KEY, editor.value);
     localStorage.setItem(STORAGE_TYPE_KEY, currentType);
     // 共享层会吞掉配额异常，只有回读一致才算真的写入成功
@@ -573,10 +675,10 @@ function saveCode() {
     ok = false;
   }
   if (ok) {
-    saveState.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Saved':'已保存');
+    saveState.textContent = fcMsg('已保存', 'Saved');
     saveState.classList.add('saved');
   } else {
-    saveState.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Not saved (this calculation is unaffected)':'未保存（本次计算不受影响）');
+    saveState.textContent = fcMsg('未保存（本次计算不受影响）', 'Not saved (this session is unaffected)');
     saveState.classList.remove('saved');
   }
 }
@@ -584,53 +686,100 @@ function loadSaved() {
   try {
     return {
       code: localStorage.getItem(STORAGE_KEY),
-      type: localStorage.getItem(STORAGE_TYPE_KEY)
+      type: localStorage.getItem(STORAGE_TYPE_KEY),
+      drafts: readDrafts()
     };
   } catch (e) {
-    return { code: null, type: null };
+    return { code: null, type: null, drafts: {} };
   }
+}
+
+/* ===== 撤销覆盖 ===== */
+function takeSnapshot() {
+  lastSnapshot = { type: currentType, code: editor.value };
+  updateUndoButton();
+}
+function updateUndoButton() {
+  if (!undoBtn) return;
+  undoBtn.style.display = lastSnapshot ? '' : 'none';
+  undoBtn.textContent = fcMsg('↩ 恢复上一版', '↩ Restore previous');
+}
+function restoreSnapshot() {
+  if (!lastSnapshot) {
+    ToolBox.showToast(fcMsg('没有可恢复的版本', 'No previous version to restore.'), 'info');
+    return;
+  }
+  currentType = lastSnapshot.type;
+  editor.value = lastSnapshot.code;
+  lastSnapshot = null;
+  document.querySelectorAll('#typeTabs .tab-btn').forEach(function (btn) {
+    btn.classList.toggle('active', btn.dataset.type === currentType);
+  });
+  saveCode();
+  renderChart();
+  updateUndoButton();
+  ToolBox.showToast(fcMsg('已恢复上一版', 'Previous version restored.'), 'success');
 }
 
 /* ===== 图表类型切换 ===== */
 function selectType(type) {
+  if (type === currentType) return;
+  saveDraft(currentType, editor.value);
   currentType = type;
   document.querySelectorAll('#typeTabs .tab-btn').forEach(btn => {
     btn.classList.toggle('active', btn.dataset.type === type);
   });
-  editor.value = EXAMPLES[type] || '';
+  const drafts = readDrafts();
+  editor.value = Object.prototype.hasOwnProperty.call(drafts, type) ? drafts[type] : (EXAMPLES[type] || '');
   saveCode();
   renderChart();
+  const name = fcMsg(TYPE_NAMES[type] || type, TYPE_NAMES_EN[type] || type);
+  ToolBox.showToast(fcMsg('已切换到' + name + '，该类型草稿已保留', 'Switched to ' + name + '; drafts are kept per type.'), 'info');
 }
 
 /* ===== 工具栏操作 ===== */
 function loadExample() {
-  editor.value = EXAMPLES[currentType] || EXAMPLES.flowchart;
+  const example = EXAMPLES[currentType] || EXAMPLES.flowchart;
+  if (editor.value === example) {
+    ToolBox.showToast(fcMsg('当前已经是该类型示例', 'This example is already loaded.'), 'info');
+    return;
+  }
+  if (editor.value.trim() && !window.confirm(fcMsg('加载示例会覆盖当前内容，是否继续？', 'Loading the example will overwrite the current content. Continue?'))) return;
+  takeSnapshot();
+  editor.value = example;
   saveCode();
   renderChart();
-  ToolBox.showToast(i18nText('toast.saved', '已加载 ' + currentType + ' 示例'), 'success');
+  const name = fcMsg(TYPE_NAMES[currentType] || currentType, TYPE_NAMES_EN[currentType] || currentType);
+  ToolBox.showToast(fcMsg('已加载' + name + '示例，可用「恢复上一版」返回', 'Loaded the ' + name + ' example; use "Restore previous" to go back.'), 'success');
 }
 
 function clearEditor() {
+  if (!editor.value) {
+    ToolBox.showToast(fcMsg('编辑器已经是空的', 'The editor is already empty.'), 'info');
+    return;
+  }
+  takeSnapshot();
   editor.value = '';
   saveCode();
   renderChart();
   editor.focus();
-  ToolBox.showToast(i18nText(), 'info');
+  ToolBox.showToast(fcMsg('已清空编辑器，可用「恢复上一版」返回', 'Editor cleared; use "Restore previous" to go back.'), 'info');
 }
 
 function copyCode() {
   const code = editor.value;
   if (!code.trim()) {
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(fcMsg('没有可复制的代码，请先输入 Mermaid 代码', 'No code to copy; enter Mermaid code first.'), 'warning');
     return;
   }
-  ToolBox.copyText(code, i18nText());
+  ToolBox.copyText(code, fcMsg('已复制代码', 'Code copied.'));
 }
 
 function downloadSVG() {
+  if (!exportReady()) return;
   const svgEl = preview.querySelector('svg');
   if (!svgEl) {
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(fcMsg('暂无可导出的图表，请先输入代码并等待渲染完成', 'No diagram to export; enter code and wait for rendering to finish.'), 'warning');
     return;
   }
   const clone = svgEl.cloneNode(true);
@@ -640,7 +789,7 @@ function downloadSVG() {
     svgStr = '<?xml version="1.0" encoding="UTF-8"?>\n' + svgStr;
   }
   ToolBox.downloadText('flowchart.svg', svgStr, 'image/svg+xml;charset=utf-8');
-  ToolBox.showToast(i18nText(), 'success');
+  ToolBox.showToast(fcMsg('已导出 SVG', 'SVG exported.'), 'success');
 }
 
 function parseDim(val) {
@@ -651,10 +800,23 @@ function parseDim(val) {
   return isNaN(n) ? NaN : n;
 }
 
+function canvasLimitMessage(w, h) {
+  if (!isFinite(w) || !isFinite(h) || w <= 0 || h <= 0) {
+    return fcMsg('画布尺寸无效，请检查输入', 'Invalid canvas size; check the input.');
+  }
+  if (w > 16384 || h > 16384 || w * h > 268435456) {
+    const size = Math.round(w) + '×' + Math.round(h);
+    return fcMsg('当前 ' + size + ' 超出浏览器画布上限（单边 16384 / 总像素 2.68 亿），请降低尺寸',
+      'Current ' + size + ' exceeds the browser canvas limit (16384 px per side / 268 million pixels); reduce the size.');
+  }
+  return '';
+}
+
 function downloadPNG() {
+  if (!exportReady()) return;
   const svgEl = preview.querySelector('svg');
   if (!svgEl) {
-    ToolBox.showToast(i18nText(), 'warning');
+    ToolBox.showToast(fcMsg('暂无可导出的图表，请先输入代码并等待渲染完成', 'No diagram to export; enter code and wait for rendering to finish.'), 'warning');
     return;
   }
   const clone = svgEl.cloneNode(true);
@@ -674,7 +836,7 @@ function downloadPNG() {
   const img = new Image();
   img.onload = function () {
     const scale = 2; // 2 倍清晰度
-    const limitMsg = canvasExportError(Math.round(w * scale), Math.round(h * scale));
+    const limitMsg = canvasLimitMessage(Math.round(w * scale), Math.round(h * scale));
     if (limitMsg) { URL.revokeObjectURL(url); ToolBox.showToast(limitMsg, 'error'); return; }
     const canvas = document.createElement('canvas');
     canvas.width = Math.round(w * scale);
@@ -686,60 +848,155 @@ function downloadPNG() {
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     URL.revokeObjectURL(url);
     try {
-    canvas.toBlob(function (blob) {
-      if (!blob) {
-        ToolBox.showToast('导出失败：画布可能超出浏览器上限，请缩小画布后重试。', 'error');
-        return;
-      }
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = 'flowchart.png';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      // 延迟释放：部分浏览器在 click 后立即 revoke 会取消下载
-      setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
-      ToolBox.showToast('已导出 PNG', 'success');
-    }, 'image/png');
+      canvas.toBlob(function (blob) {
+        if (!blob) {
+          ToolBox.showToast(fcMsg('导出失败：画布可能超出浏览器上限，请缩小画布后重试。', 'Export failed: the canvas may exceed the browser limit; reduce the size and retry.'), 'error');
+          return;
+        }
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'flowchart.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        // 延迟释放：部分浏览器在 click 后立即 revoke 会取消下载
+        setTimeout(function () { URL.revokeObjectURL(a.href); }, 1000);
+        ToolBox.showToast(fcMsg('已导出 PNG', 'PNG exported.'), 'success');
+      }, 'image/png');
     } catch (e) {
-      ToolBox.showToast('导出失败：' + (e.name || e.message || e), 'error');
+      ToolBox.showToast(fcMsg('导出失败：', 'Export failed: ') + (e.name || e.message || e), 'error');
     }
   };
   img.onerror = function () {
     URL.revokeObjectURL(url);
-    ToolBox.showToast('导出失败：画布渲染出错，请重试', 'error');
+    ToolBox.showToast(fcMsg('导出失败：画布渲染出错，请重试', 'Export failed: canvas rendering error; please retry.'), 'error');
   };
   img.src = url;
 }
 
-/* ===== Tab 键缩进 ===== */
+function exportSource() {
+  if (!editor.value.trim()) {
+    ToolBox.showToast(fcMsg('没有可导出的源码，请先输入 Mermaid 代码', 'No source to export; enter Mermaid code first.'), 'warning');
+    return;
+  }
+  const name = 'flowchart-' + currentType + '.mmd';
+  ToolBox.downloadText(name, editor.value, 'text/plain;charset=utf-8');
+  ToolBox.showToast(fcMsg('已导出源码 ' + name, 'Source exported: ' + name), 'success');
+}
+
+async function importSource(file) {
+  if (!file) return;
+  try {
+    const text = await file.text();
+    if (editor.value.trim() && !window.confirm(fcMsg('导入源码会覆盖当前内容，是否继续？', 'Importing source will overwrite the current content. Continue?'))) {
+      sourceInput.value = '';
+      return;
+    }
+    takeSnapshot();
+    editor.value = text;
+    saveCode();
+    renderChart();
+    ToolBox.showToast(fcMsg('已导入源码 ' + file.name, 'Source imported: ' + file.name), 'success');
+  } catch (e) {
+    ToolBox.showToast(fcMsg('读取源码失败，请检查文件', 'Failed to read the source file; please check it.'), 'error');
+  } finally {
+    sourceInput.value = '';
+  }
+}
+
+sourceInput.addEventListener('change', function () {
+  importSource(this.files && this.files[0]);
+});
+
+/* ===== 可选 Tab 缩进（默认关闭，保留正常焦点导航） ===== */
+function selectedLineRange(value, start, end) {
+  const first = value.lastIndexOf('\n', start - 1) + 1;
+  let endPos = end;
+  if (end > start && value[end - 1] === '\n') endPos = end - 1;
+  const nl = value.indexOf('\n', endPos);
+  const last = nl === -1 ? value.length : nl;
+  return { first: first, last: last };
+}
+
+function indentSelectedLines() {
+  const value = editor.value;
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const range = selectedLineRange(value, start, end);
+  const block = value.slice(range.first, range.last);
+  const lines = block.split('\n');
+  const newBlock = lines.map(function (line) { return '  ' + line; }).join('\n');
+  replaceEditorRange(newBlock, range.first, range.last, start + 2, end + 2 * lines.length);
+}
+
+function unindentSelectedLines() {
+  const value = editor.value;
+  const start = editor.selectionStart;
+  const end = editor.selectionEnd;
+  const range = selectedLineRange(value, start, end);
+  const block = value.slice(range.first, range.last);
+  const lines = block.split('\n');
+  let removedTotal = 0;
+  let removedFirst = 0;
+  const newBlock = lines.map(function (line, idx) {
+    const match = line.match(/^ {1,2}/);
+    const removed = match ? match[0].length : 0;
+    if (idx === 0) removedFirst = removed;
+    removedTotal += removed;
+    return line.slice(removed);
+  }).join('\n');
+  replaceEditorRange(newBlock, range.first, range.last, Math.max(range.first, start - removedFirst), Math.max(range.first, end - removedTotal));
+}
+
+function replaceEditorRange(text, from, to, selStart, selEnd) {
+  editor.focus();
+  editor.setSelectionRange(from, to);
+  let ok = false;
+  try {
+    ok = text === '' ? document.execCommand('delete', false) : document.execCommand('insertText', false, text);
+  } catch (e) {
+    ok = false;
+  }
+  if (!ok) editor.setRangeText(text, from, to, 'end');
+  const max = editor.value.length;
+  editor.setSelectionRange(Math.min(Math.max(selStart, 0), max), Math.min(Math.max(selEnd, 0), max));
+}
+
 editor.addEventListener('keydown', function (e) {
-  if (e.key !== 'Tab') return;
+  if (e.key === 'Escape' && indentMode.checked) {
+    indentMode.checked = false;
+    ToolBox.showToast(fcMsg('已退出 Tab 缩进模式，Tab 可正常切换焦点', 'Tab indent mode off; Tab now moves focus normally.'), 'info');
+    return;
+  }
+  if (e.key !== 'Tab' || !indentMode.checked) return;
   e.preventDefault();
   const start = editor.selectionStart;
   const end = editor.selectionEnd;
   if (e.shiftKey) {
-    // Shift+Tab：减少缩进（删掉行首 2 空格）
-    const before = editor.value.slice(0, start);
-    const lineStart = before.lastIndexOf('\n') + 1;
-    const lineHead = editor.value.slice(lineStart, lineStart + 2);
-    if (lineHead === '  ') {
-      editor.value = editor.value.slice(0, lineStart) + editor.value.slice(lineStart + 2);
-      const delta = start - lineStart >= 2 ? 2 : (start - lineStart);
-      editor.selectionStart = editor.selectionEnd = Math.max(lineStart, start - delta);
+    if (start === end) {
+      const lineStart = editor.value.lastIndexOf('\n', start - 1) + 1;
+      const before = editor.value.slice(lineStart, start);
+      const remove = /^ *$/.test(before) ? Math.min(2, before.length) : 0;
+      if (remove) {
+        replaceEditorRange('', start - remove, start, start - remove, start - remove);
+      }
+    } else {
+      unindentSelectedLines();
     }
   } else {
-    // Tab：插入 2 空格
-    editor.value = editor.value.slice(0, start) + '  ' + editor.value.slice(end);
-    editor.selectionStart = editor.selectionEnd = start + 2;
+    if (start === end) {
+      replaceEditorRange('  ', start, end, start + 2, start + 2);
+    } else {
+      indentSelectedLines();
+    }
   }
-  renderDebounced();
+  scheduleRender();
   saveCode();
 });
 
 /* ===== 输入事件 ===== */
 editor.addEventListener('input', function () {
-  renderDebounced();
+  scheduleRender();
   saveCode();
 });
 
@@ -768,11 +1025,20 @@ document.querySelectorAll('.tool-intro-header').forEach(function (h) {
       btn.classList.toggle('active', btn.dataset.type === saved.type);
     });
   }
-  if (saved.code && saved.code.trim()) {
-    editor.value = saved.code;
+  let code;
+  if (saved.code !== null) {
+    // getItem 返回 null = 从未保存；空字符串 = 用户明确保存了空白，必须原样恢复
+    code = saved.code;
+    saved.drafts[currentType] = code;
+    writeDrafts(saved.drafts);
+  } else if (Object.prototype.hasOwnProperty.call(saved.drafts, currentType)) {
+    code = saved.drafts[currentType];
   } else {
-    editor.value = EXAMPLES[currentType];
+    code = EXAMPLES[currentType];
   }
+  editor.value = code;
+  indentMode.checked = false;
+  updateUndoButton();
   applyMermaidTheme();
 })();
 </script>

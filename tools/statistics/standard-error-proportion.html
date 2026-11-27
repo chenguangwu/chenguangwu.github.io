@@ -305,11 +305,15 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
+function __err(zh,en){var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());return '<p style="color:var(--danger)">⚠ '+(isEn?en:zh)+'</p>';}
+
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-              var __ig=__tbInputGuard(['p', 'n'],["比例 p", "样本量 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const p=num('p'),n=num('n');
+const p=readNum('p'),n=readNum('n');
+            if(isNaN(p)||p<0||p>1){ToolBox.setResult('result',__err('「比例 p」必须在 0 与 1 之间（含端点），不能含文字。','“Proportion p” must be between 0 and 1 inclusive and contain no text.'));return;}
+            if(isNaN(n)||n<2||Math.floor(n)!==n){ToolBox.setResult('result',__err('「样本量 n」必须是 ≥2 的整数，比例标准误才可计算。','“Sample size n” must be an integer ≥2 to compute the standard error of a proportion.'));return;}
             const SE=Math.sqrt(p*(1-p)/n);
             const __g2=dataGrid([
                 [SE.toFixed(4),'比例标准误 SE'],
@@ -326,10 +330,11 @@ calcTool();
 function __spNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __spList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
 
+function __spClear(){var ids=['spTable','spMatrix','spDiff','spHist','spChart'];for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}}
 function __spExtras(){
     if (typeof TBKit === 'undefined') return;
     var p=__spNum('p'), n=__spNum('n');
-    if(!isFinite(p)||!isFinite(n)||n<=0||p<0||p>1) return;
+    if(!isFinite(p)||!isFinite(n)||n<2||Math.floor(n)!==n||p<0||p>1){__spClear();return;}
     var en=TBKit.util.isEn();
     var SE=Math.sqrt(p*(1-p)/n);
     TBKit.matrix.table('#spTable',{

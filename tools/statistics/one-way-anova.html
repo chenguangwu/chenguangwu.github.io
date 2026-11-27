@@ -337,10 +337,12 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
-function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
+function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function num(id){const v=readNum(id);return isNaN(v)?0:v;}
+function __err(zh,en){var isEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());return '<p style="color:var(--danger)">⚠ '+(isEn?en:zh)+'</p>';}
+
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-  var __ig=__tbInputGuard(['m1', 'm2', 'm3', 's1', 's2', 's3', 'n1', 'n2', 'n3'],["组1均值", "组2均值", "组3均值", "组1标准差", "组2标准差", "组3标准差", "组1样本量", "组2样本量", "组3样本量"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
   const y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
   return s*y;}
@@ -360,15 +362,18 @@ function betai(a,b,x){if(x<=0)return 0; if(x>=1)return 1;
   const bt=Math.exp(lgamma(a+b)-lgamma(a)-lgamma(b)+a*Math.log(x)+b*Math.log(1-x));
   if(x<(a+1)/(a+b+2)) return bt*betacf(a,b,x)/a; return 1-bt*betacf(b,a,1-x)/b;}
 
-            const ms=[num('m1'),num('m2'),num('m3')];
-            const ss=[num('s1'),num('s2'),num('s3')];
-            const ns=[num('n1'),num('n2'),num('n3')];
-            for(var _q=0;_q<3;_q++){ if(!isFinite(ns[_q])||ns[_q]<2||Math.floor(ns[_q])!==ns[_q]){ __anClear(); ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 每组样本量必须是 ≥2 的整数，否则方差分析无定义。</p>'); return; } }
+            const ms=[readNum('m1'),readNum('m2'),readNum('m3')];
+            const ss=[readNum('s1'),readNum('s2'),readNum('s3')];
+            const ns=[readNum('n1'),readNum('n2'),readNum('n3')];
+            for(var _q=0;_q<3;_q++){ if(isNaN(ms[_q])){ __anClear(); ToolBox.setResult('result',__err('第 '+(+_q+1)+' 组均值必须是有限数值（0 合法）。','Group '+(+_q+1)+' mean must be a finite number (0 is valid).')); return; } }
+            for(var _q=0;_q<3;_q++){ if(isNaN(ss[_q])||ss[_q]<0){ __anClear(); ToolBox.setResult('result',__err('第 '+(+_q+1)+' 组标准差必须是非负有限数值；负标准差平方后会给出错误结论。','Group '+(+_q+1)+' standard deviation must be non-negative and finite; squaring a negative value would produce invalid conclusions.')); return; } }
+            for(var _q=0;_q<3;_q++){ if(isNaN(ns[_q])||ns[_q]<2||Math.floor(ns[_q])!==ns[_q]){ __anClear(); ToolBox.setResult('result',__err('每组样本量必须是 ≥2 的整数，否则方差分析无定义。','Each group sample size must be an integer ≥2; otherwise ANOVA is undefined.')); return; } }
             const k=3, N=ns[0]+ns[1]+ns[2];
             if(N-k<1){ __anClear(); ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 组内自由度 dfw=N−3 必须 ≥1。</p>'); return; }
             const gm=(ms[0]*ns[0]+ms[1]*ns[1]+ms[2]*ns[2])/N;
             let ssb=0, ssw=0;
             for(let i=0;i<k;i++){ssb+=ns[i]*(ms[i]-gm)*(ms[i]-gm); ssw+=(ns[i]-1)*ss[i]*ss[i];}
+            if(ssw===0){ __anClear(); ToolBox.setResult('result',__err('三组组内方差均为 0：组内平方和 SSW=0，F=MSB/MSW 的分母为 0，方差分析无定义。请检查标准差输入，或改用描述性比较。','All three within-group variances are 0: SSW=0, so the denominator of F=MSB/MSW is 0 and ANOVA is undefined. Check the standard deviations or use a descriptive comparison.')); return; }
             const dfb=k-1, dfw=N-k;
             const F=(ssb/dfb)/(ssw/dfw);
             const p=betai(dfw/2,dfb/2, dfw/(dfw+dfb*F));
@@ -401,12 +406,13 @@ function __anExtras(){
     var ms=[__anNum('m1'),__anNum('m2'),__anNum('m3')];
     var ss=[__anNum('s1'),__anNum('s2'),__anNum('s3')];
     var ns=[__anNum('n1'),__anNum('n2'),__anNum('n3')];
-    for(var i=0;i<3;i++){ if(!isFinite(ms[i])||!isFinite(ss[i])||!isFinite(ns[i])||ns[i]<2||Math.floor(ns[i])!==ns[i]){ __anClear(); return; } }
+    for(var i=0;i<3;i++){ if(!isFinite(ms[i])||!isFinite(ss[i])||!isFinite(ns[i])||ss[i]<0||ns[i]<2||Math.floor(ns[i])!==ns[i]){ __anClear(); return; } }
     var en=TBKit.util.isEn();
     var N=ns[0]+ns[1]+ns[2];
     var grand=(ms[0]*ns[0]+ms[1]*ns[1]+ms[2]*ns[2])/N;
     var ssb=0, ssw=0;
     for(var j=0;j<3;j++){ ssb+=ns[j]*Math.pow(ms[j]-grand,2); ssw+=(ns[j]-1)*ss[j]*ss[j]; }
+    if(ssw===0){ __anClear(); return; }
     var dfB=2, dfW=N-3;
     var msb=ssb/dfB, msw=ssw/Math.max(dfW,1);
     var F=msw>0?msb/msw:NaN;

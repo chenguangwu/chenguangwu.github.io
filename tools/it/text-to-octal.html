@@ -394,6 +394,12 @@ function textToBytes(text, encoding){
       if(code >= 0xD800 && code <= 0xDBFF){
         var low = i + 1 < text.length ? text.charCodeAt(i+1) : -1;
         if(low < 0xDC00 || low > 0xDFFF) throw new Error(octMsg('UTF-16BE 编码遇到孤立高代理项 0x'+code.toString(16),'UTF-16BE encoding hit an unpaired high surrogate 0x'+code.toString(16)));
+        bytes.push((code >> 8) & 0xff);
+        bytes.push(code & 0xff);
+        bytes.push((low >> 8) & 0xff);
+        bytes.push(low & 0xff);
+        i++;
+        continue;
       } else if(code >= 0xDC00 && code <= 0xDFFF){
         throw new Error(octMsg('UTF-16BE 编码遇到孤立低代理项 0x'+code.toString(16),'UTF-16BE encoding hit an unpaired low surrogate 0x'+code.toString(16)));
       }
@@ -493,8 +499,9 @@ function convert(){
   document.getElementById('output').value = parts.join(joinSep);
 
   var vizHtml = '';
-  for(var i = 0; i < text.length; i++){
-    var ch = text[i];
+  var chars = Array.from(text);
+  for(var i = 0; i < chars.length; i++){
+    var ch = chars[i];
     var charBytes = textToBytes(ch, encoding);
     var charOct = '';
     for(var j = 0; j < charBytes.length; j++){
@@ -507,7 +514,7 @@ function convert(){
   }
   const __h1=vizHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('viz').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('viz').innerHTML=__h1;
 
-  updateStats(text.length, bytes.length, parts.length);
+  updateStats(chars.length, bytes.length, parts.length);
   addToHistory(text, document.getElementById('output').value, 'text2oct');
 }
 
@@ -869,7 +876,7 @@ else document.addEventListener('DOMContentLoaded', __text_to_octalBoot);
   <div class="related-tools-grid">
     <a href="properties-parser.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、行内注释…</span></span>
+      <span class="rt-info"><span class="rt-name">.properties 解析器</span><span class="rt-desc">Java .properties 文件解析：支持 key=value、key:value、整行注释（…</span></span>
     </a>
     <a href="ast-viewer.html" class="related-tool-card">
       <span class="rt-icon">💻</span>

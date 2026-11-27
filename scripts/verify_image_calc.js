@@ -255,8 +255,8 @@ const CASES = [
 {
   "slug": "image/wechat-cover-maker",
   "clicks": ["var cv=document.getElementById('cover');cv.width=900;cv.height=383;var ops=[];var ctx={createLinearGradient:function(){return {addColorStop:function(){}}},fillRect:function(x,y,w,h){ops.push([this.fillStyle,x,y,w,h].join(','))},fillText:function(){},measureText:function(s){return {width:s.length*10}}};cv.getContext=function(){return ctx};render();document.getElementById('wcSizeTbl').textContent=ops.join('|');"],
-  "expect": ["rgba(0,0,0,0.35),0,223,900,170"],
-  "ref": "绘图指令验证：900×383 画布的底部遮罩从 y=383−160=223 起，宽 900、高 170，透明度 0.35；记录实际 fillRect 指令，不声称测试了像素。"
+  "expect": ["rgba(0,0,0,0.35),0,222,900,161"],
+  "ref": "绘图指令验证：900×383 画布按 58% 高度起遮罩：y=round(383×0.58)=222，高 383−222=161，宽 900，透明度 0.35；记录实际 fillRect 指令，不声称测试了像素。"
 },
 {
   "slug": "design/image-flipper",
@@ -276,7 +276,7 @@ const CASES = [
 },
 {
   "slug": "image/image-filter",
-  "clicks": ["var i=PRESETS.findIndex(function(p){return p.name==='梦幻';});applyPreset(i);document.getElementById('__tbProbe').textContent='FLT '+document.getElementById('brightness').value+'|'+document.getElementById('blur').value+'|'+document.getElementById('saturate').value;"],
+  "clicks": ["applyPreset(13);document.getElementById('__tbProbe').textContent='FLT '+document.getElementById('brightness').value+'|'+document.getElementById('blur').value+'|'+document.getElementById('saturate').value;"],
   "expect": ["FLT 110|1|130"],
   "ref": "第207批·预设回写滑杆：梦幻 preset 必须把亮度 110、模糊 1px、饱和 130 写回输入；旧 applyPreset 只改 CSS ⇒ 滑杆仍是默认 100|0|100，零交集。"
 },
@@ -408,6 +408,12 @@ const CASES = [
   "clicks": ["var a=CollageTool.gridSize('2.5','3');var b=CollageTool.gridSize('','3');var c=CollageTool.gridSize('4','5');var d=CollageTool.gridSize('21','3');document.getElementById('infoBox').textContent='G731A:'+(a.valid?'1':'0')+'|'+(b.valid?'1':'0')+'|'+c.rows+'x'+c.cols+'|'+(d.valid?'1':'0')+'|'+a.error;"],
   "expect": ["G731A:0|0|4x5|0|行数必须是整数（当前“2.5”），小数无法排出完整网格。"],
   "ref": "第731A批·自定义网格行列严格整数：旧实现 clamp(+value||1,1,20) 让 2.5 列照常参与 Math.floor(idx/cols)，空值静默变 1、21 静默变 20。现小数/空值/越界均判无效并给出对应提示，1–20 整数正常通过（4×5）。"
+},
+{
+  "slug": "image/image-compress",
+  "clicks": ["document.getElementById('bgColor').value='#112233';document.getElementById('fmt').value='jpeg';var s=getSettings();document.getElementById('results-card').textContent='BG986:'+s.bg.toUpperCase()+'|F:'+s.format;"],
+  "expect": ["BG986:#112233|F:jpeg"],
+  "ref": "第987批：JPEG 背景色必须进入压缩参数；注入 #112233 后 getSettings().bg 原样返回（非法值回落 #ffffff），避免 UI 选色与实际 canvas 填充脱节。"
 }
 ];
 function batch204StaticChecks(){
@@ -425,16 +431,16 @@ function batch204StaticChecks(){
   var mos = fs.readFileSync("tools/image/image-mosaic.html","utf8");
   out.push({name:"B210 mosaic multiple regions",ok:mos.indexOf('id="mosaicMulti"')>=0&&mos.indexOf('regions.push(nr)')>=0&&mos.indexOf('regionsNat.forEach')>=0});
   var ngc = fs.readFileSync("tools/image/nine-grid-cutter.html","utf8");
-  out.push({name:"B209 nine-grid output size",ok:ngc.indexOf('id="ngcOutSide"')>=0&&ngc.indexOf('var pieceW = outSide')>=0&&ngc.indexOf('3×3 选 3240 即每格 1080px')>=0});
+  out.push({name:"B209 nine-grid output size",ok:ngc.indexOf('id="ngcOutSide"')>=0&&ngc.indexOf("function __ngcComputeDims")>=0&&ngc.indexOf("输出每片")>=0&&ngc.indexOf("像素保真")>=0});
   var cvr = fs.readFileSync("tools/image/image-converter.html","utf8");
   out.push({name:"B209 converter controls",ok:cvr.indexOf('id="convQuality"')>=0&&cvr.indexOf('id="convMaxSide"')>=0&&cvr.indexOf('class="convFmt"')>=0&&cvr.indexOf('f.lossy ? quality : undefined')>=0});
   var idp = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
   out.push({name:"B207 id-photo onerror clears",ok:idp.indexOf('srcImg = null;')>=0&&idp.indexOf('无法解码该图片')>=0});
   var rot = fs.readFileSync("tools/image/image-rotate.html","utf8");
-  out.push({name:"B208 rotate preview cap",ok:rot.indexOf("previewMax = 16000000")>=0&&rot.indexOf("function drawRotated(canvas, scale)")>=0&&rot.indexOf("if(lastPreviewScale < 1)")>=0});
+  out.push({name:"B208 rotate preview cap",ok:rot.indexOf("PREVIEW_MAX_PIXELS = 16000000")>=0&&rot.indexOf("PREVIEW_MAX_SIDE = 4096")>=0&&rot.indexOf("function rotatedDimensions(w, h, a)")>=0&&rot.indexOf("function drawRotatedImage(canvas, img, scale, state)")>=0&&rot.indexOf("lastPreviewScale")>=0});
   out.push({name:"B207 rotate filename after decode",ok:(function(){var i=rot.indexOf('img.onload = function()');var j=rot.indexOf('resolve({ img: img, name:',i);var k=rot.indexOf('img.onerror',i);return i>=0&&j>i&&k>j&&rot.indexOf('fileName = batchImages[i].name')>=0;})()});
   var wc = fs.readFileSync("tools/image/wechat-cover-maker.html","utf8");
-  out.push({name:"B207 cover sizes",ok:wc.indexOf('id="coverSize"')>=0&&wc.indexOf('Math.max(tw / c.width, th / c.height)')>=0&&wc.indexOf('const hasCJK')>=0});
+  out.push({name:"B207 cover sizes",ok:wc.indexOf('id="coverSize"')>=0&&wc.indexOf('function wcTargetSize')>=0&&wc.indexOf('wcFitBlock')>=0&&wc.indexOf('hasCJK')>=0&&wc.indexOf('Math.max(tw / c.width, th / c.height)')<0});
   var flt = fs.readFileSync("tools/image/image-filter.html","utf8");
   out.push({name:"B207 filter preset sync",ok:flt.indexOf("document.getElementById('brightness').value = m[1]")>=0&&flt.indexOf('exportFilter')>=0});
   out.push({name:"B206 real rounded image",ok:rc.indexOf('id="rcFiles"')>=0&&rc.indexOf('function rcRender()')>=0&&rc.indexOf('function rcRadiusFor(')>=0&&rc.indexOf('function randColor()')<0});
@@ -442,6 +448,9 @@ function batch204StaticChecks(){
   out.push({name:"B731A resize BMP accept",ok:src.indexOf('accept="image/png,image/jpeg,image/webp,image/gif,image/bmp,.bmp"')>=0&&src.indexOf('支持 PNG / JPEG / WebP / GIF / BMP')>=0});
   out.push({name:"B731A converter maxside/outsize/filename",ok:cvr.indexOf("function resolveMaxSide(")>=0&&cvr.indexOf("function makeDownloadName(")>=0&&cvr.indexOf('id="convOutSize"')>=0&&cvr.indexOf('id="convMaxSideError"')>=0&&cvr.indexOf('converted-${Date.now()')<0});
   out.push({name:"B731A collage grid integer",ok:col.indexOf("function resolveGridSize(")>=0&&col.indexOf("gridSize: resolveGridSize")>=0&&col.indexOf("layout').value === 'custom'")>=0});
+  out.push({name:"B986 converter JPEG background",ok:cvr.indexOf('id="convBg"')>=0&&cvr.indexOf('ctx.fillStyle = jpegBg')>=0&&cvr.indexOf('JPEG 背景 ')>=0});
+  out.push({name:"B986 compress JPEG background",ok:cmp.indexOf('id="bg-row"')>=0&&cmp.indexOf('id="bgColor"')>=0&&cmp.indexOf('bg:s.bg')>=0&&cmp.indexOf('ctx.fillStyle=(s.bg||')>=0&&cmp.indexOf("(__imgEn()?'JPEG background: '")>=0});
+  out.push({name:"B986 resize JPEG background",ok:src.indexOf('id="bgRow"')>=0&&src.indexOf('id="bgColor"')>=0&&src.indexOf('ctx.fillStyle = jpegBg')>=0&&src.indexOf("(__imgEn()?'JPEG background: '")>=0});
   return out;
 }
 

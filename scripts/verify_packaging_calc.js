@@ -47,7 +47,12 @@ const CASES = [
   "slug": "packaging/strength-12",
   "inputs": {
     "v0": "30",
-    "v1": "48"
+    "v1": "48",
+    "v2": "10",
+    "v3": "180",
+    "v4": "300",
+    "v5": "GB/T 2792",
+    "v6": "BOPP/瓦楞纸板"
   },
   "expect": [
     "15.625",
@@ -56,6 +61,83 @@ const CASES = [
   ],
   "ref": "v0=30,v1=48 → 剥离强度=30×25/48=15.625 N/25mm、30×1000/48=625.0 N/m、相对 10 N/25mm 基准 (15.625-10)/10×100=56.25%（默认 24/45 → 13.333/533.3/33.33%；swap 46.875/1875.0/368.75%，均不重合）"
 },
+  {
+    "slug": "packaging/calc-66",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value='0';calc();document.getElementById('__tbProbe').textContent='C66L0 '+((document.getElementById('res').innerHTML.indexOf('「纸箱长 L（mm）」必须大于 0')>=0&&document.getElementById('res').innerHTML.indexOf('方案可行')<0)?'OK':'BAD');"],
+    "expect": ["C66L0 OK"],
+    "ref": "纸箱长为 0 必须停止计算并点名长度字段，不能输出方案可行。"
+  },
+  {
+    "slug": "packaging/calc-66",
+    "inputs": {},
+    "clicks": ["document.getElementById('v5').value='0';calc();document.getElementById('__tbProbe').textContent='C66K0 '+((document.getElementById('res').innerHTML.indexOf('「安全系数 K」必须大于 0')>=0)?'OK':'BAD');"],
+    "expect": ["C66K0 OK"],
+    "ref": "安全系数 K=0 会使最大层数除以零，必须点名 K 并停止。"
+  },
+  {
+    "slug": "packaging/calc-66",
+    "inputs": {},
+    "clicks": ["document.getElementById('v6').value='0';calc();document.getElementById('__tbProbe').textContent='C66W0 '+((document.getElementById('res').innerHTML.indexOf('「单箱毛重（kg）」必须大于 0')>=0)?'OK':'BAD');"],
+    "expect": ["C66W0 OK"],
+    "ref": "单箱毛重 0 会使最大堆码层数除以零，必须点名毛重并停止。"
+  },
+  {
+    "slug": "packaging/calc-66",
+    "inputs": {},
+    "clicks": ["document.getElementById('v4').value='0.1';calc();document.getElementById('__tbProbe').textContent='C66SHORT '+((document.getElementById('res').innerHTML.indexOf('目标高度无法容纳一层')>=0&&document.getElementById('res').innerHTML.indexOf('不能视为目标堆码方案可行')>=0&&document.getElementById('res').innerHTML.indexOf('期望堆码层数')>=0)?'OK':'BAD');"],
+    "expect": ["C66SHORT OK"],
+    "ref": "期望高度 0.1 m < 单箱高 0.25 m：强制按 1 层并明确目标高度不足，不能显示方案可行。"
+  },
+  {
+    "slug": "packaging/shousuomo-shousuolv-refeng-canshu",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value='0';calc();document.getElementById('__tbProbe').textContent='SHR0 '+((document.getElementById('res').innerHTML.indexOf('「产品原始尺寸」必须大于 0')>=0)?'OK':'BAD');"],
+    "expect": ["SHR0 OK"],
+    "ref": "原始尺寸=0 时收缩率除零，必须拒绝并说明原因。"
+  },
+  {
+    "slug": "packaging/shousuomo-shousuolv-refeng-canshu",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value='400';document.getElementById('v1').value='440';calc();document.getElementById('__tbProbe').textContent='SHREXP '+((document.getElementById('res').innerHTML.indexOf('膨胀率')>=0&&document.getElementById('res').innerHTML.indexOf('-10.00%')>=0&&document.getElementById('res').innerHTML.indexOf('尺寸增大（膨胀）')>=0)?'OK':'BAD');"],
+    "expect": ["SHREXP OK"],
+    "ref": "400→440 尺寸增大：收缩率 -10.00%，同时给出膨胀率 10.00%，明确按膨胀理解。"
+  },
+  {
+    "slug": "packaging/shousuomo-shousuolv-refeng-canshu",
+    "inputs": { "v0": "400", "v1": "240", "v3": "10", "v4": "20", "v5": "150", "v6": "1" },
+    "clicks": ["calc();document.getElementById('__tbProbe').textContent='SHRW '+document.getElementById('res').innerHTML;"],
+    "expect": ["460.00", "284.00", "温度 150 °C", "时间 1 s"],
+    "ref": "可调余量 10%、封口搭接 20：下料=400×1.1+20=460.00；包覆=240×1.1+20=284.00；热封 150°C/1s 仅记录。"
+  },
+  {
+    "slug": "packaging/strength-12",
+    "inputs": {},
+    "clicks": ["document.getElementById('v1').value='0';calc();document.getElementById('__tbProbe').textContent='STW0 '+((document.getElementById('res').innerHTML.indexOf('「胶带宽度」必须大于 0')>=0)?'OK':'BAD');"],
+    "expect": ["STW0 OK"],
+    "ref": "胶带宽度=0 会除零，必须拒绝并点名宽度。"
+  },
+  {
+    "slug": "packaging/strength-12",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value='-1';calc();document.getElementById('__tbProbe').textContent='STFN '+((document.getElementById('res').innerHTML.indexOf('「实测剥离力」必须为非负数')>=0)?'OK':'BAD');"],
+    "expect": ["STFN OK"],
+    "ref": "剥离力 -1 必须拒绝；0 是合法值不应被当未填。"
+  },
+  {
+    "slug": "packaging/strength-12",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value='24';document.getElementById('v1').value='25';calc();document.getElementById('__tbProbe').textContent='ST25 '+((document.getElementById('res').innerHTML.indexOf('24.000')>=0&&document.getElementById('res').innerHTML.indexOf('960.0')>=0&&document.getElementById('res').innerHTML.indexOf('9.60')>=0)?'OK':'BAD');"],
+    "expect": ["ST25 OK"],
+    "ref": "24 N / 25 mm：N/25mm=24.000、N/m=960.0、N/cm=9.60。"
+  },
+  {
+    "slug": "packaging/strength-12",
+    "inputs": {},
+    "clicks": ["document.getElementById('v0').value='30';document.getElementById('v1').value='48';document.getElementById('v2').value='10';document.getElementById('v5').value='GB/T 2792';document.getElementById('v6').value='BOPP/瓦楞纸板';calc();document.getElementById('__tbProbe').textContent='STB '+((document.getElementById('res').innerHTML.indexOf('56.25%')>=0&&document.getElementById('res').innerHTML.indexOf('GB/T 2792')>=0&&document.getElementById('res').innerHTML.indexOf('仅记录')<0&&document.getElementById('res').innerHTML.indexOf('不判定合格与否')>=0)?'OK':'BAD');"],
+    "expect": ["STB OK"],
+    "ref": "用户基准 10、同条件记录：15.625 相对基准偏差 56.25%，显示标准/基材，不判合格。"
+  },
   {
     "slug": "packaging/calc-1",
     "inputs": {

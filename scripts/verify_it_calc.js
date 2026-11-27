@@ -1301,6 +1301,105 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
+    clicks: ["document.getElementById('batchInput').value='A\\n\\nB';batchEncode();var t=__batchCopyText();var a=t.split('\\n');document.getElementById('__tbProbe').textContent='COPY lines='+a.length+' blank='+(a[1]===''?'1':'0')+' first='+a[0]+' last='+a[2];"],
+    expect: ["COPY lines=3 blank=1 first=QQ== last=Qg=="],
+    ref: "第1052批：复制全部必须保留原始行位置，中间空行输出空行；A→QQ==、B→Qg==，共 3 行。旧实现过滤空行后只剩 2 行，行号与输入错位。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window._batchResults=[{line:1,src:'aGVsbG8=',dst:'hello',ok:true,blank:false},{line:2,src:'%%%',dst:'not base64',ok:false,blank:false}];var t=__batchCopyText();document.getElementById('__tbProbe').textContent='FAILPOS rows='+window._batchResults.length+' mark='+(t.indexOf('【第 2 行失败')>=0?'1':'0')+' lines='+t.split('\\n').length;"],
+    expect: ["FAILPOS rows=2 mark=1 lines=2"],
+    ref: "第1052批：失败行不能被静默丢弃；复制文本保留 2 行，第 2 行写成【第 2 行失败：原因】占位，行号与输入一致。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["document.getElementById('batchInput').value='NaN\\nInfinity';batchEncode();var box=document.getElementById('batchResult');document.getElementById('__tbProbe').textContent='NANB rows='+(window._batchResults?window._batchResults.length:0)+' nan='+(box.innerHTML.indexOf('NaN')>=0?'1':'0')+' inf='+(box.innerHTML.indexOf('Infinity')>=0?'1':'0')+' warn='+(box.textContent.indexOf('计算结果含无效值')>=0?'1':'0');"],
+    expect: ["NANB rows=2 nan=1 inf=1 warn=0"],
+    ref: "第1052批：批量结果 HTML 中的合法文本 NaN/Infinity 不能被数值守卫误判；渲染必须完成、_batchResults 保留 2 行且不出现无效值警告。旧实现用 /NaN/ 检查整段 HTML，提前 return 并把结果留空。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window._batchResults=[{line:1,src:'X',dst:'WA==',ok:true,blank:false}];document.getElementById('urlSafe').parentElement.style={};setAlgo('base32');document.getElementById('__tbProbe').textContent='ALGOINV after='+window._batchResults;"],
+    expect: ["ALGOINV after=null"],
+    ref: "第1052批：切换算法必须让批量结果失效并清空复制数据；旧实现 setAlgo 只清单条输出，批量列表仍可复制 Base64 旧结果。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window._batchResults=[{line:1,src:'X',dst:'WA==',ok:true,blank:false}];document.getElementById('urlSafe').checked=true;__b64OptionChange();document.getElementById('__tbProbe').textContent='OPTINV after='+window._batchResults;"],
+    expect: ["OPTINV after=null"],
+    ref: "第1052批：URL 安全模式等影响批量处理的选项变化同样要清空批量结果，避免把旧选项结果当作当前设置结果。",
+  },
+
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "Zh==", output: "SENTINEL" },
+    clicks: ["decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='PAD out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["PAD out= valid=false"],
+    ref: "第1053批：Zh== 与标准 Zg== 都解成 f，但 Zh 的第二字符末 4 位非零，属非规范 Base64；必须拒绝并锁住结果。旧实现直接 atob，宽松接受损坏或不规范输入。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "Zg==" },
+    clicks: ["decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='PADOK out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["PADOK out=f valid=true"],
+    ref: "第1053批：标准 Zg== 末组未使用位为零，必须正常解出 f；证明严格校验未误伤合法向量。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "Zg" },
+    clicks: ["decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='PADNP out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["PADNP out=f valid=true"],
+    ref: "第1053批：可省略填充的 Zg（标准/URL 安全均常见）应接受并解出 f；严格校验只在有填充时核对填充数量，不强制补 =。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "Zh" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};document.getElementById('urlSafe').checked=true;decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='PADURL out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["PADURL out= valid=false"],
+    ref: "第1053批：URL 安全模式省略填充时同样要检查末组未使用位；Zh 非规范，必须拒绝。旧实现补 = 后直接 atob，宽松接受。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "<~87cURD]j7BEbo80~>" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='B85PAIR out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["B85PAIR out=Hello world! valid=true"],
+    ref: "第1053批：成对的 Adobe 包装 <~…~> 仍应正常解码为 Hello world!；证明成对校验未误伤合法输入。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "<~87cURD]j7BEbo80" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='B85ONE out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["B85ONE out= valid=false"],
+    ref: "第1053批：只有开头 <~ 没有结尾 ~> 的单边包装必须报错；旧实现分别删除首尾标记，单边输入会被当成正常数据解码。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "87cURD]j7BEbo80~>" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='B85END out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["B85END out= valid=false"],
+    ref: "第1053批：只有结尾 ~> 没有开头 <~ 的单边包装同样必须报错，不能把尾标记剥掉后解码；旧实现只删匹配的尾标记。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { input: "<~<~87cURD]j7BEbo80~>~>" },
+    clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');decodeText();var o=document.getElementById('output');document.getElementById('__tbProbe').textContent='B85DBL out='+o.value+' valid='+window.__b64IsValid();"],
+    expect: ["B85DBL out= valid=false"],
+    ref: "第1053批：重复包装 <~<~…~>~> 必须在剥掉外层后检出内部标记并报错；旧实现只删首尾各一次，内层标记会被当成数据。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["document.getElementById('input').value='hello';__b64OnInput();swapIO();var i=document.getElementById('input').value;var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='SWAPEMPTY in='+i+' out='+o+' valid='+window.__b64IsValid();"],
+    expect: ["SWAPEMPTY in=hello out= valid=false"],
+    ref: "第1053批：没有有效转换结果时交换必须拒绝，不能把空输出换到输入、再把未转换的 hello 标记成结果；旧 swapIO 无条件互换并置 valid=true。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["document.getElementById('input').value='hello';encodeText();swapIO();var i=document.getElementById('input').value;var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent='SWAPOK in='+i+' out='+o+' valid='+window.__b64IsValid();"],
+    expect: ["SWAPOK in=aGVsbG8= out=hello valid=false"],
+    ref: "第1053批：成功编码后允许交换，但交换后的输出是旧输入 hello，不是转换结果，必须置 valid=false 阻止复制；旧实现置 true，复制按钮会把 hello 当结果。",
+  },
+  {
+    slug: "it/base64-converter",
     inputs: { input: "hello world" },
     clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');encodeText();"],
     expect: ["+63.6%", "11 B"],
@@ -1579,6 +1678,12 @@ const CASES = [
     inputs: { inputValue: "10", inputBase: "custom", customBase: "2.5" },
     expect: ["进制必须为 2–36 的整数"],
     ref: "独立复算：customBase='2.5' ⇒ getInputBase 先 /^\\d+$/ 校验失败 ⇒ 返回 null ⇒ convertFromInput 显示「⚠ 进制必须为 2–36 的整数。」；修复前 parseInt('2.5')=2 被当 base 2 静默转换。默认 preset 路径（inputBase=10）不受影响、不命中。",
+  },
+  {
+    slug: "it/caesar-cipher",
+    clicks: ["localStorage.removeItem('caesar_history');var cbEl=document.getElementById('saveHistoryOptIn');cbEl.checked=false;window.__cb=null;var st=window.setTimeout,ct=window.clearTimeout;window.setTimeout=function(fn){window.__cb=fn;return 1;};window.clearTimeout=function(){window.__cb=null;};__caesar_cipherScheduleHistory('SEC','SEC',3,'encrypt');var off=(window.__cb===null);cbEl.checked=true;__caesar_cipherScheduleHistory('SEC','SEC',3,'encrypt');var cb=window.__cb;window.setTimeout=st;window.clearTimeout=ct;if(cb)cb();var h=getHistory();localStorage.removeItem('caesar_history');document.getElementById('input').value='PRIVACY '+((off&&h.length===1&&h[0].input==='SEC')?'OK':'BAD');"],
+    expect: ["PRIVACY OK"],
+    ref: "Caesar 默认不写历史：未勾选时排程器不得设置定时器，勾选后才记录；旧实现无条件自动保存明文/密文。"
   },
   {
     slug: "it/caesar-cipher",
@@ -3366,6 +3471,45 @@ const CASES = [
   },
   {
     slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=\nsign=old\nb=2", algo: "sha256" },
+    checkIds: ["excludeSign", "excludeEmpty"],
+    awaitClicks: true,
+    clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;var n=document.getElementById('paramNote').textContent;document.getElementById('__tbProbe').textContent='FILTER1045 '+((o.indexOf('b=2')>=0&&o.indexOf('sign=old')<0&&o.indexOf('a=&')<0&&n.indexOf('已排除')>=0)?'OK':'BAD');});"],
+    expect: ["FILTER1045 OK"],
+    ref: "第1045批：默认规则必须与说明一致，排除 sign 字段和空值；a= / sign=old / b=2 只让 b=2 参与签名，并在参数说明中列出被排除字段。旧实现把 sign=old 和 a= 都拼入规范化串。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "message=a&b", algo: "sha256", paramMode: "line" },
+    awaitClicks: true,
+    clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('__tbProbe').textContent='LINE1045 '+((o.indexOf('message=a&amp;b')>=0)?'OK':'BAD');});"],
+    expect: ["LINE1045 OK"],
+    ref: "第1045批：逐行模式只按首个 = 分割，值中的 & 原样保留；message=a&b 必须形成一条 message=a&b 参数，而不是查询串两段。旧实现只要见到 & 就分段并报错。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "__proto__=x\nconstructor=y", algo: "sha256" },
+    clicks: ["var p=parseParams();var k=Object.keys(p);document.getElementById('__tbProbe').textContent='PROTO1045 '+((k.length===2&&p.__proto__==='x'&&p.constructor==='y')?'OK':'BAD');"],
+    expect: ["PROTO1045 OK"],
+    ref: "第1045批：参数容器改用无原型字典，`__proto__` / `constructor` 必须成为普通自有键；旧实现用 {} 保存，`__proto__` 被原型访问器吞掉，parseParams 只剩 constructor。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=1", algo: "sha256" },
+    clicks: ["var n=makeNonce();var src=String(runSign);document.getElementById('__tbProbe').textContent='REPLAY1045 '+((/^[0-9a-f]{32}$/.test(n)&&src.indexOf('addReplayGuard')>=0&&src.indexOf('timestamp')>=0)?'OK':'BAD');"],
+    expect: ["REPLAY1045 OK"],
+    ref: "第1045批：`makeNonce` 必须生成 32 位十六进制 nonce，`runSign` 必须读取 addReplayGuard 并注入 timestamp；勾选后的实际签名串与 Unix 秒提示已在 Chrome 真机验证，旧实现完全没有该入口。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=1", algo: "sha256" },
+    awaitClicks: true,
+    clicks: ["runSign().then(function(){document.getElementById('params').value='a=2';markSignStale();var copied='';ToolBox.copyText=function(t){copied=t;};copyResult();document.getElementById('__tbProbe').textContent='STALE1045 '+((copied===''&&document.getElementById('signStale').style.display==='block')?'OK':'BAD');});"],
+    expect: ["STALE1045 OK"],
+    ref: "第1045批：生成后修改参数必须标记旧签名过期并阻止复制；旧实现不比较输入快照，copyResult 继续复制上一次签名。",
+  },
+  {
+    slug: "it/api-sign-generator",
     inputs: { secret: "s", params: "a=1", algo: "md5" },
     clicks: ["runSign()"],
     expect: ["签名结果： 9b211a5b174da8c32c0c361b39155597"],
@@ -4078,7 +4222,7 @@ const CASES = [
     slug: "it/ascii-tree-generator",
     inputs: { paths: "src/\na.js\nb.js\nlib/util.js" },
     clicks: ["build()"],
-    expect: ["已生成 5 行目录树（4 个路径）"],
+    expect: ["已生成 5 行目录树（4 个路径，自动识别为路径列表解析）"],
     ref: "独立复算：4 条路径按**换行**切分（非逗号）⇒ 5 行树、4 个路径。textarea 无 oninput ⇒ 必须 clicks `build()`。",
   },
   {
@@ -4191,6 +4335,27 @@ const CASES = [
     clicks: ["calcTool()"],
     expect: ["2 行数", "3 标准列数", "✅ 未发现列数/引号问题。"],
     ref: "首尾空字段：每行 `,a,` / `,,` 都必须解析为 3 列，空字段是合法值 ⇒ 2 行 3 列无问题；旧实现按分隔符切分后可能吞掉尾部空列，本锚不命中。",
+  },
+  {
+    slug: "it/csv-to-json",
+    // 合法 CSV：双引号转义与引号内换行必须正常保留。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34);var p=parseCSV('a,b'+nl+q+'x'+q+q+'y'+q+','+q+'m'+nl+'n'+q,',',q,true,true,true);document.getElementById('__tbProbe').textContent='CSVOK '+((p.rows[0][0]==='x'+q+'y'&&p.rows[0][1]==='m'+nl+'n')?'OK':'FAIL');"],
+    expect: ["CSVOK OK"],
+    ref: "合法双引号：`\"x\"\"y\"` 应解出字面 `x\"y`；引号内换行必须留在同一字段。修复前转义与换行都正常，本用例锁住不被新校验误伤。"
+  },
+  {
+    slug: "it/csv-to-json",
+    // 闭合引号后出现多余字符必须指出行列。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34);var msg='';try{parseCSV('a,b'+nl+q+'x'+q+'y,1',',',q,true,true,true)}catch(e){msg=e.message}document.getElementById('__tbProbe').textContent='CSVCLOSE '+((msg.indexOf('第 2 行第 4 列')>=0&&msg.indexOf('引号闭合后')>=0)?'OK':'FAIL:'+msg);"],
+    expect: ["CSVCLOSE OK"],
+    ref: "闭合引号后多余字符：`\"x\"y,1` 旧实现静默拼成 `xy`，现必须拒绝并指出第 2 行第 4 列。输入不含提示文案，探针判别明确。"
+  },
+  {
+    slug: "it/csv-to-json",
+    // 未引用字段内部的引号必须拒绝，不能当普通字符。
+    clicks: ["var nl=String.fromCharCode(10),q=String.fromCharCode(34);var msg='';try{parseCSV('a,b'+nl+'x'+q+'y,1',',',q,true,true,true)}catch(e){msg=e.message}document.getElementById('__tbProbe').textContent='CSVQUOTE '+((msg.indexOf('第 2 行第 2 列')>=0&&msg.indexOf('未加引号')>=0)?'OK':'FAIL:'+msg);"],
+    expect: ["CSVQUOTE OK"],
+    ref: "未引用字段内引号：`x\"y` 旧实现原样保留为 `x\"y`，现必须拒绝并指出第 2 行第 2 列；合法写法是整体加引号并把字面引号写成两个。"
   },
   {
     slug: "it/csv-to-json",
@@ -4540,6 +4705,34 @@ const CASES = [
     inputs: { searchInput: "zzz" },
     expect: ["共 0 项"],
     ref: "反向锚：PostgreSQL 速查搜索无命中 ⇒ 计数归零；默认列表非空。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "A" },
+    clicks: ["render();var h=document.getElementById('grid').innerHTML;document.getElementById('__tbProbe').textContent='ULSINGLE '+((h.indexOf('U+0041')>=0&&h.indexOf('U+0042')<0)?'OK':'BAD');"],
+    expect: ["ULSINGLE OK"],
+    ref: "第1048批：单个字符 A 优先精确查询，只显示 U+0041；旧实现按名称子串返回最多 200 个含 A 的码点。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "a" },
+    clicks: ["render();var h=document.getElementById('grid').innerHTML;document.getElementById('__tbProbe').textContent='ULSINGLE2 '+((h.indexOf('U+0061')>=0&&h.indexOf('U+0041')<0)?'OK':'BAD');"],
+    expect: ["ULSINGLE2 OK"],
+    ref: "第1048批：小写 a 同样优先精确查询为 U+0061，不再被转成大写后按名称搜索。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "LATIN" },
+    clicks: ["document.getElementById('search').value='LATIN';render();window.ulSetSearchLimit(50);var h=document.getElementById('grid').innerHTML;document.getElementById('__tbProbe').textContent='ULTRUNC '+((h.indexOf('共 114 条')>=0&&h.indexOf('再显示 200 条')>=0)?'OK':'BAD');"],
+    expect: ["ULTRUNC OK"],
+    ref: "第1048批：名称结果超过单次上限时显示「已显示 50 / 共 114」并提供继续加载按钮；旧实现截断到 200 条却无任何提示。",
+  },
+  {
+    slug: "it/unicode-lookup",
+    inputs: { search: "NOT A NAME" },
+    clicks: ["render()"],
+    expect: ["未找到匹配"],
+    ref: "第1048批：含空格的名称查询无结果时明确提示，不再把名称拆成 N/O/T 等单字卡片。",
   },
   {
     slug: "it/unicode-lookup",
@@ -5402,6 +5595,60 @@ const CASES = [
   },
   {
     slug: "it/markdown-table-generator",
+    clicks: ["var q=String.fromCharCode(34);var r=parseCsvLine(q+'x'+q+q+'y'+q+',1',2,false);document.getElementById('__tbProbe').textContent='MDOK '+((r.cells[0].value==='x'+q+'y'&&r.cells[1].value==='1'&&!r.error)?'OK':'FAIL');"],
+    expect: ["MDOK OK"],
+    ref: "Markdown CSV 合法双引号：`\"x\"\"y\",1` 应解出字面 `x\"y` 与 `1`，无错误。"
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["var q=String.fromCharCode(34);var r=parseCsvLine(q+'x'+q+'y,1',2,false);document.getElementById('__tbProbe').textContent='MDCLOSE '+((r.error&&r.error.indexOf('第 2 行第 4 列')>=0)?'OK':'FAIL:'+r.error);"],
+    expect: ["MDCLOSE OK"],
+    ref: "Markdown 闭合引号后多余字符：旧实现静默拼成 `xy`，现返回「第 2 行第 4 列：引号闭合后只能接逗号或行尾」。"
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["var q=String.fromCharCode(34);var r=parseCsvLine('x'+q+'y,1',2,false);document.getElementById('__tbProbe').textContent='MDQUOTE '+((r.error&&r.error.indexOf('第 2 行第 2 列')>=0)?'OK':'FAIL:'+r.error);"],
+    expect: ["MDQUOTE OK"],
+    ref: "Markdown 未引用字段内引号：`x\"y` 旧实现原样保留，现返回「第 2 行第 2 列：未加引号的字段中不能出现引号」。"
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34)+'  '+String.fromCharCode(34)+',x';renderPreview();var o=document.getElementById('output').value;var c=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDSP1046 '+((o.indexOf('&nbsp;&nbsp;')>=0&&o.indexOf('&nbsp;&nbsp;&nbsp;&nbsp;')<0&&c.indexOf(String.fromCharCode(34)+'  '+String.fromCharCode(34))>=0)?'OK':'BAD');"],
+    expect: ["MDSP1046 OK"],
+    ref: "第1046批：引号内纯空格单元格只编码一次；两个空格必须是 2 个 &nbsp;（不是 4 个），CSV 仍保留两个原始空格。旧实现首尾两段重叠，得 4 个。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34,9,160)+'x'+String.fromCharCode(34)+',y';renderPreview();var o=document.getElementById('output').value;var c=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDWS1046 '+((o.indexOf('&#9;&nbsp;x')>=0&&c.indexOf(String.fromCharCode(9,160)+'x')>=0)?'OK':'BAD');"],
+    expect: ["MDWS1046 OK"],
+    ref: "第1046批：引号内边缘制表符/不换行空格必须按字符保留为 &#9; / &nbsp;，CSV 导出保留原字符；旧实现 trim 掉非普通空格边界。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34)+'hello'+String.fromCharCode(10)+'world'+String.fromCharCode(34)+',x';renderPreview();var o=document.getElementById('output').value;var c=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDNL1046 '+((o.indexOf('hello<br>world')>=0&&c.indexOf('hello\\nworld')>=0)?'OK':'BAD');"],
+    expect: ["MDNL1046 OK"],
+    ref: "第1046批：带引号 CSD 单元格内的真实换行不得被物理拆行；Markdown 用 <br> 呈现，CSV 导出保留原始换行。旧实现先按换行切分，跨行引号字段直接报未闭合。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34)+'a'+String.fromCharCode(34)+'b,c';renderPreview();var e=document.getElementById('csvInputError');document.getElementById('__tbProbe').textContent='MDQUOTE1046 '+((document.getElementById('output').value===''&&e.style.display==='block'&&/引号闭合后只能接逗号/.test(e.textContent))?'OK':'BAD');"],
+    expect: ["MDQUOTE1046 OK"],
+    ref: "第1046批：闭合引号后出现普通字符必须报错并清空输出，不能静默拼成 ab；旧解析缺少该位置检查。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='1';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b,c';document.getElementById('bodyLine').value='1,2,3';renderPreview();document.getElementById('__tbProbe').textContent='MDEXP1046 '+((document.getElementById('cols').value==='3'&&document.getElementById('output').value.indexOf('| 1 | 2 | 3 |')>=0&&document.getElementById('csvSpaceNotice').textContent.indexOf('自动扩展')>=0)?'OK':'BAD');"],
+    expect: ["MDEXP1046 OK"],
+    ref: "第1046批：输入 3 列而设置为 1 列时，必须提示并自动扩展列数到 3，保留全部单元格；旧实现静默 slice 截掉后两列。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='1';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('bodyLine').value='1';document.getElementById('headerLine').value=Array(21).fill('h').join(',');renderPreview();document.getElementById('__tbProbe').textContent='MDLIMIT1046 '+((document.getElementById('output').value===''&&document.getElementById('csvInputError').textContent.indexOf('超过支持上限')>=0)?'OK':'BAD');"],
+    expect: ["MDLIMIT1046 OK"],
+    ref: "第1046批：输入 21 列超过 20 列上限时必须明确报错停止生成，不能静默截断；旧实现 slice 后仍出表。",
+  },
+  {
+    slug: "it/markdown-table-generator",
     inputs: { cols: "2", headerLine: "A,B", bodyLine: "1,2", rows: "1", align: "left" },
     clicks: ["renderPreview()"],
     expect: ["| 1 | 2 |"],
@@ -5483,10 +5730,33 @@ const CASES = [
   },
   {
     slug: "it/css-formatter",
-    inputs: { input: "a{color:red;font-size:12px}" },
-    clicks: ["doBeautify()"],
-    expect: ["a { color: red; font-size: 12px }"],
+    clicks: ["document.getElementById('input').value='a{color:red;font-size:12px}';doBeautify();document.getElementById('__tbProbe').textContent='CSSFMT '+document.getElementById('output').textContent;"],
+    expect: ["CSSFMT a { color: red; font-size: 12px; }"],
     ref: "格式化规则：选择器后补空格、声明按 `属性: 值;` 输出。默认样例（.btn 等）格式化后不含本串。",
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='a:hover{color:red}';doBeautify();document.getElementById('__tbProbe').textContent='CSSPSE '+document.getElementById('output').textContent;"],
+    "expect": ["CSSPSE a:hover {"],
+    "ref": "第1056批：伪类冒号不得被当作声明分隔符输出成 `a: hover`；格式化后选择器仍是 `a:hover {`。默认样例不含该串 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='.parent :hover{color:red}';doMinify();document.getElementById('__tbProbe').textContent='CSSDESC '+document.getElementById('output').textContent;"],
+    "expect": ["CSSDESC .parent :hover{color:red;}"],
+    "ref": "第1056批：压缩不得删除 `.parent :hover` 中冒号前的后代空格；删除后变成 `.parent:hover`，匹配对象改变。默认样例不含该串 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='a::after{content:\"/*x*/a,b\"}';doMinify();document.getElementById('__tbProbe').textContent='CSSSTR '+document.getElementById('output').textContent;"],
+    "expect": ["CSSSTR a::after{content:\"/*x*/a,b\";}"],
+    "ref": "第1056批：字符串内部必须整体受保护，`content:\"/*x*/a,b\"` 的注释标记与逗号不能被当作 CSS 注释/结构改写；压缩后原样保留。默认样例不含该串 ⇒ 旧正则压缩转红。"
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='a{content:\":0px;\";margin:0px}';doMinify();document.getElementById('__tbProbe').textContent='CSSZERO '+document.getElementById('output').textContent;"],
+    "expect": ["CSSZERO a{content:\":0px;\";margin:0;}"],
+    "ref": "第1056批：零单位缩写只能作用于声明值，不能改写字符串里的 `:0px;`；真实 `margin:0px` 仍应压成 `margin:0`。默认样例不含该串 ⇒ 旧实现恢复后全局替换转红。"
   },
   {
     slug: "it/css-formatter",
@@ -5940,6 +6210,20 @@ const CASES = [
     clicks: ["var __msg='';var __oldToast=ToolBox.showToast;ToolBox.showToast=function(m){__msg=String(m);};diffStale=false;document.getElementById('ignoreAllWhitespace').checked=true;copyUnifiedPatch();ToolBox.showToast=__oldToast;document.getElementById('__tbProbe').textContent='DIFFPATCH738 '+(__msg.indexOf('无法与原文件上下文对齐')>=0?'OK':'BAD');"],
     expect: ["DIFFPATCH738 OK"],
     ref: "复核失败重做·忽略选项禁止导出补丁：忽略所有空白时 `a b` 与 `ab` 被判为相同，旧 buildUnifiedPatch 会把归一化后的新文本 `ab` 当上下文写入补丁，标准 patch 无法匹配原文件 `a b`。修复后启用任一忽略选项即拒绝复制并提示关闭；探针捕获提示文案，默认未勾选 ⇒ BAD ⇒ 强判别。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "a\nb", text2: "a\nc" },
+    clicks: ["doDiff();var m=String.fromCharCode(92)+' No newline at end of file';var p=buildUnifiedPatch();document.getElementById('__tbProbe').textContent='TDNL1044 '+((p.split(m).length-1===2&&p.indexOf('-b')>=0&&p.indexOf('+c')>=0&&!currentFinalNewline.old&&!currentFinalNewline.new)?'OK':'BAD');"],
+    expect: ["TDNL1044 OK"],
+    ref: "第1044批：两端都无末尾换行时，统一补丁必须为删除行与新增行各输出一个 `\\ No newline at end of file`，且 finalNewline 状态为 false；旧实现直接丢弃末尾换行信息，patch 应用后文件会被补上换行。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "a\nb", text2: "a\nb\n" },
+    clicks: ["doDiff();var p=buildUnifiedPatch();document.getElementById('__tbProbe').textContent='TDNL1044B '+((p.indexOf('-b')>=0&&p.indexOf('+b')>=0&&p.indexOf('No newline')>=0&&p.indexOf('@@ -1,2 +1,2 @@')>=0)?'OK':'BAD');"],
+    expect: ["TDNL1044B OK"],
+    ref: "第1044批：仅末尾换行不同时，最后一行必须由 same 前移为 modify，补丁同时出现 -b/+b 并只在旧侧标注无末尾换行；旧实现判为 same，补丁无法表达换行差异。",
   },
   {
     slug: "it/text-diff",
@@ -7282,6 +7566,44 @@ const CASES = [
     ref: "python date(2021,3,1) - date(2020,2,28) = 367 天。本例是「闰日是否落在区间内」的判定点：区间含 2020-02-29 ⇒ +1；若页面按平年算会得 366 而暴露缺陷。",
   },
 
+  {
+    // 公元零年：0000 为前推公历闰年，0000-03-01 应是第 61 天（Date.UTC 会把 0 年映射到 1900）。
+    slug: "it/timestamp-converter",
+    clicks: ["document.getElementById('__tbProbe').textContent=getDayOfYear((()=>{const d=new Date(0);d.setFullYear(0,2,1);d.setHours(0,0,0,0);return d})())"],
+    expect: ["61"],
+    ref: "0000-03-01 的年内天数：0000 为闰年（2 月 29 天），1 月 31 + 2 月 29 = 60 天，3 月 1 日为第 61 天。旧实现用 Date.UTC(0,...) 会映射到 1900 年（平年）得到第 60 天。",
+  },
+  {
+    // 早期年份的月加减：0001-01-01 + 0 月必须仍是公元 1 年，不能跳到 1901。
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "0001-01-01", calcOp: "add", calcAmount: "0", calcUnit: "month" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 0001-01-01 00:00:00"],
+    ref: "new Date(1,...) 会把年份解释为 1901；修复后 tsMakeDate 用 setFullYear 保留完整年份。加 0 月是「是否改变年份」的最直接探针。",
+  },
+  {
+    // 早期年份跨年：公元 99 年 12 月 + 1 月应进入公元 100 年，而非 2000 年。
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "0099-12-15", calcOp: "add", calcAmount: "1", calcUnit: "month" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 0100-01-15 00:00:00"],
+    ref: "公元 99 年跨到 100 年；旧实现 new Date(99,...) 会得到 1999 年，修复后保留 0099 并在目标月溢出时正常进入 0100。",
+  },
+  {
+    // 结束快捷时间应含最后一毫秒，并给出下一周期零点的排他上界。
+    slug: "it/timestamp-converter",
+    clicks: ["quickTs('todayEnd')"],
+    expect: ["23:59:59.999", "排他上界"],
+    ref: "今天结束旧实现停在 23:59:59.000；修复后目标为 23:59:59.999，并在说明中给出下一周期零点（不含）作为排他上界。",
+  },
+  {
+    // 清空秒级输入后必须同时清掉毫秒、日期与旧结果，而不是保留上一组成功内容。
+    slug: "it/timestamp-converter",
+    clicks: ["document.getElementById('timestampSec').value='';fromTimestamp('sec')"],
+    expect: ["请输入秒级时间戳。"],
+    ref: "空态与非法输入分离：空串给出输入提示，不再静默 return 保留旧结果；非数字则给出「必须是有效数字」错误。",
+  },
+
   // —— it/csv-to-json：CSV ↔ JSON 双向转换。三个开关（hasHeader/trimFields/prettyPrint）在 harness 下
   //    读不到 .checked ⇒ 一律在 clicks 里显式置位；产物在 readonly textarea 的 value ⇒ 必须 dumpIds 回写。 ——
   {
@@ -7741,6 +8063,39 @@ const CASES = [
     clicks: ["b64ToText();"],
     expect: ["已解码为文本（5 B）"],
     ref: "base64 'aGVsbG8=' → 'hello'（RFC 4648 标准向量，5 字节）。页面 b64ToText 以 TextDecoder 解码、把文本写回 #b64In，并在 #result 输出「✅ 已解码为文本（5 B）」（fmtSize(5)）。默认 #b64In 为空 → 提前 return，不命中。",
+  },
+  {
+    slug: "it/base64-file",
+    inputs: { b64In: "data:text/plain;charset=utf-8;base64,aGVsbG8=" },
+    clicks: ["b64ToText();"],
+    expect: ["hello"],
+    ref: "第1053批：带 charset 参数的合法 data URI 必须识别 ;base64 标记、剥离前缀后解码，aGVsbG8= → hello；旧实现按第一个逗号盲切，任何前缀都会被丢弃。默认输入为空不命中。",
+  },
+  {
+    slug: "it/base64-file",
+    inputs: { b64In: "wrong,SGVsbG8=" },
+    clicks: ["b64ToText();"],
+    expect: ["普通 Base64 中不能含逗号"],
+    ref: "第1053批：任意逗号前缀不是合法 data URI，必须拒绝并说明原因；旧实现把 wrong, 当作前缀丢弃后解出 hello，错误输入被当成成功。",
+  },
+  {
+    slug: "it/base64-file",
+    inputs: { b64In: "data:text/plain,Hello" },
+    clicks: ["b64ToText();"],
+    expect: ["未标记「;base64」"],
+    ref: "第1053批：非 Base64 的 data URI 不能按 Base64 解码；旧实现同样盲切逗号后把 Hello 送进 atob，可能得到模糊错误或错误成功。",
+  },
+  {
+    slug: "it/base64-file",
+    clicks: ["document.getElementById('b64In').value='aGVsbG8=';b64ToText();var t=document.getElementById('b64TextOut');document.getElementById('b64In').value='aGVsbG8h';__b64TextInvalidate();document.getElementById('__tbProbe').textContent='STALE textlen='+t.value.length+' outlen='+document.getElementById('result').textContent.trim().length;"],
+    expect: ["STALE textlen=0 outlen=0"],
+    ref: "第1053批：文本解码成功后修改输入，必须清空只读文本结果与成功提示；旧实现只清 oninput 前的输出，旧 hello 仍显示在新输入旁。",
+  },
+  {
+    slug: "it/base64-file",
+    clicks: ["document.getElementById('b64In').value='aGVsbG8=';b64ToText();var t=document.getElementById('b64TextOut');document.getElementById('b64In').value='wrong,SGVsbG8=';b64ToFile();document.getElementById('__tbProbe').textContent='FILECLEAR textlen='+t.value.length;"],
+    expect: ["FILECLEAR textlen=0"],
+    ref: "第1053批：点击还原为文件时必须先清掉上一次的文本解码结果，再校验输入；旧实现保留 hello 文本框，同时显示文件下载成功或错误，两个输入状态混在一起。",
   },
   {
     slug: "it/calc-10",
@@ -8254,6 +8609,30 @@ const CASES = [
     "clicks": ["calcTool();var h=String(document.getElementById('result').innerHTML||'');document.getElementById('__tbProbe').textContent='YERR '+((h.indexOf('解析失败')>=0&&h.indexOf('a:')<0)?'OK':'BAD:'+h.slice(0,80));"],
     "expect": ["YERR OK"],
     "ref": "第796批：错误闭合标签必须报解析失败，不能把 `<a></b>` 当两个元素静默转换。旧手写解析器遇 `</b>` 不校验名字直接闭合 ⇒ 输出 `a:` 空值。探针断言结果区含「解析失败」且不含 `a:`；输入 XML 与提示文案无交集 ⇒ 判别明确。"
+  },
+  {
+    "slug": "it/xml-to-json",
+    "htmlDom": true,
+    "inputs": { "input": "<根><名字>张三</名字></根>" },
+    "clicks": ["doBeautify();"],
+    "expect": ["\"根\": {", "\"名字\": \"张三\""],
+    "ref": "XML 合法标签名不限于 ASCII：旧预检用 `[A-Za-z_]` 判标签首字符，`<根><名字>张三</名字></根>` 被误判为 XML 解析错误；现结构校验接受任意非空白/尖括号标签名，仍由 DOMParser 做最终合法性判定。输入是标签形态，期望是带引号 JSON 键值 ⇒ 非回显。"
+  },
+  {
+    "slug": "it/xml-to-toml",
+    "htmlDom": true,
+    "inputs": { "source": "<根><名字>张三</名字></根>" },
+    "clicks": ["calcTool();"],
+    "expect": ["[\"根\"]", "\"名字\" = \"张三\""],
+    "ref": "XML→TOML 中文标签：旧预检拒绝 ASCII 之外的标签名；现接受 `<根>` / `<名字>`，TOML 侧按非 ASCII 键规则加双引号。输入无中括号表头与等号键值形态 ⇒ 非回显。"
+  },
+  {
+    "slug": "it/xml-to-yaml",
+    "htmlDom": true,
+    "inputs": { "source": "<根><名字>张三</名字></根>" },
+    "clicks": ["calcTool();"],
+    "expect": ["根:", "名字: 张三"],
+    "ref": "XML→YAML 中文标签：旧预检拒绝 ASCII 之外的标签名；现输出嵌套映射 `根: / 名字: 张三`。输入是尖括号标签，输出是冒号映射 ⇒ 非回显。"
   },
   {
     "slug": "it/xml-to-toml",
@@ -9009,7 +9388,7 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n✅ 已生成 3 行目录树（3 个路径）\nauto\n1 2 3"
+      "1 2 3\n✅ 已生成 3 行目录树（3 个路径，自动识别为路径列表解析）\nauto\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"paths\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ 已生成 3 行目录树（3 个路径）\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -10041,21 +10420,26 @@ const CASES = [
   },
   {
     "slug": "it/css-formatter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
-    },
-    "expect": [
-      "60deg)}}\n4\n"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「60deg)}}\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["document.getElementById('input').value='.parent :hover{color:red}';document.getElementById('indent').value='4';doBeautify();document.getElementById('__tbProbe').textContent='SEL '+document.getElementById('output').textContent;"],
+    "expect": ["SEL .parent :hover {"],
+    "ref": "第1056批：格式化必须保留后代选择器 `.parent :hover` 的空格，不能被冒号规则改成 `.parent:hover`（匹配对象改变）。探针取格式化后的选择器行；默认样例不含该串 ⇒ 旧实现转红。"
   },
   {
     "slug": "it/css-minifier",
-    "inputs": { "input": "a{width:0%;margin:0px}" },
-    "clicks": ["minify()"],
-    "dumpIds": ["output"],
-    "expect": ["a{width:0%;margin:0}"],
+    "clicks": ["document.getElementById('input').value='a{content:\":0px;\";margin:0px}';minify();document.getElementById('__tbProbe').textContent='MINSTR '+document.getElementById('output').textContent;"],
+    "expect": ["MINSTR a{content:\":0px;\";margin:0}"],
+    "ref": "第1057批：零单位缩写不得改写字符串内容；`content:\":0px;\"` 必须原样保留，真实 `margin:0px` 仍压成 `margin:0`。默认示例不含该串 ⇒ 旧实现恢复后全局替换转红。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "clicks": ["document.getElementById('input').value='a{width:calc(1px + 2px);&:hover{color:red}}';minify();document.getElementById('__tbProbe').textContent='MINCALC '+document.getElementById('output').textContent;"],
+    "expect": ["MINCALC a{width:calc(1px + 2px);&:hover{color:red}}"],
+    "ref": "第1057批：嵌套规则前的 calc 声明必须先按声明块压缩，不能把 `width:calc(1px + 2px)` 交给选择器处理而删掉加号空格。默认示例不含该串 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "clicks": ["document.getElementById('input').value='a{width:0%;margin:0px}';minify();document.getElementById('__tbProbe').textContent='ZERO '+document.getElementById('output').textContent;"],
+    "expect": ["ZERO a{width:0%;margin:0}"],
     "ref": "IT-774 零值单位：百分比宽度 0% 不得被吞成 0（旧实现 :0(px|em|rem|%|pt) 命中 0%）；0px 可安全压成 0。默认示例不含该串。"
   },
   {
@@ -10845,6 +11229,38 @@ const CASES = [
     "expect": ["AM3 n=0 q=1"],
     "ref": "IT-N397：对象数组换序同样应判为无内容差异。比较键用排序后的规范序列化，故键序不同的 `{id:1}` 也能配对上。修复前是 `items[0].id`、`items[1].id` 两处 mod。"
   },
+  // ---- 第1051批：数组按内容匹配的左右指针、根节点空指针 ----
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"arr\":[1,2]}';document.getElementById('right').value='{\"arr\":[0,1,3]}';document.getElementById('arrayMatch').checked=true;doDiff();var d=lastDiff.filter(function(x){return x.op==='mod';})[0];document.getElementById('__tbProbe').textContent='CROSS '+d.path+'->'+d.pathRight+' '+d.pointer+'->'+d.pointerRight+' cp='+(copyDiff().indexOf('[/arr/1] → arr[0] [/arr/0]')>=0?1:0);"],
+    expect: ["CROSS arr[1]->arr[0] /arr/1->/arr/0 cp=1"],
+    ref: "第1051批：左侧 [1,2] 与右侧 [0,1,3] 按内容对齐后，剩余 2 与 0 跨下标配对；必须同时记录左 /arr/1 与右 /arr/0，复制文本也保留两侧位置。旧实现只保存左侧 path/pointer，右侧 /1 实际是 1。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["var d=deepDiff(1,2,'',false,'');document.getElementById('__tbProbe').textContent='ROOT ptr='+(d[0].pointer===''?'1':'0')+' label='+(jdPointerLabel(d[0].pointer,false).indexOf('根节点')>=0?'1':'0')+' same='+(d[0].pathRight===d[0].path?'1':'0');"],
+    expect: ["ROOT ptr=1 label=1 same=1"],
+    ref: "第1051批：根节点替换的 JSON Pointer 必须是空字符串，不能显示成 '/'（'/' 表示空字符串键）；路径视图与复制文本都要明确写“根节点，空指针”，JSON 导出仍保留空字符串。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"\":1}';document.getElementById('right').value='{\"\":2}';doDiff();switchView('paths');var t=copyDiff();document.getElementById('__tbProbe').textContent='EMPTY key='+(t.indexOf('（空键）')>=0?'1':'0')+' ptr='+(t.indexOf('[/]')>=0?'1':'0')+' root='+(t.indexOf('（根节点，空指针）')>=0?'0':'1');"],
+    expect: ["EMPTY key=1 ptr=1 root=1"],
+    ref: "第1051批：空字符串键的 JSON Pointer 是 '/'，要显示为“空键”而不是根节点；复制文本必须同时含 `[/]` 且不含根节点说明。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"a/b\":1,\"x~y\":2}';document.getElementById('right').value='{\"a/b\":3,\"x~y\":4}';doDiff();var d=lastDiff;document.getElementById('__tbProbe').textContent='ESC '+d.map(function(x){return x.pointer;}).join('|');"],
+    expect: ["ESC /a~1b|/x~0y"],
+    ref: "第1051批：含 / 与 ~ 的键仍按 RFC 6901 转义（/a~1b、/x~0y），不能被新增的左右指针字段破坏。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"arr\":[1]}';document.getElementById('right').value='{\"arr\":[{\"a\":2}]}';document.getElementById('arrayMatch').checked=true;doDiff();var d=lastDiff;document.getElementById('__tbProbe').textContent='TYPEMIX '+d.map(function(x){return x.op;}).join(',')+' '+d.map(function(x){return x.path;}).join(',');"],
+    expect: ["TYPEMIX del,add arr[0],arr[0]"],
+    ref: "第1051批：内容无法可靠配对且类型不同（数字 vs 对象）时，必须拆成删除 + 新增，不能强行报成同路径 mod。",
+  },
+
   // ---- 第723批：JSON 差异重复键、大整数与顶层假值 ----
   {
     "slug": "it/json-diff",
@@ -14401,6 +14817,39 @@ const CASES = [
     inputs: { urlInput: "https://x.test/p?q=a'b" },
     expect: ["a&#39;b"],
     ref: "IT-N12 引号：参数值含单引号时统一转义为 &#39;，不再拼进 onclick 属性（复制按钮改事件委托）；默认示例值不含引号。",
+  },
+  {
+    "slug": "it/url-parser",
+    "inputs": { "urlInput": "https://example.com/Infinity?value=NaN" },
+    "clicks": ["parseUrl()"],
+    "expect": ["源(Origin) 复制 https://example.com", "value NaN"],
+    "ref": "第1055批：路径/查询参数里的 Infinity、NaN 是合法 URL 文本，解析结果不得再按数值守卫折叠成「无效值」；注入后必须同时显示两个原词且无无效值提示。默认示例不含这两个词 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/url-parser",
+    "clicks": ["buildParams=[{key:'',value:'abc'},{key:'',value:''}];document.getElementById('b-hostname').value='x.test';var u=buildUrl();document.getElementById('__tbProbe').textContent='URLBLANK '+((u==='https://x.test/?=abc')?'OK':'BAD:'+u);"],
+    "expect": ["URLBLANK OK"],
+    "ref": "第1055批：参数名留空、值非空的合法行必须保留为 `?=abc`；仅完全空白的占位行忽略。旧实现 `if(p.key)` 直接丢掉空名行 ⇒ BAD。"
+  },
+  {
+    "slug": "it/url-parser",
+    "clicks": ["var cap='',o=ToolBox.copyText;ToolBox.copyText=function(t){cap=t};document.getElementById('urlInput').value='https://user:pw@x.test/p';parseUrl();document.getElementById('optIncludeCreds').checked=false;copyJson();var off=(cap.indexOf('\"username\"')<0&&cap.indexOf('\"password\"')<0&&cap.indexOf('\"origin\"')>=0);document.getElementById('optIncludeCreds').checked=true;copyJson();var on=(cap.indexOf('\"username\"')>=0&&cap.indexOf('\"password\"')>=0&&cap.indexOf('\"origin\"')>=0);ToolBox.copyText=o;document.getElementById('__tbProbe').textContent='URLCRED '+((off&&on)?'OK':'BAD off='+off+' on='+on+' '+cap.slice(0,80));"],
+    "expect": ["URLCRED OK"],
+    "ref": "第1055批：复制 JSON 默认排除 user/password 但保留 origin；勾选「复制JSON时包含用户名/密码」后才带出。旧实现无条件导出全部字段，敏感凭据静默进剪贴板 ⇒ BAD。"
+  },
+  {
+    "slug": "it/url-encode",
+    "inputs": { "parseInput": "https://u:p@x.test/Infinity?q=NaN" },
+    "clicks": ["parseUrl()"],
+    "expect": ["q NaN"],
+    "ref": "第1055批：解码页查询参数含 NaN/Infinity 时不得触发数值守卫；parseResult 必须显示且参数原样保留。默认输入不含这两个词 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/url-encode",
+    "inputs": { "parseInput": "https://user:pw@x.test/p" },
+    "clicks": ["var cap='',o=ToolBox.copyText;ToolBox.copyText=function(t){cap=t};parseUrl();document.getElementById('copyCreds').checked=false;copyParseResult();var off=((cap.indexOf('Origin:')>=0||cap.indexOf('源地址')>=0)&&cap.indexOf('user')<0&&cap.indexOf('pw')<0&&cap.indexOf('用户名:')<0&&cap.indexOf('密码:')<0);document.getElementById('copyCreds').checked=true;copyParseResult();var on=(cap.indexOf('user')>=0&&cap.indexOf('pw')>=0);ToolBox.copyText=o;document.getElementById('__tbProbe').textContent='URLECRED '+((off&&on)?'OK':'BAD off='+off+' on='+on+' '+cap.slice(0,100));"],
+    "expect": ["URLECRED OK"],
+    "ref": "第1055批：解码页复制结果必须补 Origin，默认省略用户名/密码并提示；勾选后才包含。旧实现缺 origin 且永远不带凭据，复制与展示不一致 ⇒ BAD。"
   },
   {
     slug: "it/curl-parser",
@@ -18131,6 +18580,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1\na=2", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){document.getElementById('algo').value='DUP '+(document.getElementById('out').innerHTML.indexOf('重复参数 key：a')>=0?'OK':'BAD');});"],
     expect: ["DUP OK"],
     ref: "第762批：重复 key a=1/a=2 必须明确报错并停止签名；旧实现对象覆盖静默只保留最后一个 a=2，签名结果看似正常。",
@@ -18138,6 +18588,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1&b", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){document.getElementById('algo').value='AMP '+(document.getElementById('out').innerHTML.indexOf('%26')>=0?'OK':'BAD');});"],
     expect: ["AMP OK"],
     ref: "第762批：值里未编码的 & 会被当成分隔符，b 段无 key=value 必须报错并提示 %26；旧实现直接跳过 b 段，签名悄悄少一个参数。",
@@ -18145,6 +18596,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=x+y&b=%E4%B8%AD%20z", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('algo').value='CANON '+(o.indexOf('a=x+y&amp;b=%E4%B8%AD%20z')>=0?'OK':'BAD');});"],
     expect: ["CANON OK"],
     ref: "第762批：参数值原样参与签名，不做 URL 解码或 re-encode；`x+y`、`%E4%B8%AD%20z` 必须保持字面值。旧实现 trim 并可能改变空格/顺序。",
@@ -18152,6 +18604,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1&b=2", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('algo').value='NOCANON '+(o.indexOf('s3cr3t')<0&&o.indexOf('&secret=')<0&&document.getElementById('signValue')?'OK':'BAD');});"],
     expect: ["NOCANON OK"],
     ref: "第762批：输出只显示规范化串（不含 secret）和签名；HMAC 文案不得误写成拼接 secret。旧实现对 HMAC 也展示 `规范化串&secret=密钥`，直接泄露密钥。",
@@ -18159,6 +18612,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["var old=ToolBox.copyText;var copied='';ToolBox.copyText=function(t){copied=t;};runSign().then(function(){var sv=document.getElementById('signValue');if(sv)sv.textContent='deadbeef';copyResult();ToolBox.copyText=old;document.getElementById('algo').value='COPYM '+(copied==='deadbeef'?'OK':'BAD:'+copied);});"],
     expect: ["COPYM OK"],
     ref: "第762批：复制签名只能复制 #signValue 的签名值，不得把规范化串或密钥一起复制；旧实现复制整个结果区文本。",
@@ -18251,6 +18705,46 @@ const CASES = [
     ref: "第764批：标准 tree 输出中连接符位于行首、缩进为 0；连接符本身代表一级子节点。旧实现仅按连接符前空白算层级，两个文件都被当成与 src 同级的根节点。",
   },
   {
+    // 整数目录名必须保留输入顺序：10/ 在 2/ 之前，不能按 Object.keys 的数字顺序重排。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "10/a\n2/b" },
+    clicks: ["build();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent=(o.indexOf('10/')<o.indexOf('2/'))?'ORDER_OK':'ORDER_BAD';"],
+    expect: ["ORDER_OK"],
+    ref: "第1050批：Map 保留插入顺序；旧实现用 Object.keys(tree) 会把整数键 2、10 按数字升序排列，输入 10/a 再 2/b 会输出 2/ 在前。",
+  },
+  {
+    // 连续多层竖线前缀必须完整折算，不能只处理第一段。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root/\n├── a\n│   ├── b\n│   │   └── c.txt\n└── d.txt" },
+    clicks: ["build();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent=o.includes('│       └── c.txt')&&!o.includes('│   │')?'DEPTH_OK':'DEPTH_BAD';"],
+    expect: ["DEPTH_OK"],
+    ref: "第1050批：行首重复的 │ + 3 空格 unit 全部折算为 4 空格；旧实现只替换第一段，第二段竖线残留在名称中（c.txt 会显示成 │   └── c.txt）。",
+  },
+  {
+    // 同一父节点重复普通文件名必须保持文件类型，不能无条件改成目录。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root/\n├── a.txt\n└── a.txt" },
+    clicks: ["build();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent=(o.split('\\n').pop()==='└── a.txt')?'FILE_OK':'FILE_BAD';"],
+    expect: ["FILE_OK"],
+    ref: "第1050批：重复 a.txt 没有子节点，仍是文件；旧实现命中已存在节点就 _file=false，输出成 a.txt/。",
+  },
+  {
+    // 自动识别必须把 ASCII +-- 分支当作树形前缀，而不是路径列表。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src/\n+-- a.js" },
+    clicks: ["build()"],
+    expect: ["自动识别为缩进树解析", "└── a.js"],
+    ref: "第1050批：自动识别正则补上 +--；旧实现 hasGlyph 只查 │|├└`，+-- a.js 被按路径列表处理，成为根节点。",
+  },
+  {
+    // 文件与目录同名冲突要有明确提示，而不是静默改判。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root/\n├── a\n└── a/" },
+    clicks: ["build()"],
+    expect: ["同名项目同时出现文件与目录"],
+    ref: "第1050批：同一父下 a 先作文件、再出现 a/ 显式目录，输出按目录渲染并在结果区提示冲突名称。",
+  },
+  {
     slug: "it/ascii-tree-generator",
     inputs: { paths: "src/\n├── a.js\n└── lib/\n    └── u.js" },
     clicks: ["build()"],
@@ -18278,10 +18772,46 @@ const CASES = [
     ref: "第764批：AST 的 BigInt literal 不能被原生 JSON.stringify 序列化；新序列化把 bigint 转为 {\"__type\":\"BigInt\",\"value\":\"1\"}，JSON 视图可见且不丢精度。旧实现 catch 后回退 String(ast)，只得到 [object Object]。",
   },
   {
+    slug: "it/ast-viewer",
+    clicks: ["window.acorn={parse:function(code,opts){if(opts.onComment){opts.onComment.push({type:'Line',value:' hi',start:0,end:3,loc:{start:{line:1,column:0},end:{line:1,column:3}}});opts.onComment.push({type:'Block',value:' block',start:5,end:14,loc:{start:{line:3,column:0},end:{line:3,column:9}}});}return {type:'Program',start:0,end:code.length,body:[]};}};document.getElementById('codeInput').value='// hi'+String.fromCharCode(10)+'const a=1;';document.getElementById('optComments').checked=true;document.getElementById('optLocations').checked=true;window.__astParse();var p=document.getElementById('commentPanel');var j=document.getElementById('astJson').innerHTML;var st=window.__astState();document.getElementById('__tbProbe').textContent='CMT comments='+st.comments+' json='+(j.indexOf('comments')>=0?'1':'0')+' panel='+p.style.display;"],
+    expect: ["CMT comments=2 json=1 panel=block"],
+    ref: "第1054批：勾选保留注释后，注释必须以独立列表显示类型、内容和位置，并在 JSON 视图/复制中作为 comments 导出；旧实现只收集 currentComments，界面和 JSON 完全看不到。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["window.acorn={parse:function(code){return {type:'Program',start:0,end:code.length,body:[]};}};document.getElementById('codeInput').value='const a=1;';document.getElementById('btnParse').fire('click');var before=document.getElementById('statNodes').textContent;var inp=document.getElementById('codeInput');inp.value='const b=2;';window.__astInvalidate();document.getElementById('__tbProbe').textContent='STALE nodes='+document.getElementById('statNodes').textContent+' before='+before+' text='+(document.getElementById('astJson').textContent.indexOf('重新解析')>=0?'1':'0');"],
+    expect: ["STALE nodes=0 before=1 text=1"],
+    ref: "第1054批：解析成功后编辑源码，旧 AST、统计和复制必须立即失效；旧实现保留 currentAst，节点定位用旧偏移会在新代码上选中错误区间。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["window.acorn={parse:function(code){return {type:'Program',start:0,end:code.length,body:[]};}};document.getElementById('codeInput').value='const a=1;';window.__astParse();document.getElementById('ecmaVersion').value='2020';window.__astInvalidate();document.getElementById('__tbProbe').textContent='OPTSTALE nodes='+document.getElementById('statNodes').textContent+' has='+(window.__astState().hasAst?'1':'0');"],
+    expect: ["OPTSTALE nodes=0 has=0"],
+    ref: "第1054批：切换 ECMA 版本等解析选项后旧语法树同样过期；旧实现只在下次点击解析时更新，期间复制/定位仍使用旧选项的结果。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["localStorage.removeItem('tb_ast_persist_codeInput');localStorage.removeItem('tb_ast_persist_optin');var cb=document.getElementById('optPersist');cb.checked=false;window.__astPersistSave(cb);var inp=document.getElementById('codeInput');inp.value='SECRET_OFF';window.__astPersistSave(inp);var off=(localStorage.getItem('tb_ast_persist_codeInput')===null);cb.checked=true;window.__astPersistSave(cb);inp.value='SAVED_ON';window.__astPersistSave(inp);var on=localStorage.getItem('tb_ast_persist_codeInput')==='SAVED_ON';document.getElementById('__tbProbe').textContent='PERSIST off='+(off?'1':'0')+' on='+(on?'1':'0');"],
+    expect: ["PERSIST off=1 on=1"],
+    ref: "第1054批：源码默认不得写入 localStorage；只有主动勾选后才保存，点击清除本地保存必须移除键。页面另以 data-no-persist 退出全站 tool-ux 自动保存，避免旧数据迁移遗漏。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["var a=window.__astDisplayWidth('');var b=window.__astDisplayWidth('const x = ');var c=window.__astDisplayWidth(String.fromCharCode(9)+'const y = ');var d=window.__astDisplayWidth('const 名 = ');document.getElementById('__tbProbe').textContent='WIDTH empty='+a+' mid='+b+' tab='+c+' cjk='+d;"],
+    expect: ["WIDTH empty=0 mid=10 tab=14 cjk=11"],
+    ref: "第1054批：错误指示符必须按显示宽度缩进：行首 0、普通字符每字符 1、制表符按 4 列展开、CJK 宽字符按 2 列；旧实现 new Array(col).join(' ') 少一列，且不处理 Tab/宽字符。",
+  },
+  {
     slug: "it/atbash-cipher",
     clicks: ["var a='A'.repeat(250);var b='A'.repeat(249)+'B';saveHistory(a,'Z'.repeat(250),'encrypt');saveHistory(b,'Y'.repeat(250),'encrypt');var h=getHistory().filter(function(x){return x.input&&x.input.length===250;});document.getElementById('input').value='HIST '+((h.length===2&&h[0].input!==h[1].input)?'OK':'BAD');"],
     expect: ["HIST OK"],
     ref: "第764批：历史必须保存完整输入/输出，不再截断到 200 字符；两条前 249 字符相同的长文本是不同记录。旧实现都截成前 200 字符，后一条被当作重复而覆盖。",
+  },
+  {
+    slug: "it/atbash-cipher",
+    clicks: ["localStorage.removeItem('atbash_history');var cbEl=document.getElementById('saveHistoryOptIn');cbEl.checked=false;window.__cb=null;var st=window.setTimeout,ct=window.clearTimeout;window.setTimeout=function(fn){window.__cb=fn;return 1;};window.clearTimeout=function(){window.__cb=null;};__atbash_cipherScheduleHistory('SEC','SEC','encrypt');var off=(window.__cb===null);cbEl.checked=true;__atbash_cipherScheduleHistory('SEC','SEC','encrypt');var cb=window.__cb;window.setTimeout=st;window.clearTimeout=ct;if(cb)cb();var h=getHistory();localStorage.removeItem('atbash_history');document.getElementById('input').value='PRIVACY '+((off&&h.length===1&&h[0].input==='SEC')?'OK':'BAD');"],
+    expect: ["PRIVACY OK"],
+    ref: "古典密码默认不写历史：未勾选“在本机保留历史”时排程器不得设置 500ms 定时器；勾选后才写。旧实现无条件 saveHistory ⇒ off 为 false、历史多出 SEC，探针 BAD。"
   },
   {
     slug: "it/atbash-cipher",
@@ -18737,10 +19267,15 @@ const CASES = [
   },
   {
     slug: "it/properties-parser",
-    inputs: { input: "a\\ b=value\nk=line1\\nline2" },
-    clicks: ["doMinify();var out=document.getElementById('output').textContent;var back=parseProps(out);var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='PPMIN '+((back['a b']==='value'&&back.k==='line1'+nl+'line2')?'OK':'BAD:'+out);"],
-    expect: ["PPMIN OK"],
-    ref: "第807批：压缩必须复用转义序列化器；旧实现直接拼 key=value，空格键和 \\n 值往返即损坏。",
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='# c'+nl+'a = 1'+nl+'b = 2';doMinify();var m=document.getElementById('output').textContent;doBeautify();var b=document.getElementById('output').textContent;document.getElementById('__tbProbe').textContent='PPMINFMT '+((m.indexOf('a=1')>=0&&m.indexOf('a = 1')<0&&b.indexOf('a = 1')>=0)?'OK':'BAD:'+m+'|'+b);"],
+    expect: ["PPMINFMT OK"],
+    ref: "第1047批：压缩必须输出无分隔空格的 key=value，美化必须保留 key = value；旧实现两者都走同一 toProps，两个按钮输出完全相同。",
+  },
+  {
+    slug: "it/properties-parser",
+    clicks: ["var inp=document.getElementById('input');inp.value='a=1';propsToJson();inp.value='a='+String.fromCharCode(92)+'u12G4';propsToJson();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='PPSTALE '+((o===''&&e.indexOf('❌')===0&&e.indexOf('第 1 行值')>=0)?'OK':'BAD');"],
+    expect: ["PPSTALE OK"],
+    ref: "第1047批：成功解析后遇到非法 Unicode 转义，必须清空上次输出，不能同时显示错误和旧结果；旧实现 catch 只更新错误提示。",
   },
   {
     slug: "it/toml-formatter",
@@ -19145,7 +19680,28 @@ const CASES = [
   clicks: ["calcTool()"],
   expect: ["Infinity、NaN", "Infinity", "NaN"],
   ref: "第964批：用户文本中的 Infinity/NaN 作为用户名命中时原样展示并高亮；旧实现把整段结果替换成破折号，命中内容和高亮失真。默认样例不含这两个词 ⇒ 强判别。"
-}
+},
+  {
+    slug: "it/text-to-hex",
+    inputs: { encoding: "utf16", input: "😀" },
+    clicks: ["convert()"],
+    expect: ["d8 3d de 00"],
+    ref: "UTF-16BE 代理对：😀 U+1F600 应编码为 D83D DE00 四字节；旧版遇高代理项未跳过低代理项，下一轮把低代理项判成孤立并报错。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { encoding: "utf16", input: "😀" },
+    clicks: ["convert()"],
+    expect: ["330 075 336 000"],
+    ref: "UTF-16BE 代理对：D83D=330075 八进制、DE00=336000；旧版同样在低代理项处误报孤立。",
+  },
+  {
+    slug: "it/base64-converter",
+    inputs: { mode: "text" },
+    clicks: ["document.getElementById('input').value='\\uFEFFabc';encodeText();var e=document.getElementById('output').value;document.getElementById('input').value=e;decodeText();var ok=document.getElementById('output').value.codePointAt(0)===0xFEFF;document.getElementById('__tbProbe').textContent='BOM64 '+(ok?'OK':'BAD');"],
+    expect: ["BOM64 OK"],
+    ref: "UTF-8 BOM 往返：'\\uFEFFabc' 以 Base64 编码再解码，首字符必须仍是 U+FEFF；旧版 TextDecoder 默认剥 BOM 得到 'abc'。",
+  }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

@@ -300,6 +300,8 @@ GATES = (
     ("process calc correctness", ("node", "scripts/verify_process_calc.js")),
     ("pet-training calc correctness", ("node", "scripts/verify_pet-training_calc.js")),
     ("office calc correctness", ("node", "scripts/verify_office_calc.js")),
+    # PDF 合并/拆分结构保持（书签树、内部跳转、外部 URL、表单展平），无浏览器依赖。
+    ("pdf structure correctness", ("node", "scripts/verify_pdf_structure.js")),
     ("parenting calc correctness", ("node", "scripts/verify_parenting_calc.js")),
     ("quality calc correctness", ("node", "scripts/verify_quality_calc.js")),
     ("video calc correctness", ("node", "scripts/verify_video_calc.js")),

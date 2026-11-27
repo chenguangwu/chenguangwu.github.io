@@ -305,24 +305,38 @@ function __tbInputGuardCore(_ids,_labels){
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 // SMS-47：主算与明细共用同一份解析结果；支持逗号/分号/空白/全角分隔符，非法项直接跳过
-function __rsVals(){
+function __rsParse(){
   var e=document.getElementById('xs');
   var toks=String(e?e.value:'').split(/[,\s;，；、]+/).map(function(x){return x.trim();}).filter(function(x){return x;});
-  var vals=[];
-  for(var i=0;i<toks.length;i++){ var v=Number(toks[i]); if(isFinite(v)) vals.push(v); }
-  return vals;
+  var vals=[],errors=[];
+  for(var i=0;i<toks.length;i++){
+    if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(toks[i])){errors.push('第 '+(i+1)+' 项「'+toks[i]+'」不是有效数字');continue;}
+    var v=Number(toks[i]);
+    if(!isFinite(v)){errors.push('第 '+(i+1)+' 项「'+toks[i]+'」不是有限数值');continue;}
+    vals.push(v);
+  }
+  return {vals:vals,errors:errors};
+}
+function __rsVals(){return __rsParse().vals;}
+function fmtSmart(v){
+  if(!isFinite(v))return '—';
+  if(v===0)return '0';
+  var a=Math.abs(v);
+  if(a>=100)return v.toFixed(2);
+  return String(Number(v.toPrecision(6)));
 }
 function __rsClear(){
   var ids=['rsChart','rsTable','rsStat','rsDiff','rsHist'];
   for(var i=0;i<ids.length;i++){var e=document.getElementById(ids[i]);if(e)e.innerHTML='';}
 }
 function calcTool(){
-              var __ig=__tbInputGuard(['xs'],["数值序列"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const raw=__rsVals();
+              var parsed=__rsParse();
+            if(parsed.errors.length){__rsClear();ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 数值序列有误，未计算。请修正：</p><ul style="color:var(--danger);font-size:13px;margin:6px 0 0 18px;">'+parsed.errors.map(function(x){return '<li>'+x+'</li>';}).join('')+'</ul>');return;}
+            const raw=parsed.vals;
             if(!raw.length){__rsClear();ToolBox.setResult('result','⚠ 数值序列中没有有效数值，请至少输入 1 个数字');return;}
             const R=Math.max.apply(null,raw)-Math.min.apply(null,raw);
             const __g2=dataGrid([
-                [R.toFixed(2),'极差 R'],
+                [fmtSmart(R),'极差 R'],
                 [raw.length, '样本数 N'],
                 [(raw.reduce(function(a,b){return a+b;},0)/(raw.length||1)).toFixed(4), '均值']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
@@ -331,12 +345,11 @@ function resetForm(){document.getElementById('xs').value = '2, 4, 4, 4, 5, 5, 7,
       calcTool();}
 calcTool();
 
-function __rsNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
+function __rsNum(id){var e=document.getElementById(id);var raw=String(e?e.value:'').trim();if(!raw)return NaN;if(!/^-?(?:\d+(?:\.\d*)?|\.\d+)$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function __rsList(id){var e=document.getElementById(id);return e?TBKit.util.parseList(e.value):[];}
 
 function __rsExtras(){
     if (typeof TBKit === 'undefined') return;
-    var raw=document.getElementById('xs').value;
     var arr=__rsVals();
     var n=arr.length; if(!n){ __rsClear(); return; }
     var en=TBKit.util.isEn();
@@ -347,8 +360,8 @@ function __rsExtras(){
     var show=srt, note='';
     if(n>13){ show=[]; var step=(n-1)/11; for(var q=0;q<12;q++) show.push(srt[Math.round(q*step)]); note=en?' (sampled)':'（抽样显示）'; }
     var items=show.map(function(v){ return {label:String(v), color: v===mn?'#1D4ED8':(v===mx?'#B91C1C':'#94A3B8')}; });
-    TBKit.chart.timeline('#rsChart',{items:items,title:(en?('Sorted axis '+mn+' → '+mx):('排序数据轴 '+mn+' → '+mx+'（极差 '+R.toFixed(2)+'）'))+note});
-    var rows=srt.map(function(v,i){ return [String(i+1), String(v), (v-mn).toFixed(4), R>0?((v-mn)/R*100).toFixed(1)+'%':'—']; });
+    TBKit.chart.timeline('#rsChart',{items:items,title:(en?('Sorted axis '+mn+' → '+mx):('排序数据轴 '+mn+' → '+mx+'（极差 '+fmtSmart(R)+'）'))+note});
+    var rows=srt.map(function(v,i){ return [String(i+1), String(v), fmtSmart(v-mn), R>0?((v-mn)/R*100).toFixed(1)+'%':'—']; });
     TBKit.matrix.table('#rsTable',{
         head: en?['#','Value','Gap from min','Position']:['#','数值','距最小值','极差内位置'],
         rows: rows
@@ -358,7 +371,7 @@ function __rsExtras(){
         rows: en?[
             ['Minimum', String(mn), 'blue end'],
             ['Maximum', String(mx), 'red end'],
-            ['Range R', R.toFixed(4), 'max − min'],
+            ['Range R', fmtSmart(R), 'max − min'],
             ['Mean', mean.toFixed(4), 'average'],
             ['Median', String(mid), 'middle'],
             ['R / mean', (mean!==0?(R/Math.abs(mean)).toFixed(4):'—'), 'relative spread']
