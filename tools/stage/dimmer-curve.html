@@ -165,7 +165,7 @@
 
     <div class="toolbar">
       <div id="dimmer_curvePresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__dimmer_curveExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <button type="button" class="btn" id="copyDimmerBtn" onclick="copyResult()">复制结果</button>
     </div>
 
     <div class="result-box" id="result"></div> <div id="dimmer_curveTable"></div> <div id="dimmer_curveDiff"></div> <div id="dimmer_curveChart"></div> <div id="dimmer_curveHist"></div>
@@ -281,17 +281,23 @@ function curveFn(type, x) {
   return result * 255;
 }
 
+var lastDimmer=null;
+function dimmerSetInvalid(flag){var b=document.getElementById('copyDimmerBtn');if(b)b.disabled=!!flag;}
 function calc() {
   var type = document.getElementById('curveType').value;
   var raw = String(document.getElementById('dmxInput').value || '').trim();
+  var parse=raw.match(/^(\d+(?:\.\d+)?|\.\d+)(%)?$/);
   if (raw === '') {
+    lastDimmer=null;dimmerSetInvalid(true);
     ToolBox.setResult('result', '<p style="color:var(--danger)">请输入 DMX 值（0–255）或百分比（如 50%），空值不会按 0 计算。</p>');
     ToolBox.setResult('chartArea', '');
     return;
   }
-  var isPct = /%$/.test(raw);
-  var num = parseFloat(raw.replace('%', ''));
-  if (!isFinite(num) || num < 0 || (isPct ? num > 100 : num > 255)) {
+  if(!parse){lastDimmer=null;dimmerSetInvalid(true);ToolBox.setResult('result','<p style="color:var(--danger)">请输入完整数值：DMX 0–255 或百分比如 50%，不接受“50abc”等混合文本。</p>');ToolBox.setResult('chartArea','');return;}
+  var isPct = parse[2]==='%';
+  var num = Number(parse[1]);
+  if (!isFinite(num) || (isPct ? num > 100 : num > 255)) {
+    lastDimmer=null;dimmerSetInvalid(true);
     ToolBox.setResult('result', '<p style="color:var(--danger)">DMX 值须在 0–255，百分比须在 0–100%；超出范围请修正。</p>');
     ToolBox.setResult('chartArea', '');
     return;
@@ -316,6 +322,7 @@ function calc() {
   html += '<p>理论曲线输出：<strong>' + output.toFixed(1) + ' / 255</strong>（' + outputPct.toFixed(1) + '%）</p>';
   html += '<p style="font-size:12px;color:var(--text-muted);">这是所选数学曲线的映射值，不等于现场实测亮度；实际灯具还受灯泡、电源与调光器特性影响。</p>';
   html += '<p>亮度增益：<strong>' + (output / Math.max(dmx, 1)).toFixed(3) + '×</strong></p>';
+  lastDimmer={type:typeName,raw:raw,dmx:dmx,output:output};dimmerSetInvalid(false);
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 
   // Draw comparison chart
@@ -336,13 +343,9 @@ function calc() {
 }
 
 function copyResult() {
-  var type = document.getElementById('curveType').value;
-  var raw = String(document.getElementById('dmxInput').value || '').trim();
-  var isPct = /%$/.test(raw); var num = parseFloat(raw.replace('%', ''));
-  var dmx = isFinite(num) ? (isPct ? Math.round(num / 100 * 255) : Math.round(num)) : 0;
-  var output = curveFn(type, dmx);
-  var typeName = {linear:'线性',square:'平方律',sine:'正弦',s:'S曲线',expo:'指数',log:'对数'}[type];
-  var text = '调光(' + typeName + '): 输入' + raw + ' → 理论曲线输出' + output.toFixed(1);
+  if(!lastDimmer){ToolBox.showToast('当前没有有效计算结果，无法复制','warning');return;}
+  var text='调光('+lastDimmer.type+'): 输入 '+lastDimmer.raw+' → DMX '+lastDimmer.dmx+'/255，理论曲线输出 '+lastDimmer.output.toFixed(1)+'/255';
+  text+='\n局限: 这是数学曲线映射值，不等于现场实测亮度。';
   ToolBox.copyText(text, i18nText('msg609'));
 }
 calc();
