@@ -140,8 +140,10 @@
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">评估品质体系</button>
-      <button type="button" class="btn" onclick="resetAll()">重置</button>
+      <button type="button" class="btn" onclick="resetAll()">重置（未评估）</button>
+      <button type="button" class="btn" onclick="__qcExample()">填写示例（全部良）</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <div style="margin-top:10px;"><label for="qcEvidence" style="font-size:13px;">评估依据 / 复查备注（可选）</label><input id="qcEvidence" type="text" placeholder="如：2026-11-27 现场复查，附检查照片" style="width:100%;margin-top:4px;font-size:14px;"></div>
     </div>
     <div class="result-box" id="res"></div>
     <div id="q7Chart" style="margin-top:12px;"></div>
@@ -222,6 +224,32 @@ var dims={
     {q:'外墙/屋面无渗漏/无脱落',w:2}
   ]}
 };
+function __qcRaw(id){var e=document.getElementById(id);return e?String(e.value):'';}
+function __qcCollect(){
+  var rows=[],blank=0,na=0,applicable=0,assessed=0;
+  Object.keys(dims).forEach(function(key){
+    dims[key].items.forEach(function(item,i){
+      var raw=__qcRaw(key+i);
+      var row={key:key,dim:dims[key],item:item,i:i,raw:raw};
+      if(raw===''){row.state='blank';blank++;applicable++;}
+      else if(raw==='na'){row.state='na';na++;}
+      else {row.state='done';assessed++;applicable++;}
+      rows.push(row);
+    });
+  });
+  return {rows:rows,blank:blank,na:na,applicable:applicable,assessed:assessed};
+}
+function __qcPending(d){
+  var ev=document.getElementById('qcEvidence');var note=ev&&ev.value.trim()?ToolBox.escHtml(ev.value.trim()):'—';
+  return '<h3 style="margin-bottom:10px;">品质检查评估结果</h3>'+
+    '<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+d.assessed+'/'+d.applicable+'</div><div class="lbl">已完成 / 适用项</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:var(--warning);">'+d.blank+'</div><div class="lbl">未评估项</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.na+'</div><div class="lbl">不适用项</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.rows.length+'</div><div class="lbl">检查项总数</div></div>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:12px;color:var(--warning);"><strong>待评估：尚未生成等级或结论。</strong><br>适用项须全部完成评分后才计算加权得分；不适用项不计入分母。评级、整改与续约建议均为可配置的辅助参考，须结合现场依据复核。<br>评估依据/复查备注：'+note+'</div>';
+}
 function buildList(){
   var html='';
   Object.keys(dims).forEach(function(key){
@@ -229,7 +257,7 @@ function buildList(){
     html+='<h3 style="margin:14px 0 6px;font-size:14px;">'+dim.name+'（权重'+(dim.weight*100)+'%）</h3>';
     dim.items.forEach(function(item,i){
       var id=key+i;
-      html+='<div class="input-row" style="align-items:center;margin-bottom:4px;"><div style="flex:1;"><label>'+item.q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 80px;" onchange="calc()"><option value="4">优</option><option value="3" selected>良</option><option value="2">中</option><option value="1">差</option></select></div>';
+      html+='<div class="input-row" style="align-items:center;margin-bottom:4px;"><div style="flex:1;"><label>'+item.q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 80px;" onchange="calc()"><option value="" selected>未评估</option><option value="4">优</option><option value="3">良</option><option value="2">中</option><option value="1">差</option><option value="na">不适用</option></select></div>';
     });
   });
   const __g1=html;document.getElementById('checklist').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
@@ -239,61 +267,57 @@ function __qcExport(){
   if(typeof dims==='undefined') return;
   try{
     var en=TBKit.util.isEn();
+    var d=__qcCollect();
     var gradeLabels={4:en?'Excellent':'优',3:en?'Good':'良',2:en?'Fair':'中',1:en?'Poor':'差'};
-    var dimResults=[];
     var rows=[];
-    Object.keys(dims).forEach(function(key){
-      var dim=dims[key];
-      var totalW=0,score=0,issues=[];
-      dim.items.forEach(function(item,i){
-        var sel=document.getElementById(key+i);
-        var v=sel?parseInt(sel.value):3;
-        if(!isFinite(v))v=3;
-        totalW+=item.w*4;
-        score+=v*item.w;
-        if(v<=2)issues.push(item.q);
-        rows.push([dim.name, item.q, v, gradeLabels[v]||'']);
+    d.rows.forEach(function(r){
+      var val=r.state==='done'?gradeLabels[+r.raw]||r.raw:(r.state==='na'?(en?'N/A':'不适用'):(en?'Not assessed':'未评估'));
+      rows.push([r.dim.name,r.item.q,val,'']);
+    });
+    if(d.blank>0||d.applicable===0){
+      rows.push([en?'Status':'评估状态',(en?'Completed ':'已完成 ')+d.assessed+'/'+d.applicable+(en?'; not assessed ':'；未评估 ')+d.blank+(en?'; N/A ':'；不适用 ')+d.na,'',en?'Pending - no grade or conclusion':'待评估，不输出等级或结论']);
+    }else{
+      var dimResults=[],names=[];
+      Object.keys(dims).forEach(function(key){
+        var totalW=0,score=0,issues=0;
+        d.rows.forEach(function(r){if(r.key!==key||r.state==='na')return;var v=+r.raw;totalW+=r.item.w*4;score+=v*r.item.w;if(v<=2)issues++;});
+        var pct=totalW>0?score/totalW*100:0;
+        var lv=totalW<=0?(en?'N/A':'不适用'):(pct>=85?(en?'Excellent':'优秀'):pct>=70?(en?'Good':'良好'):pct>=55?(en?'Pass':'合格'):(en?'Fail':'不合格'));
+        dimResults.push({name:dims[key].name,weight:dims[key].weight,pct:pct,max:totalW,issues:issues,level:lv});
       });
-      var pct=score/totalW*100;
-      dimResults.push({name:dim.name,weight:dim.weight,pct:pct,issues:issues,
-        level:pct>=85?(en?'Excellent':'优秀'):pct>=70?(en?'Good':'良好'):pct>=55?(en?'Pass':'合格'):(en?'Fail':'不合格')});
-    });
-    var overall=dimResults.reduce(function(a,d){return a+d.pct*d.weight;},0);
-    var overallLevel=overall>=85?(en?'Excellent':'优秀'):overall>=70?(en?'Good':'良好'):overall>=55?(en?'Pass':'合格'):(en?'Fail':'不合格');
-    dimResults.forEach(function(d){
-      rows.push([d.name, (en?'Weight ':'权重')+(d.weight*100)+'%', d.pct.toFixed(1)+'%', d.level+'（'+(en?'rectification items: ':'待整改 ')+d.issues.length+(en?'':' 项')+'）']);
-    });
-    rows.push([en?'Overall':'综合', en?'Weighted overall score':'加权综合得分', overall.toFixed(1)+'%', overallLevel]);
-    var conclusion=overall>=85?(en?'Quality system runs excellently; all modules meet standards. Maintain and benchmark':'品质体系运行优秀，各模块均达标，建议保持并争创标杆。'):
-      overall>=70?(en?'Quality system is generally sound; targeted improvement plans for weak modules recommended':'品质体系总体良好，建议针对薄弱模块制定提升计划。'):
-      overall>=55?(en?'Quality system basically passes but has many issues; rectification within a deadline required':'品质体系基本合格但存在较多问题，需限期整改。'):
-      (en?'Quality system fails; comprehensive rectification and reassessment required':'品质体系不合格，需全面整改并重新评估。');
-    rows.push([en?'Conclusion':'品质体系结论', conclusion,'','']);
-    var tb=document.querySelector('#qcTable tbody');
-    if(!tb) return;
-    var h='';
-    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
-    tb.innerHTML=h;
+      var wt=dimResults.reduce(function(a,x){return a+(x.max>0?x.weight:0);},0);
+      var overall=wt>0?dimResults.reduce(function(a,x){return a+(x.max>0?x.pct*x.weight:0);},0)/wt:0;
+      var olv=overall>=85?(en?'Excellent':'优秀'):overall>=70?(en?'Good':'良好'):overall>=55?(en?'Pass':'合格'):(en?'Fail':'不合格');
+      dimResults.forEach(function(x){rows.push([x.name,(en?'Weight ':'权重')+(x.weight*100)+'%',x.max>0?x.pct.toFixed(1)+'%':(en?'N/A':'不适用'),x.level]);});
+      rows.push([en?'Overall':'综合',en?'Weighted overall score':'加权综合得分',overall.toFixed(1)+'%',olv+(en?' (auxiliary reference)':'（辅助参考）')]);
+      rows.push([en?'Basis / review':'评估依据/复查',((document.getElementById('qcEvidence')||{}).value||''),'','']);
+    }
+    var tb=document.querySelector('#qcTable tbody');if(!tb)return;
+    tb.innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
     TBKit.util.exportTable('#qcTable','quality-check-assessment.csv');
   }catch(e){}
 }
 function calc(){
+  var __qc=__qcCollect();
+  if(__qc.blank>0||__qc.applicable===0){document.getElementById('res').innerHTML=__qcPending(__qc);return;}
   var dimResults=[];
   Object.keys(dims).forEach(function(key){
     var dim=dims[key];
     var totalW=0,score=0,issues=[];
     dim.items.forEach(function(item,i){
-      var v=+document.getElementById(key+i).value;
+      var raw=__qcRaw(key+i); if(raw==='na')return;
+      var v=+raw;
       totalW+=item.w*4;
       score+=v*item.w;
       if(v<=2)issues.push(item.q);
     });
-    var pct=score/totalW*100;
+    var pct=totalW>0?score/totalW*100:0;
     dimResults.push({key:key,name:dim.name,weight:dim.weight,pct:pct,score:score,max:totalW,issues:issues,
-      level:pct>=85?'优秀':pct>=70?'良好':pct>=55?'合格':'不合格',
-      color:pct>=85?'var(--success)':pct>=70?'var(--warning)':pct>=55?'var(--warning)':'var(--danger)'});
+      level:totalW<=0?'不适用':(pct>=85?'优秀':pct>=70?'良好':pct>=55?'合格':'不合格'),
+      color:totalW<=0?'var(--text-muted)':(pct>=85?'var(--success)':pct>=70?'var(--warning)':pct>=55?'var(--warning)':'var(--danger)')});
   });
-  var overall=dimResults.reduce(function(a,d){return a+d.pct*d.weight;},0);
+  var __wt=dimResults.reduce(function(a,d){return a+(d.max>0?d.weight:0);},0);
+  var overall=__wt>0?dimResults.reduce(function(a,d){return a+(d.max>0?d.pct*d.weight:0);},0)/__wt:0;
   var overallLevel=overall>=85?'优秀':overall>=70?'良好':overall>=55?'合格':'不合格';
   var overallColor=overall>=85?'var(--success)':overall>=70?'var(--warning)':overall>=55?'var(--warning)':'var(--danger)';
 
@@ -307,12 +331,13 @@ function calc(){
 
   html+='<table style="margin-top:12px;"><tr><th>服务模块</th><th>权重</th><th>得分率</th><th>等级</th><th>待整改</th></tr>';
   dimResults.forEach(function(d){
-    html+='<tr><td>'+d.name+'</td><td>'+(d.weight*100)+'%</td><td style="color:'+d.color+';font-weight:600;">'+d.pct.toFixed(1)+'%</td><td>'+d.level+'</td><td>'+(d.issues.length>0?'<span style="color:var(--danger);">'+d.issues.length+'项</span>':'无')+'</td></tr>';
+    html+='<tr><td>'+d.name+'</td><td>'+(d.weight*100)+'%</td><td style="color:'+d.color+';font-weight:600;">'+(d.max>0?d.pct.toFixed(1)+'%':'不适用')+'</td><td>'+d.level+'</td><td>'+(d.issues.length>0?'<span style="color:var(--danger);">'+d.issues.length+'项</span>':'无')+'</td></tr>';
   });
   html+='</table>';
 
   html+='<h3 style="margin:14px 0 8px;">各模块品质可视化</h3>';
   dimResults.forEach(function(d){
+    if(d.max<=0)return;
     html+='<div class="bar-row"><span class="bar-lbl">'+d.name+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+d.pct+'%;background:'+d.color+';">'+d.pct.toFixed(0)+'%</div></div></div>';
   });
 
@@ -328,7 +353,7 @@ function calc(){
 
   html+='<div class="info-box" style="margin-top:12px;">'+
     '<strong>品质体系结论：</strong><br>'+
-    '综合品质得分 '+overall.toFixed(1)+'%，等级：'+overallLevel+'。<br>'+
+    '综合品质得分 '+overall.toFixed(1)+'%，等级：'+overallLevel+'。<br>已完成 '+__qc.assessed+'/'+__qc.applicable+' 项，不适用 '+__qc.na+' 项。<br>评级与整改建议为可配置的辅助参考，须结合依据复核。<br>评估依据/复查备注：'+((document.getElementById('qcEvidence')||{}).value||'—')+'<br>'+
     (overall>=85?'品质体系运行优秀，各模块均达标，建议保持并争创标杆。':
     overall>=70?'品质体系总体良好，建议针对薄弱模块制定提升计划。':
     overall>=55?'品质体系基本合格但存在较多问题，需限期整改。':
@@ -338,6 +363,7 @@ function calc(){
   const __g2=html;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function resetAll(){buildList();calc();}
+function __qcExample(){var map={'4':'3','3':'3','2':'3','1':'3','na':'na','':''};Object.keys(dims).forEach(function(key){dims[key].items.forEach(function(item,i){var el=document.getElementById(key+i);if(el)el.value='3';});});var ev=document.getElementById('qcEvidence');if(ev)ev.value='示例：全部按“良”评分，仅用于演示计算流程。';calc();}
 function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg199'));

@@ -155,8 +155,9 @@
       <div id="drillItems"></div>
 
       <div class="toolbar">
-        <div id="checker_recorder_drillPresets"></div><button type="button" class="btn primary" onclick="calcDrill()">评估演练</button><button class="btn" type="button" onclick="__checker_recorder_drillExport()">导出明细 CSV</button>
+        <div id="checker_recorder_drillPresets"></div><button type="button" class="btn primary" onclick="calcDrill()">评估演练</button><button type="button" class="btn" onclick="__drExample()">填写示例（全部4分）</button><button type="button" class="btn" onclick="__drReset()">重置（未评估）</button><button class="btn" type="button" onclick="__checker_recorder_drillExport()">导出明细 CSV</button>
         <button type="button" class="btn" onclick="copyDrill()">复制记录</button>
+        <div style="margin-top:10px;"><label for="drillEvidence" style="font-size:13px;">演练依据 / 复查备注（可选）</label><input id="drillEvidence" type="text" placeholder="如：2026-11-27 演练照片与签到表" style="width:100%;margin-top:4px;font-size:14px;"></div>
       </div>
       <div class="result-box" id="drillRes"></div> <div id="checker_recorder_drillTable"></div> <div id="checker_recorder_drillDiff"></div> <div id="checker_recorder_drillChart"></div> <div id="checker_recorder_drillHist"></div>
     </div>
@@ -173,8 +174,9 @@
       <div id="inspectItems"></div>
 
       <div class="toolbar">
-        <button type="button" class="btn primary" onclick="calcInspect()">评估检查结果</button>
+        <button type="button" class="btn primary" onclick="calcInspect()">评估检查结果</button><button type="button" class="btn" onclick="__inExample()">填写示例（全部合格）</button><button type="button" class="btn" onclick="__inReset()">重置（未评估）</button>
         <button type="button" class="btn" onclick="copyInspect()">复制记录</button>
+        <div style="margin-top:10px;"><label for="inspectEvidence" style="font-size:13px;">检查依据 / 复查备注（可选）</label><input id="inspectEvidence" type="text" placeholder="如：2026-11-27 现场检查照片" style="width:100%;margin-top:4px;font-size:14px;"></div>
       </div>
       <div class="result-box" id="inspectRes"></div>
     </div>
@@ -237,25 +239,47 @@ var drillItems=[
   '演练总结评估到位，改进措施明确',
   '演练效果达到预期目标'
 ];
+var __cdOk=false,__ciOk=false;
+function __drCollect(){
+  var rows=[],blank=0,na=0,applicable=0,assessed=0;
+  drillItems.forEach(function(q,i){var raw=String((document.getElementById('dr'+i)||{}).value||'');var row={q:q,i:i,raw:raw};if(raw===''){row.state='blank';blank++;applicable++;}else if(raw==='na'){row.state='na';na++;}else{row.state='done';assessed++;applicable++;}rows.push(row);});
+  return {rows:rows,blank:blank,na:na,applicable:applicable,assessed:assessed};
+}
+function __inCollect(){
+  var rows=[],blank=0,na=0,applicable=0,assessed=0;
+  inspectItems.forEach(function(item,i){var raw=String((document.getElementById('in'+i)||{}).value||'');var row={item:item,q:item.q,i:i,raw:raw};if(raw===''){row.state='blank';blank++;applicable++;}else if(raw==='na'){row.state='na';na++;}else{row.state='done';assessed++;applicable++;}rows.push(row);});
+  return {rows:rows,blank:blank,na:na,applicable:applicable,assessed:assessed};
+}
+function __drPending(d){var ev=document.getElementById('drillEvidence');var note=ev&&ev.value.trim()?ToolBox.escHtml(ev.value.trim()):'—';return '<h3 style="margin-bottom:10px;">消防演练评估结果</h3><div class="stat-grid"><div class="stat-card"><div class="val">'+d.assessed+'/'+d.applicable+'</div><div class="lbl">已完成 / 适用项</div></div><div class="stat-card"><div class="val" style="color:var(--warning);">'+d.blank+'</div><div class="lbl">未评估项</div></div><div class="stat-card"><div class="val">'+d.na+'</div><div class="lbl">不适用项</div></div><div class="stat-card"><div class="val">'+d.rows.length+'</div><div class="lbl">评估项总数</div></div></div><div class="info-box" style="margin-top:12px;color:var(--warning);"><strong>待评估：尚未生成演练等级或结论。</strong><br>适用项须全部完成评分后才计算得分率与等级；不适用项不计入分母。等级与改进建议为可配置的辅助参考，须结合演练记录复核。<br>评估依据/复查备注：'+note+'</div>';}
+function __inPending(d){var ev=document.getElementById('inspectEvidence');var note=ev&&ev.value.trim()?ToolBox.escHtml(ev.value.trim()):'—';return '<h3 style="margin-bottom:10px;">消防设施检查结果</h3><div class="stat-grid"><div class="stat-card"><div class="val">'+d.assessed+'/'+d.applicable+'</div><div class="lbl">已完成 / 适用项</div></div><div class="stat-card"><div class="val" style="color:var(--warning);">'+d.blank+'</div><div class="lbl">未评估项</div></div><div class="stat-card"><div class="val">'+d.na+'</div><div class="lbl">不适用项</div></div><div class="stat-card"><div class="val">'+d.rows.length+'</div><div class="lbl">检查项总数</div></div></div><div class="info-box" style="margin-top:12px;color:var(--warning);"><strong>待评估：尚未生成合格率或检查结论。</strong><br>适用项须全部完成检查后才计算合格率；不适用项不计入分母。结论与整改要求为可配置的辅助参考，须结合现场记录复查。<br>检查依据/复查备注：'+note+'</div>';}
 function buildDrill(){
   var html='';
   drillItems.forEach(function(q,i){
-    html+='<div class="input-row" style="align-items:center;margin-bottom:4px;"><div style="flex:1;"><label>'+(i+1)+'. '+q+'</label></div><select id="dr'+i+'" style="font-size:16px;flex:0 0 90px;" onchange="calcDrill()"><option value="5">5分</option><option value="4" selected>4分</option><option value="3">3分</option><option value="2">2分</option><option value="1">1分</option></select></div>';
+    html+='<div class="input-row" style="align-items:center;margin-bottom:4px;"><div style="flex:1;"><label>'+(i+1)+'. '+q+'</label></div><select id="dr'+i+'" style="font-size:16px;flex:0 0 90px;" onchange="calcDrill()"><option value="" selected>未评估</option><option value="5">5分</option><option value="4">4分</option><option value="3">3分</option><option value="2">2分</option><option value="1">1分</option><option value="na">不适用</option></select></div>';
   });
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('drillItems').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('drillItems').innerHTML=__h0;
 }
 function calcDrill(){
-  var total=0,max=drillItems.length*5,issues=[];
+  __cdOk=false;
+  var __cnt=String(document.getElementById('drillCount').value).trim();
+  var __evac=String(document.getElementById('evacTime').value).trim();
+  var __cn=__cnt===''?NaN:+__cnt,__et=__evac===''?NaN:+__evac;
+  if(!isFinite(__cn)||__cn<=0||Math.abs(__cn-Math.round(__cn))>1e-9){document.getElementById('drillRes').innerHTML='<p style="color:var(--danger)">⚠ 参与人数须为正整数</p>';return;}
+  if(!isFinite(__et)||__et<0){document.getElementById('drillRes').innerHTML='<p style="color:var(--danger)">⚠ 疏散用时须为非负数（秒）</p>';return;}
+  var __dr=__drCollect();
+  if(__dr.blank>0||__dr.applicable===0){document.getElementById('drillRes').innerHTML=__drPending(__dr);return;}
+  var total=0,max=0,issues=[];
   drillItems.forEach(function(q,i){
-    var v=+document.getElementById('dr'+i).value;
-    total+=v;
+    var raw=String(document.getElementById('dr'+i).value||''); if(raw==='na')return;
+    var v=+raw; total+=v; max+=5;
     if(v<=2)issues.push(q);
   });
-  var pct=total/max*100;
+  var pct=max>0?total/max*100:0;
+  __cdOk=true;
   var level=pct>=90?'优秀':pct>=75?'良好':pct>=60?'合格':'不合格';
   var color=pct>=75?'var(--success)':pct>=60?'var(--warning)':'var(--danger)';
-  var count=+document.getElementById('drillCount').value||0;
-  var evacT=+document.getElementById('evacTime').value||0;
+  var count=__cn;
+  var evacT=__et;
   var drillDate=document.getElementById('drillDate').value||'未填写';
   var drillType=document.getElementById('drillType').value;
 
@@ -291,7 +315,7 @@ function calcDrill(){
     (pct>=75?'演练组织有序，效果良好，建议保持。':
     pct>=60?'演练基本达标，存在不足需改进，下次演练前完成整改。':
     '演练不合格，需重新组织演练并加强培训。')+
-    '<br><br><strong>改进措施：</strong><br>'+
+    '<br>已完成 '+__dr.assessed+'/'+__dr.applicable+' 项，不适用 '+__dr.na+' 项。等级与整改建议为可配置辅助参考，须结合记录复核。<br>评估依据/复查备注：'+((document.getElementById('drillEvidence')||{}).value||'—')+'<br><br><strong>改进措施：</strong><br>'+
     (issues.length>0?'1. 针对评估中≤2分的项目制定改进措施<br>2. 加强日常消防培训与宣传<br>3. 下次演练重点验证改进效果':
     '1. 继续保持现有演练水平<br>2. 可考虑增加演练难度和复杂度<br>3. 推广演练经验至其他项目')+
     '</div>';
@@ -319,20 +343,24 @@ var inspectItems=[
 function buildInspect(){
   var html='';
   inspectItems.forEach(function(item,i){
-    html+='<div class="input-row" style="align-items:center;margin-bottom:4px;"><div style="flex:1;"><label>'+(i+1)+'. '+item.q+'</label></div><select id="in'+i+'" style="font-size:16px;flex:0 0 100px;" onchange="calcInspect()"><option value="2">合格</option><option value="0">不合格</option><option value="2">不适用</option></select></div>';
+    html+='<div class="input-row" style="align-items:center;margin-bottom:4px;"><div style="flex:1;"><label>'+(i+1)+'. '+item.q+'</label></div><select id="in'+i+'" style="font-size:16px;flex:0 0 100px;" onchange="calcInspect()"><option value="" selected>未评估</option><option value="2">合格</option><option value="0">不合格</option><option value="na">不适用</option></select></div>';
   });
   const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('inspectItems').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('inspectItems').innerHTML=__h2;
 }
 function calcInspect(){
-  var totalW=inspectItems.reduce(function(a,b){return a+b.w;},0);
-  var score=0,failItems=[];
+  __ciOk=false;
+  var __in=__inCollect();
+  if(__in.blank>0||__in.applicable===0){document.getElementById('inspectRes').innerHTML=__inPending(__in);return;}
+  var totalW=0,score=0,failItems=[];
   inspectItems.forEach(function(item,i){
-    var v=+document.getElementById('in'+i).value;
-    score+=v*item.w;
+    var raw=String(document.getElementById('in'+i).value||''); if(raw==='na')return;
+    var v=+raw; if(v!==0&&v!==2)return;
+    totalW+=item.w; score+=v*item.w;
     if(v===0)failItems.push(item.q);
   });
   var maxScore=totalW*2;
-  var pct=score/maxScore*100;
+  var pct=maxScore>0?score/maxScore*100:0;
+  __ciOk=true;
   var level=pct>=100?'全部合格':pct>=85?'基本合格':'需整改';
   var color=failItems.length===0?'var(--success)':failItems.length<=2?'var(--warning)':'var(--danger)';
   var inspectDate=document.getElementById('inspectDate').value||'未填写';
@@ -342,7 +370,7 @@ function calcInspect(){
   html+='<div class="stat-grid">'+
     '<div class="stat-card"><div class="val" style="color:'+color+';">'+level+'</div><div class="lbl">检查结论</div></div>'+
     '<div class="stat-card"><div class="val" style="color:'+color+';">'+pct.toFixed(0)+'%</div><div class="lbl">合格率</div></div>'+
-    '<div class="stat-card"><div class="val">'+(inspectItems.length-failItems.length)+'</div><div class="lbl">合格项</div></div>'+
+    '<div class="stat-card"><div class="val">'+(__in.assessed-failItems.length)+'/'+__in.applicable+'</div><div class="lbl">合格 / 适用项</div></div>'+
     '<div class="stat-card"><div class="val" style="color:var(--danger);">'+failItems.length+'</div><div class="lbl">不合格项</div></div>'+
     '</div>';
 
@@ -358,9 +386,9 @@ function calcInspect(){
   }
 
   html+='<div class="info-box" style="margin-top:12px;">'+
-    '<strong>检查结论：</strong><br>'+
+    '<strong>检查结论（辅助参考）：</strong><br>'+
     '检查日期：'+inspectDate+'，检查人：'+ToolBox.escHtml(inspector)+'<br>'+
-    '消防设施合格率：'+pct.toFixed(0)+'%，不合格项：'+failItems.length+'项。<br>'+
+    '消防设施合格率：'+pct.toFixed(0)+'%，不合格项：'+failItems.length+'项。已完成 '+__in.assessed+'/'+__in.applicable+' 项，不适用 '+__in.na+' 项。<br>结论与整改要求为可配置辅助参考，须结合现场记录复查。<br>检查依据/复查备注：'+((document.getElementById('inspectEvidence')||{}).value||'—')+'<br>'+
     (failItems.length===0?'所有消防设施检查合格，消防系统运行正常。':
     failItems.length<=2?'存在少量不合格项，需立即整改并复查。':
     '存在较多不合格项，存在消防安全隐患，需立即全面整改！')+
@@ -373,6 +401,10 @@ function copyInspect(){
   var text=document.getElementById('inspectRes').innerText;
   ToolBox.copyText(text, i18nText('msg455'));
 }
+function __drReset(){drillItems.forEach(function(q,i){var el=document.getElementById('dr'+i);if(el)el.value='';});var ev=document.getElementById('drillEvidence');if(ev)ev.value='';calcDrill();}
+function __drExample(){drillItems.forEach(function(q,i){var el=document.getElementById('dr'+i);if(el)el.value='4';});var ev=document.getElementById('drillEvidence');if(ev)ev.value='示例：全部按良好（4分）评分，仅用于演示流程。';calcDrill();}
+function __inReset(){inspectItems.forEach(function(item,i){var el=document.getElementById('in'+i);if(el)el.value='';});var ev=document.getElementById('inspectEvidence');if(ev)ev.value='';calcInspect();}
+function __inExample(){inspectItems.forEach(function(item,i){var el=document.getElementById('in'+i);if(el)el.value='2';});var ev=document.getElementById('inspectEvidence');if(ev)ev.value='示例：全部合格，仅用于演示流程。';calcInspect();}
 buildDrill();calcDrill();
 buildInspect();calcInspect();
 </script>
@@ -551,6 +583,7 @@ function __checker_recorder_drillRender(keys,rk,en){
     }catch(e3){}
 }
 function __checker_recorder_drillExtras(){
+    if(!__cdOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__checker_recorder_drill_skip) return;
     var snap=__checker_recorder_drillSnap();
@@ -582,6 +615,7 @@ function __checker_recorder_drillExtras(){
 }
 function __checker_recorder_drillExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__cdOk){try{ToolBox.showToast('请先完成全部适用演练项评估，暂无有效记录可导出','warning');}catch(e){}return;}
     try{
         var box=document.querySelector('#checker_recorder_drillTable');
         if(!box||!box.querySelector('tr')){

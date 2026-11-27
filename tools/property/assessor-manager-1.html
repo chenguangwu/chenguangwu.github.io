@@ -161,8 +161,9 @@
     <div id="superviseItems"></div>
 
     <div class="toolbar">
-      <div id="assessor_manager_1Presets"></div><button type="button" class="btn primary" onclick="calc()">评估外包管理</button><button class="btn" type="button" onclick="__assessor_manager_1Export()">导出明细 CSV</button>
+      <div id="assessor_manager_1Presets"></div><button type="button" class="btn primary" onclick="calc()">评估外包管理</button><button type="button" class="btn" onclick="__amExample()">填写示例（全部4分）</button><button type="button" class="btn" onclick="__amReset()">重置（未评估）</button><button class="btn" type="button" onclick="__assessor_manager_1Export()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <div style="margin-top:10px;"><label for="amEvidence" style="font-size:13px;">评估依据 / 复查备注（可选）</label><input id="amEvidence" type="text" placeholder="如：2026-11-27 合同与现场记录复核" style="width:100%;margin-top:4px;font-size:14px;"></div>
     </div>
     <div class="result-box" id="res"></div> <div id="assessor_manager_1Table"></div> <div id="assessor_manager_1Diff"></div> <div id="assessor_manager_1Chart"></div> <div id="assessor_manager_1Hist"></div>
   </div>
@@ -228,34 +229,65 @@ var dims={
     '安全无事故（无安全事故/劳动纠纷）'
   ]}
 };
+var __amOk=false;
+function __amCollect(){
+  var rows=[],blank=0,na=0,applicable=0,assessed=0;
+  Object.keys(dims).forEach(function(key){
+    dims[key].items.forEach(function(q,i){
+      var raw=String(document.getElementById(key+i).value||'');
+      var row={key:key,dim:dims[key],q:q,i:i,raw:raw};
+      if(raw===''){row.state='blank';blank++;applicable++;}
+      else if(raw==='na'){row.state='na';na++;}
+      else {row.state='done';assessed++;applicable++;}
+      rows.push(row);
+    });
+  });
+  return {rows:rows,blank:blank,na:na,applicable:applicable,assessed:assessed};
+}
+function __amPending(d){
+  var ev=document.getElementById('amEvidence');var note=ev&&ev.value.trim()?ToolBox.escHtml(ev.value.trim()):'—';
+  return '<h3 style="margin-bottom:10px;">外包管理评估结果</h3>'+
+    '<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+d.assessed+'/'+d.applicable+'</div><div class="lbl">已完成 / 适用项</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:var(--warning);">'+d.blank+'</div><div class="lbl">未评估项</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.na+'</div><div class="lbl">不适用项</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.rows.length+'</div><div class="lbl">评估项总数</div></div>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:12px;color:var(--warning);"><strong>待评估：尚未生成评估等级、续约或更换建议。</strong><br>适用项须全部完成评分后才计算加权得分；不适用项不计入分母。评级、续约与整改建议均为可配置的辅助参考，须结合现场依据与合同条款复核。<br>评估依据/复查备注：'+note+'</div>';
+}
 function buildList(containerId,dim,key){
   var html='';
   dim.items.forEach(function(q,i){
     var id=key+i;
-    html+='<div class="input-row" style="align-items:center;margin-bottom:6px;"><div style="flex:1;"><label>'+q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 90px;" onchange="calc()"><option value="5">5分</option><option value="4" selected>4分</option><option value="3">3分</option><option value="2">2分</option><option value="1">1分</option></select></div>';
+    html+='<div class="input-row" style="align-items:center;margin-bottom:6px;"><div style="flex:1;"><label>'+q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 90px;" onchange="calc()"><option value="" selected>未评估</option><option value="5">5分</option><option value="4">4分</option><option value="3">3分</option><option value="2">2分</option><option value="1">1分</option><option value="na">不适用</option></select></div>';
   });
   const __g1=html;document.getElementById(containerId).innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function calc(){
+__amOk=false;
 // DETCLR：核心检测值留空时不得给出合格/优秀评级
 var __dtReq=['contractAmt'];
 if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写合同金额</p>';return;}
+  var __am=__amCollect();
+  if(__am.blank>0||__am.applicable===0){document.getElementById('res').innerHTML=__amPending(__am);return;}
+  __amOk=true;
 
   var dimResults=[];
   Object.keys(dims).forEach(function(key){
     var dim=dims[key];
-    var total=0,max=dim.items.length*5,issues=[];
+    var total=0,max=0,issues=[];
     dim.items.forEach(function(q,i){
-      var v=+document.getElementById(key+i).value;
-      total+=v;
+      var raw=String(document.getElementById(key+i).value||''); if(raw==='na')return;
+      var v=+raw; total+=v; max+=5;
       if(v<=2)issues.push({q:q,score:v});
     });
-    var pct=total/max*100;
+    var pct=max>0?total/max*100:0;
     dimResults.push({key:key,name:dim.name,weight:dim.weight,pct:pct,score:total,max:max,issues:issues,
       level:pct>=85?'优秀':pct>=70?'良好':pct>=55?'一般':'不合格',
       color:pct>=85?'var(--success)':pct>=70?'var(--warning)':pct>=55?'var(--warning)':'var(--danger)'});
   });
-  var overall=dimResults.reduce(function(a,d){return a+d.pct*d.weight;},0);
+  var __wt=dimResults.reduce(function(a,d){return a+(d.max>0?d.weight:0);},0);
+  var overall=__wt>0?dimResults.reduce(function(a,d){return a+(d.max>0?d.pct*d.weight:0);},0)/__wt:0;
   var overallLevel=overall>=85?'优秀':overall>=70?'良好':overall>=55?'一般':'不合格';
   var overallColor=overall>=85?'var(--success)':overall>=70?'var(--warning)':overall>=55?'var(--warning)':'var(--danger)';
 
@@ -274,12 +306,13 @@ if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e
 
   html+='<table style="margin-top:12px;"><tr><th>评估维度</th><th>权重</th><th>得分率</th><th>等级</th><th>不合格项</th></tr>';
   dimResults.forEach(function(d){
-    html+='<tr><td>'+d.name+'</td><td>'+(d.weight*100)+'%</td><td style="color:'+d.color+';font-weight:600;">'+d.pct.toFixed(1)+'%</td><td>'+d.level+'</td><td>'+(d.issues.length>0?'<span style="color:var(--danger);">'+d.issues.length+'项</span>':'无')+'</td></tr>';
+    html+='<tr><td>'+d.name+'</td><td>'+(d.weight*100)+'%</td><td style="color:'+d.color+';font-weight:600;">'+(d.max>0?d.pct.toFixed(1)+'%':'不适用')+'</td><td>'+d.level+'</td><td>'+(d.issues.length>0?'<span style="color:var(--danger);">'+d.issues.length+'项</span>':'无')+'</td></tr>';
   });
   html+='</table>';
 
   html+='<h3 style="margin:14px 0 8px;">各维度可视化</h3>';
   dimResults.forEach(function(d){
+    if(d.max<=0)return;
     html+='<div class="bar-row"><span class="bar-lbl">'+d.name+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+d.pct+'%;background:'+d.color+';">'+d.pct.toFixed(0)+'%</div></div></div>';
   });
 
@@ -311,7 +344,7 @@ if(__dtReq.some(function(k){var e=document.getElementById(k);return !e||String(e
   html+='<div class="info-box" style="margin-top:12px;">'+
     '<strong>评估结论：</strong><br>'+
     '供应商：'+ToolBox.escHtml(vendorName)+'（'+vendorType+'）<br>'+
-    '综合评分：'+overall.toFixed(1)+'%，等级：'+overallLevel+'<br>'+
+    '综合评分：'+overall.toFixed(1)+'%，等级：'+overallLevel+'<br>已完成 '+__am.assessed+'/'+__am.applicable+' 项，不适用 '+__am.na+' 项<br>评级、续约与整改建议为可配置的辅助参考，须结合依据复核<br>评估依据/复查备注：'+((document.getElementById('amEvidence')||{}).value||'—')+'<br>'+
     (overall>=70?'建议续约，持续监管薄弱环节。':'建议发出整改通知，评估整改效果后决定是否续约。')+
     '</div>';
 
@@ -501,6 +534,7 @@ function __assessor_manager_1Render(keys,rk,en){
     }catch(e3){}
 }
 function __assessor_manager_1Extras(){
+    if(!__amOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__assessor_manager_1_skip) return;
     var snap=__assessor_manager_1Snap();
@@ -532,6 +566,7 @@ function __assessor_manager_1Extras(){
 }
 function __assessor_manager_1Export(){
     if (typeof TBKit === 'undefined') return;
+    if(!__amOk){try{ToolBox.showToast('请先完成全部适用项评估，暂无有效结论可导出','warning');}catch(e){}return;}
     try{
         var box=document.querySelector('#assessor_manager_1Table');
         if(!box||!box.querySelector('tr')){
@@ -543,6 +578,8 @@ function __assessor_manager_1Export(){
     }catch(e){}
     try { TBKit.util.exportTable('#assessor_manager_1Table','assessor-manager-1.csv'); } catch(e){}
 }
+function __amExample(){Object.keys(dims).forEach(function(key){dims[key].items.forEach(function(q,i){var el=document.getElementById(key+i);if(el)el.value='4';});});var ev=document.getElementById('amEvidence');if(ev)ev.value='示例：全部按良好（4分）评分，仅用于演示流程。';calc();}
+function __amReset(){Object.keys(dims).forEach(function(key){dims[key].items.forEach(function(q,i){var el=document.getElementById(key+i);if(el)el.value='';});});var ev=document.getElementById('amEvidence');if(ev)ev.value='';calc();}
 function __assessor_manager_1Presets(){
     if (typeof TBKit === 'undefined') return;
     TBKit.preset.bar('#assessor_manager_1Presets',[{label:'默认参数',labelEn:'Default',values:{'vendorType':'cleaning', 'contractAmt':'50', 'contractTerm':'12'}},{"label":"保洁年度合同 80 万","labelEn":"Cleaning 800k/year","values":{"vendorName":"洁美物业","vendorType":"cleaning","contractAmt":"80","contractTerm":"12"}},{"label":"安保年度合同 45 万","labelEn":"Security 450k/year","values":{"vendorName":"安泰保安","vendorType":"security","contractAmt":"45","contractTerm":"12"}},{"label":"设施维保两年 120 万","labelEn":"Maintenance 1.2M/2yr","values":{"vendorName":"恒信机电","vendorType":"maintenance","contractAmt":"120","contractTerm":"24"}}],function(){ calc(); });
