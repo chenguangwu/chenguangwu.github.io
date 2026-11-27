@@ -18906,10 +18906,15 @@ const CASES = [
   },
   {
     slug: "it/properties-parser",
-    inputs: { input: "a\\ b=value\nk=line1\\nline2" },
-    clicks: ["doMinify();var out=document.getElementById('output').textContent;var back=parseProps(out);var nl=String.fromCharCode(10);document.getElementById('__tbProbe').textContent='PPMIN '+((back['a b']==='value'&&back.k==='line1'+nl+'line2')?'OK':'BAD:'+out);"],
-    expect: ["PPMIN OK"],
-    ref: "第807批：压缩必须复用转义序列化器；旧实现直接拼 key=value，空格键和 \\n 值往返即损坏。",
+    clicks: ["var nl=String.fromCharCode(10);document.getElementById('input').value='# c'+nl+'a = 1'+nl+'b = 2';doMinify();var m=document.getElementById('output').textContent;doBeautify();var b=document.getElementById('output').textContent;document.getElementById('__tbProbe').textContent='PPMINFMT '+((m.indexOf('a=1')>=0&&m.indexOf('a = 1')<0&&b.indexOf('a = 1')>=0)?'OK':'BAD:'+m+'|'+b);"],
+    expect: ["PPMINFMT OK"],
+    ref: "第1047批：压缩必须输出无分隔空格的 key=value，美化必须保留 key = value；旧实现两者都走同一 toProps，两个按钮输出完全相同。",
+  },
+  {
+    slug: "it/properties-parser",
+    clicks: ["var inp=document.getElementById('input');inp.value='a=1';propsToJson();inp.value='a='+String.fromCharCode(92)+'u12G4';propsToJson();var o=document.getElementById('output').textContent,e=document.getElementById('err').textContent;document.getElementById('__tbProbe').textContent='PPSTALE '+((o===''&&e.indexOf('❌')===0&&e.indexOf('第 1 行值')>=0)?'OK':'BAD');"],
+    expect: ["PPSTALE OK"],
+    ref: "第1047批：成功解析后遇到非法 Unicode 转义，必须清空上次输出，不能同时显示错误和旧结果；旧实现 catch 只更新错误提示。",
   },
   {
     slug: "it/toml-formatter",
