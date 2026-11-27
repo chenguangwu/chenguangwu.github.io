@@ -269,6 +269,7 @@
         <button type="button" class="btn success" onclick="copyBatchResult()">复制全部结果</button>
         <button type="button" class="btn" onclick="clearBatch()">清空</button>
       </div>
+      <div style="font-size:12px;color:var(--text-muted);margin:6px 0 10px;">「复制全部结果」按原始行位置输出：空行保留为空行，失败行写成【第 N 行失败：原因】，不会改变行号。</div>
       <label>处理结果</label>
       <div id="batchResult" class="result-box batch-result">
         <p style="padding:16px;text-align:center;color:var(--text-muted);">结果将显示在这里</p>
@@ -386,6 +387,7 @@
   }
   function __b64OptionChange(){
     __b64ClearOutput();
+    if(typeof __batchInvalidate === 'function') __batchInvalidate();
     onInputChange();
   }
 
@@ -401,6 +403,7 @@
     urlSafe.disabled = algo !== 'base64';
     urlSafe.parentElement.style.opacity = algo === 'base64' ? '1' : '0.5';
     __b64ClearOutput();
+    if(typeof __batchInvalidate === 'function') __batchInvalidate();
     onInputChange();
     // 文件结果绑定生成时的算法；切算法后立刻对同一文件重新编码（或清除旧结果）。
     if(typeof currentFile !== 'undefined' && currentFile){
@@ -992,7 +995,7 @@
   function batchEncode(){
     var input = document.getElementById('batchInput').value;
     var lines = __batchLines(input);
-    if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg904'), 'warning');
+    if(lines.length === 0) { __batchInvalidate(); return ToolBox.showToast(i18nText('toast.msg904'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
     lines.forEach(function(line, idx){
@@ -1008,7 +1011,7 @@
   function batchDecode(){
     var input = document.getElementById('batchInput').value;
     var lines = __batchLines(input);
-    if(lines.length === 0) return ToolBox.showToast(i18nText('toast.msg907'), 'warning');
+    if(lines.length === 0) { __batchInvalidate(); return ToolBox.showToast(i18nText('toast.msg907'), 'warning'); }
     var urlSafe = document.getElementById('urlSafe').checked;
     var results = [];
     lines.forEach(function(line, idx){
@@ -1041,7 +1044,7 @@
       }
       html += '</div>';
     });
-    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h2;
+    container.innerHTML = html;
     window._batchResults = results;
   }
 
@@ -1052,19 +1055,28 @@
     ToolBox.copyText(r.dst);
   }
 
-  function __batchCopyText(){
+  function __batchCopyText(mode){
     if(!window._batchResults) return '';
-    return window._batchResults.filter(function(r){ return r.ok && !r.blank; }).map(function(r){ return r.dst; }).join('\n');
+    if(mode === 'success') {
+      return window._batchResults.filter(function(r){ return r.ok && !r.blank; }).map(function(r){ return r.dst; }).join('\n');
+    }
+    // 默认保留行位置：空行输出空行，失败行输出明确占位（不静默丢行、不改变行号）。
+    return window._batchResults.map(function(r){
+      if(r.blank) return '';
+      if(!r.ok) return __b64L('[line ' + r.line + ' failed: ' + r.dst + ']', '【第 ' + r.line + ' 行失败：' + r.dst + '】');
+      return r.dst;
+    }).join('\n');
   }
   function copyBatchResult(){
     if(!window._batchResults || window._batchResults.length === 0) return ToolBox.showToast(i18nText(), 'warning');
     var good = window._batchResults.filter(function(r){ return r.ok && !r.blank; });
     if(good.length === 0) return ToolBox.showToast(__b64L('No successful rows to copy','没有可复制的成功行'), 'warning');
     var failed = window._batchResults.filter(function(r){ return !r.ok; });
+    var blanks = window._batchResults.filter(function(r){ return r.blank; });
     ToolBox.copyText(__batchCopyText());
     ToolBox.showToast(__b64L(
-      'Copied ' + good.length + ' successful row(s)' + (failed.length ? '; skipped ' + failed.length + ' failed row(s) on line ' + failed.map(function(r){return r.line;}).join(', ') : ''),
-      '已复制 ' + good.length + ' 条成功结果' + (failed.length ? '；已跳过 ' + failed.length + ' 条失败行（第 ' + failed.map(function(r){return r.line;}).join('、') + ' 行）' : '')
+      'Copied ' + window._batchResults.length + ' row(s) preserving line positions' + (blanks.length ? '; kept ' + blanks.length + ' blank line(s)' : '') + (failed.length ? '; ' + failed.length + ' failed row(s) marked on line ' + failed.map(function(r){return r.line;}).join(', ') : ''),
+      '已复制 ' + window._batchResults.length + ' 行（保留行位置）' + (blanks.length ? '；保留 ' + blanks.length + ' 个空行' : '') + (failed.length ? '；' + failed.length + ' 条失败行已用占位文本标记（第 ' + failed.map(function(r){return r.line;}).join('、') + ' 行）' : '')
     ));
   }
 

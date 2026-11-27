@@ -1301,6 +1301,37 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
+    clicks: ["document.getElementById('batchInput').value='A\\n\\nB';batchEncode();var t=__batchCopyText();var a=t.split('\\n');document.getElementById('__tbProbe').textContent='COPY lines='+a.length+' blank='+(a[1]===''?'1':'0')+' first='+a[0]+' last='+a[2];"],
+    expect: ["COPY lines=3 blank=1 first=QQ== last=Qg=="],
+    ref: "第1052批：复制全部必须保留原始行位置，中间空行输出空行；A→QQ==、B→Qg==，共 3 行。旧实现过滤空行后只剩 2 行，行号与输入错位。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window._batchResults=[{line:1,src:'aGVsbG8=',dst:'hello',ok:true,blank:false},{line:2,src:'%%%',dst:'not base64',ok:false,blank:false}];var t=__batchCopyText();document.getElementById('__tbProbe').textContent='FAILPOS rows='+window._batchResults.length+' mark='+(t.indexOf('【第 2 行失败')>=0?'1':'0')+' lines='+t.split('\\n').length;"],
+    expect: ["FAILPOS rows=2 mark=1 lines=2"],
+    ref: "第1052批：失败行不能被静默丢弃；复制文本保留 2 行，第 2 行写成【第 2 行失败：原因】占位，行号与输入一致。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["document.getElementById('batchInput').value='NaN\\nInfinity';batchEncode();var box=document.getElementById('batchResult');document.getElementById('__tbProbe').textContent='NANB rows='+(window._batchResults?window._batchResults.length:0)+' nan='+(box.innerHTML.indexOf('NaN')>=0?'1':'0')+' inf='+(box.innerHTML.indexOf('Infinity')>=0?'1':'0')+' warn='+(box.textContent.indexOf('计算结果含无效值')>=0?'1':'0');"],
+    expect: ["NANB rows=2 nan=1 inf=1 warn=0"],
+    ref: "第1052批：批量结果 HTML 中的合法文本 NaN/Infinity 不能被数值守卫误判；渲染必须完成、_batchResults 保留 2 行且不出现无效值警告。旧实现用 /NaN/ 检查整段 HTML，提前 return 并把结果留空。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window._batchResults=[{line:1,src:'X',dst:'WA==',ok:true,blank:false}];document.getElementById('urlSafe').parentElement.style={};setAlgo('base32');document.getElementById('__tbProbe').textContent='ALGOINV after='+window._batchResults;"],
+    expect: ["ALGOINV after=null"],
+    ref: "第1052批：切换算法必须让批量结果失效并清空复制数据；旧实现 setAlgo 只清单条输出，批量列表仍可复制 Base64 旧结果。",
+  },
+  {
+    slug: "it/base64-converter",
+    clicks: ["window._batchResults=[{line:1,src:'X',dst:'WA==',ok:true,blank:false}];document.getElementById('urlSafe').checked=true;__b64OptionChange();document.getElementById('__tbProbe').textContent='OPTINV after='+window._batchResults;"],
+    expect: ["OPTINV after=null"],
+    ref: "第1052批：URL 安全模式等影响批量处理的选项变化同样要清空批量结果，避免把旧选项结果当作当前设置结果。",
+  },
+
+  {
+    slug: "it/base64-converter",
     inputs: { input: "hello world" },
     clicks: ["document.getElementById('urlSafe').parentElement.style={};setAlgo('base85');encodeText();"],
     expect: ["+63.6%", "11 B"],
