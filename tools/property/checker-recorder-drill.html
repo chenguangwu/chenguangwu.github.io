@@ -150,6 +150,9 @@
         <div><label for="drillCount">参与人数</label><input type="number" id="drillCount" value="50" style="font-size:16px;" oninput="calcDrill()" placeholder="如 50"></div>
         <div><label for="evacTime">疏散用时（秒）</label><input type="number" id="evacTime" value="180" style="font-size:16px;" oninput="calcDrill()" placeholder="如 180"></div>
       </div>
+      <div class="input-row">
+        <div><label for="evacTarget">演练方案参考时限（秒）</label><input type="number" id="evacTarget" value="180" style="font-size:16px;" oninput="calcDrill()" placeholder="按演练方案填写，如 180"></div>
+      </div>
 
       <h3 style="margin:16px 0 8px;">演练评估项</h3>
       <div id="drillItems"></div>
@@ -177,6 +180,7 @@
         <button type="button" class="btn primary" onclick="calcInspect()">评估检查结果</button><button type="button" class="btn" onclick="__inExample()">填写示例（全部合格）</button><button type="button" class="btn" onclick="__inReset()">重置（未评估）</button>
         <button type="button" class="btn" onclick="copyInspect()">复制记录</button>
         <div style="margin-top:10px;"><label for="inspectEvidence" style="font-size:13px;">检查依据 / 复查备注（可选）</label><input id="inspectEvidence" type="text" placeholder="如：2026-11-27 现场检查照片" style="width:100%;margin-top:4px;font-size:14px;"></div>
+        <div style="margin-top:8px;"><label for="inspectAction" style="font-size:13px;">整改与复查记录（有不合格项时必填）</label><input id="inspectAction" type="text" placeholder="如：更换灭火器 2 具，2026-12-10 复查合格" style="width:100%;margin-top:4px;font-size:14px;"></div>
       </div>
       <div class="result-box" id="inspectRes"></div>
     </div>
@@ -263,9 +267,11 @@ function calcDrill(){
   __cdOk=false;
   var __cnt=String(document.getElementById('drillCount').value).trim();
   var __evac=String(document.getElementById('evacTime').value).trim();
-  var __cn=__cnt===''?NaN:+__cnt,__et=__evac===''?NaN:+__evac;
+  var __target=String(document.getElementById('evacTarget').value).trim();
+  var __cn=__cnt===''?NaN:+__cnt,__et=__evac===''?NaN:+__evac,__tg=__target===''?NaN:+__target;
   if(!isFinite(__cn)||__cn<=0||Math.abs(__cn-Math.round(__cn))>1e-9){document.getElementById('drillRes').innerHTML='<p style="color:var(--danger)">⚠ 参与人数须为正整数</p>';return;}
   if(!isFinite(__et)||__et<0){document.getElementById('drillRes').innerHTML='<p style="color:var(--danger)">⚠ 疏散用时须为非负数（秒）</p>';return;}
+  if(!isFinite(__tg)||__tg<=0){document.getElementById('drillRes').innerHTML='<p style="color:var(--danger)">⚠ 演练方案参考时限须大于 0 秒</p>';return;}
   var __dr=__drCollect();
   if(__dr.blank>0||__dr.applicable===0){document.getElementById('drillRes').innerHTML=__drPending(__dr);return;}
   var total=0,max=0,issues=[];
@@ -283,8 +289,8 @@ function calcDrill(){
   var drillDate=document.getElementById('drillDate').value||'未填写';
   var drillType=document.getElementById('drillType').value;
 
-  var evacLevel=evacT<=120?'优秀（≤2分钟）':evacT<=300?'合格（≤5分钟）':evacT<=600?'偏长（≤10分钟）':'不合格（>10分钟）';
-  var evacColor=evacT<=300?'var(--success)':evacT<=600?'var(--warning)':'var(--danger)';
+  var evacLevel=evacT<=__tg?'达标（≤方案参考时限）':'超时（>方案参考时限）';
+  var evacColor=evacT<=__tg?'var(--success)':'var(--danger)';
 
   var html='<h3 style="margin-bottom:10px;">消防演练评估结果</h3>';
   html+='<div class="stat-grid">'+
@@ -298,7 +304,8 @@ function calcDrill(){
   html+='<tr><td>演练日期</td><td>'+drillDate+'</td></tr>';
   html+='<tr><td>演练类型</td><td>'+drillType+'</td></tr>';
   html+='<tr><td>参与人数</td><td>'+count+'人</td></tr>';
-  html+='<tr><td>疏散用时</td><td style="color:'+evacColor+';">'+evacT+'秒（'+evacLevel+'）</td></tr>';
+  html+='<tr><td>疏散用时</td><td style="color:'+evacColor+';">'+evacT+'秒 '+evacLevel+'</td></tr>';
+  html+='<tr><td>方案参考时限</td><td>'+__tg+'秒</td></tr>';
   html+='<tr><td>演练评分</td><td style="color:'+color+';font-weight:600;">'+total+'/'+max+'（'+pct.toFixed(0)+'%）</td></tr>';
   html+='<tr><td>演练等级</td><td style="color:'+color+';">'+level+'</td></tr>';
   html+='</table>';
@@ -310,12 +317,12 @@ function calcDrill(){
   }
 
   html+='<div class="info-box" style="margin-top:12px;">'+
-    '<strong>演练结论：</strong><br>'+
+    '<strong>演练结论（辅助参考）：</strong><br>'+
     drillType+'评估等级：'+level+'（'+pct.toFixed(0)+'%）。<br>'+
     (pct>=75?'演练组织有序，效果良好，建议保持。':
     pct>=60?'演练基本达标，存在不足需改进，下次演练前完成整改。':
     '演练不合格，需重新组织演练并加强培训。')+
-    '<br>已完成 '+__dr.assessed+'/'+__dr.applicable+' 项，不适用 '+__dr.na+' 项。等级与整改建议为可配置辅助参考，须结合记录复核。<br>评估依据/复查备注：'+((document.getElementById('drillEvidence')||{}).value||'—')+'<br><br><strong>改进措施：</strong><br>'+
+    '<br>已完成 '+__dr.assessed+'/'+__dr.applicable+' 项，不适用 '+__dr.na+' 项。疏散时限仅对照演练方案参考值，不替代建筑消防条件与安全验收；等级与整改建议为可配置辅助参考，须结合记录复核。<br>评估依据/复查备注：'+((document.getElementById('drillEvidence')||{}).value||'—')+'<br><br><strong>改进措施：</strong><br>'+
     (issues.length>0?'1. 针对评估中≤2分的项目制定改进措施<br>2. 加强日常消防培训与宣传<br>3. 下次演练重点验证改进效果':
     '1. 继续保持现有演练水平<br>2. 可考虑增加演练难度和复杂度<br>3. 推广演练经验至其他项目')+
     '</div>';
@@ -358,6 +365,8 @@ function calcInspect(){
     totalW+=item.w; score+=v*item.w;
     if(v===0)failItems.push(item.q);
   });
+  var __act=String((document.getElementById('inspectAction')||{}).value||'').trim();
+  if(failItems.length>0&&!__act){document.getElementById('inspectRes').innerHTML='<p style="color:var(--danger)">⚠ 存在不合格项，请填写整改与复查记录后再生成检查结论。</p>';return;}
   var maxScore=totalW*2;
   var pct=maxScore>0?score/maxScore*100:0;
   __ciOk=true;
@@ -387,7 +396,7 @@ function calcInspect(){
 
   html+='<div class="info-box" style="margin-top:12px;">'+
     '<strong>检查结论（辅助参考）：</strong><br>'+
-    '检查日期：'+inspectDate+'，检查人：'+ToolBox.escHtml(inspector)+'<br>'+
+    '检查日期：'+inspectDate+'，检查人：'+ToolBox.escHtml(inspector)+'<br>整改与复查记录：'+(__act?ToolBox.escHtml(__act):'未填写（无不合格项）')+'<br>'+
     '消防设施合格率：'+pct.toFixed(0)+'%，不合格项：'+failItems.length+'项。已完成 '+__in.assessed+'/'+__in.applicable+' 项，不适用 '+__in.na+' 项。<br>结论与整改要求为可配置辅助参考，须结合现场记录复查。<br>检查依据/复查备注：'+((document.getElementById('inspectEvidence')||{}).value||'—')+'<br>'+
     (failItems.length===0?'所有消防设施检查合格，消防系统运行正常。':
     failItems.length<=2?'存在少量不合格项，需立即整改并复查。':
@@ -403,8 +412,8 @@ function copyInspect(){
 }
 function __drReset(){drillItems.forEach(function(q,i){var el=document.getElementById('dr'+i);if(el)el.value='';});var ev=document.getElementById('drillEvidence');if(ev)ev.value='';calcDrill();}
 function __drExample(){drillItems.forEach(function(q,i){var el=document.getElementById('dr'+i);if(el)el.value='4';});var ev=document.getElementById('drillEvidence');if(ev)ev.value='示例：全部按良好（4分）评分，仅用于演示流程。';calcDrill();}
-function __inReset(){inspectItems.forEach(function(item,i){var el=document.getElementById('in'+i);if(el)el.value='';});var ev=document.getElementById('inspectEvidence');if(ev)ev.value='';calcInspect();}
-function __inExample(){inspectItems.forEach(function(item,i){var el=document.getElementById('in'+i);if(el)el.value='2';});var ev=document.getElementById('inspectEvidence');if(ev)ev.value='示例：全部合格，仅用于演示流程。';calcInspect();}
+function __inReset(){inspectItems.forEach(function(item,i){var el=document.getElementById('in'+i);if(el)el.value='';});var ev=document.getElementById('inspectEvidence');if(ev)ev.value='';var ac=document.getElementById('inspectAction');if(ac)ac.value='';calcInspect();}
+function __inExample(){inspectItems.forEach(function(item,i){var el=document.getElementById('in'+i);if(el)el.value='2';});var ev=document.getElementById('inspectEvidence');if(ev)ev.value='示例：全部合格，仅用于演示流程。';var ac=document.getElementById('inspectAction');if(ac)ac.value='';calcInspect();}
 buildDrill();calcDrill();
 buildInspect();calcInspect();
 </script>
