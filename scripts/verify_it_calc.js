@@ -5729,6 +5729,30 @@ const CASES = [
     ref: "独立复算：数组内同时含表与标量时，`tomlVal` 会退回 `JSON.stringify` 产出 `[{\"b\":1}, 2]`，这不是合法 TOML；修复后直接报错。默认样例无混排数组，不命中。",
   },
   {
+    "slug": "it/css-escape",
+    "clicks": ["var r=[];var I=document.getElementById('input'),O=document.getElementById('output'),bs=String.fromCharCode(92);I.value='a'+bs+String.fromCharCode(10)+'b';unesc();r.push(O.value);I.value='a'+bs+String.fromCharCode(13,10)+'b';unesc();r.push(O.value);I.value='a'+bs+String.fromCharCode(13)+'b';unesc();r.push(O.value);I.value='a'+bs+String.fromCharCode(12)+'b';unesc();r.push(O.value);document.getElementById('__tbProbe').textContent='ESCNL '+r.join('|');"],
+    "expect": ["ESCNL ab|ab|ab|ab"],
+    "ref": "第1058批：反斜杠 + LF/CRLF/CR/FF 是 CSS 续行，反转义必须整体移除；旧实现把换行字符原样保留 ⇒ 输出 `a` 换行 `b`，归一化后为 `a b`，不命中 `ab`。默认示例不含该标记。"
+  },
+  {
+    "slug": "it/clamp-calculator",
+    "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/clamp-calculator.html','utf8');document.getElementById('__tbProbe').textContent='CLFORMULA '+((h.indexOf('clamp(lo, x, hi) = max(lo, min(x, hi))')>=0&&h.indexOf('最小值优先')>=0)?'OK':'BAD');"],
+    "expect": ["CLFORMULA OK"],
+    "ref": "第1058批：标准引据必须写成 clamp(lo, x, hi)=max(lo,min(x,hi))，并说明 lo ≥ hi 时最小值优先；旧表写成 clamp(x,lo,hi)=min(max(x,lo),hi) 且称结果依实现决定 ⇒ 探针 BAD。纯 clicks 写探针，默认态无该串 ⇒ 零逃生。"
+  },
+  {
+    "slug": "it/clamp-calculator",
+    "clicks": ["['min','pref','max','vwMin','vwMax'].forEach(function(k,v){document.getElementById(k).value=['0.00004','0.00008','0.00012','320','1200'][v];});calc();document.getElementById('__tbProbe').textContent='CLPREC '+document.getElementById('result').textContent;"],
+    "expect": ["CLPREC", "clamp(0.00004px, 0.000009091vw + 0.000010909px, 0.00012px)", "中点760px=0.00008px"],
+    "ref": "第1058批：极小区间必须保留足够精度，表达式端点回到 0.00004/0.00012px，中点实际求值为 0.00008px；旧实现边界固定 4 位小数（0px/0.0001px）且容差 0.005px 过早停止 ⇒ 不命中。"
+  },
+  {
+    "slug": "it/clamp-calculator",
+    "clicks": ["['min','pref','max','vwMin','vwMax'].forEach(function(k,v){document.getElementById(k).value=['0.00005','0.00010','0.00015','320','1200'][v];});calc();document.getElementById('__tbProbe').textContent='CLROUND '+document.getElementById('result').textContent;"],
+    "expect": ["CLROUND", "clamp(0.00005px, 0.000011364vw + 0.000013635px, 0.00015px)", "中点760px=0.0001px"],
+    "ref": "第1058批：舍入临界值 0.00005/0.00010/0.00015px 不得被四舍五入成 0/0.0001/0.0002px 后失去端点；表达式端点保持原值，中点显示 0.0001px。旧实现 4 位小数会把 0.00005 舍成 0 ⇒ 不命中。"
+  },
+  {
     slug: "it/css-formatter",
     clicks: ["document.getElementById('input').value='a{color:red;font-size:12px}';doBeautify();document.getElementById('__tbProbe').textContent='CSSFMT '+document.getElementById('output').textContent;"],
     expect: ["CSSFMT a { color: red; font-size: 12px; }"],
