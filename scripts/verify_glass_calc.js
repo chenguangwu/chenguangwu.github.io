@@ -4,11 +4,11 @@ const fs = require("fs");
 const { runCase } = require("./verify_it_calc.js");
 globalThis.__tbFs = fs;
 const CASES = [
-  { slug: "glass/annealing-curve", inputs: {"thick":"12","glass":"boro","coolTo":"100"}, expect: ["总退火时间 ≈ 84 时 17 分","565 保温温度(°C)","1.5 慢冷速率(°C/h)"], ref: "12mm 硼硅、冷至100℃：保温565℃×48min、慢冷1.5℃/h、总退火84时17分（默认6mm soda→50℃走另一组值）" },
-  { slug: "glass/cutting-score", inputs: {"sheetW":"2200","sheetH":"1600","thick":"12","pieceW":"500","pieceH":"400","kerf":"4"}, expect: ["15 小片数量","5×3 排版旋转90°","85.2% 材料利用率"], ref: "2200×1600 原片切 500×400（kerf 4）：旋转90°排 5×3=15 片、利用率 85.2%、切割6次（默认 1830×1220 切 400×300）" },
+  { slug: "glass/annealing-curve", inputs: {"thick":"12","glass":"boro","coolTo":"100"}, expect: ["保温与冷却合计 ≈ 87 时 43 分","565 保温温度(°C)","1.5 慢冷速率(°C/h)"], ref: "12mm 硼硅、冷至100℃：保温565℃×48min、慢冷1.5℃/h、含保温后缓冷的保温+冷却合计87时43分（不含升温）" },
+  { slug: "glass/cutting-score", inputs: {"sheetW":"2200","sheetH":"1600","thick":"12","pieceW":"500","pieceH":"400","kerf":"4"}, expect: ["15 小片数量","5×3 列数×行数（旋转90°）","18 通刀切割次数"], ref: "2200×1600 原片切 500×400（kerf 4）：旋转90°排 5×3=15 片、利用率 85.2%、通刀18次（默认 1830×1220 切 400×300）" },
   { slug: "glass/snell-refraction", inputs: {"n1":"1.52","n2":"1.0003","angle":"45"}, expect: ["入射角 45.0°","41.15°"], ref: "玻璃1.52→空气1.0003、45°：sinθ₂=1.0003×sin45/1.0003>1 触发全反射，临界角 arcsin(1.0003/1.52)=41.15°（默认空气→水、30° 为折射分支）" },
-  { slug: "glass/thermal-bend", inputs: {"thick":"8","angle":"150","radius":"30","glass":"boro"}, expect: ["热弯温度 ≈ 795°C","78.5 弯曲弧长(mm)","88 保温时间(min)"], ref: "8mm 硼硅热弯 150°/R30：弧长 78.5mm、R/t=3.75、难度3 → 795°C、保温 88min（默认 5mm/90°/R60）" },
-  { slug: "glass/thickness-selection", inputs: {"width":"1500","height":"1800","scene":"tabletop"}, expect: ["推荐最小厚度 10 mm（钢化）","2.70 面积(m²)","1.80 最大跨度(m)"], ref: "1500×1800 桌面/台面：面积 2.70m²、跨度 1.80m → 推荐 10mm 钢化（默认 800×1200 为窗户/采光分支）" },
+  { slug: "glass/thermal-bend", inputs: {"thick":"8","angle":"150","radius":"30","glass":"boro"}, expect: ["热弯温度 ≈ 795°C","78.5 弯曲弧长(mm)","90 保温时间(min)"], ref: "8mm 硼硅热弯 150°/R30：弧长 78.5mm、R/t=3.75、难度3 → 795°C、保温 (5+6)×8=88→按5min取整90min" },
+  { slug: "glass/thickness-selection", inputs: {"width":"1500","height":"1800","scene":"tabletop"}, expect: ["需专业设计验算（本工具不判定厚度）","2.70 面积(m²)","1.80 最大跨度(m)"], ref: "1500×1800 桌面/台面：只输出面积2.70m²、跨度1.80m与设计验算提示，不再输出推荐厚度" },
   {
     "slug": "glass/cutting-score",
     "inputs": {
@@ -20,9 +20,9 @@ const CASES = [
       "kerf": "42"
     },
     "expect": [
-      "Ny−2) = (1+1−2) = 0 次 结论 42×42×42mm 原片，按正向排版可切 1 片 42×42mm，利用率 100.0%，需切割 0 次。"
+      "1 小片数量 1×1 列数×行数（正向） 100.0% 材料利用率 0 通刀切割次数"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"sheetW\":\"42\",\"sheetH\":\"42\",\"thick\":\"42\",\"pieceW\":\"42\",\"pieceH\":\"42\",\"kerf\":\"42\"}，输出区含「Ny−2) = (1+1−2) = 0 次 结论 42×42×42mm 原片，按…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 42×42 原片/42×42 小片/刀缝42，排 1 片且无余料，通刀 0 次、总长 0.00m，不出现负数；默认态不含。"
   },
   {
     "slug": "glass/annealing-curve",
@@ -71,9 +71,9 @@ const CASES = [
       "scene": "door"
     },
     "expect": [
-      "→ 推荐最小厚度 6 mm 步骤3 涉及安全，采用钢化玻璃 结论 42×42mm 玻璃（0.00m²）用于玻璃门，推荐 6mm钢化玻璃"
+      "需专业设计验算（本工具不判定厚度） 0.00 面积(m²) 0.04 最大跨度(m) 玻璃门"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"width\":\"42\",\"height\":\"42\",\"scene\":\"door\"}，输出区含「→ 推荐最小厚度 6 mm 步骤3 涉及安全，采用钢化玻璃 结论 42×42mm…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入 42×42 玻璃门，只输出面积0.00m²、跨度0.04m与设计验算提示，不再输出最小厚度；默认态不含。"
   },
   {
     "slug": "glass/annealing-curve",

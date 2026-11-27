@@ -170,7 +170,7 @@ window.INDUSTRY_INFO = {
   'shipping'             : { name: '船舶海运', icon: '🚢', hot: 55884 },
   'ceramics'             : { name: '陶瓷工艺', icon: '🏺', hot: 55261 },
   'woodworking'          : { name: '木作工艺', icon: '🪚', hot: 53718 },
-  'glass'                : { name: '玻璃工艺', icon: '🪟', hot: 52725 },
+  'glass'                : { name: '玻璃工艺', icon: '🪟', hot: 52726 },
   'bridge'               : { name: '桥梁工程', icon: '🌉', hot: 52701 },
   'admin'                : { name: '行政管理', icon: '🗂️', hot: 51385 },
   'floral'               : { name: '花艺设计', icon: '💐', hot: 50212 },
