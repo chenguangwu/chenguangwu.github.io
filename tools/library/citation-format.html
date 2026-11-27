@@ -103,7 +103,7 @@
       "name": "多作者怎么处理？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "GB/T 7714 规定 3 人以内全部列出，超过 3 人列前 3 人后加「等」（英文 et al.）；本工具按作者输入框逐条收集并按此规则格式化，外文作者姓前名后。"
+        "text": "GB/T 7714 规定 3 人以内全部列出，超过 3 人列前 3 人后加「等」；英文界面用 et al.。中文姓名按「姓 名」，英文按 Last, F. M. 或 First Last 输入并转为姓前名后缩写；生成后仍需人工核对。"
       }
     }
   ]
@@ -149,6 +149,14 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按 GB/T 7714-2015 生成参考文献著录格式，支持多种文献类型">Reference Reference Format Convert - format text in-browser quickly, with all data processed locally.</p>
 
     <div class="input-row">
+      <label for="citeLang">文献语言与姓名规则</label>
+      <select id="citeLang" onchange="render()">
+        <option value="zh" selected>中文（超过 3 位用「等」，中文姓名按「姓 名」）</option>
+        <option value="en">English (use “et al.” for 4+; Last, F. M.)</option>
+      </select>
+    </div>
+
+    <div class="input-row">
       <label for="docType">文献类型</label>
       <select id="docType" onchange="onTypeChange();render()">
         <option value="book">专著 [M]</option>
@@ -163,13 +171,14 @@
       </select>
     </div>
 
-    <label>作者（每行一位，姓名格式：姓 名，如：王 小明）</label>
+    <label>作者（每行一位；中文写「姓 名」，英文写 First Last 或 Last, First）</label>
     <div id="authorList"></div>
     <button type="button" class="btn" onclick="addAuthor()" style="margin-top:8px;">+ 添加作者</button>
+    <button type="button" class="btn" onclick="loadCitationExample()" style="margin-top:8px;">载入当前类型示例</button>
 
     <div class="input-row" style="margin-top:12px;">
       <label for="title">题名（标题）</label>
-      <input type="text" id="title" value="数字图书馆建设与发展研究" oninput="render()">
+      <input type="text" id="title" value="" oninput="render()">
     </div>
 
     <div id="extraFields"></div>
@@ -220,7 +229,7 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>文献类型标识有哪些？</dt><dd>常用：专著[M]、期刊[J]、学位论文[D]、会议[C]、报告[R]、标准[S]、专利[P]、报纸[N]、电子公告[EB/OL]，需与文献实际载体类型对应，标识错会导致著录不规范。</dd>
-<dt>多作者怎么处理？</dt><dd>GB/T 7714 规定 3 人以内全部列出，超过 3 人列前 3 人后加「等」（英文 et al.）；本工具按作者输入框逐条收集并按此规则格式化，外文作者姓前名后。</dd>
+<dt>多作者怎么处理？</dt><dd>GB/T 7714 规定 3 人以内全部列出，超过 3 人列前 3 人后加「等」；英文界面用 et al.。中文姓名按「姓 名」，英文按 Last, F. M. 或 First Last 输入并转为姓前名后缩写；生成后仍需人工核对。</dd>
 </dl>
 </div>
 </section>
@@ -257,13 +266,14 @@
       <li>本工具纯前端运行，数据不会上传到服务器</li>
       <li>建议在主流浏览器（Chrome/Safari/Firefox/Edge）中使用</li>
       <li>计算结果仅供参考，请以实际应用场景为准</li>
+      <li>切换文献类型会保存并恢复该类型已填字段；示例需点击「载入当前类型示例」</li>
   </ul>
 </div>
 <!-- /注意事项区块 -->
 </div>
 
 <script>
-var authors = ['张 三', '李 四'];
+var authors = [''];
 var typeTag = {
   book:'M', journal:'J', thesis:'D', conference:'C', report:'R',
   standard:'S', patent:'P', newspaper:'N', web:'EB/OL'
@@ -305,96 +315,155 @@ function collectAuthors(){
   return arr;
 }
 
-// 格式化作者列表：3位以内全列，超过3位列前3加"等"
+var citationDrafts = {}, citationCurrentType = null;
+function citationLang(){ var e=document.getElementById('citeLang'); return e&&e.value==='en'?'en':'zh'; }
+function fmtOneAuthor(raw){
+  var n=String(raw||'').trim(); if(!n) return '';
+  if(citationLang()==='en'){
+    if(n.indexOf(',')>=0){
+      var parts=n.split(','); var last=parts.shift().trim(); var rest=parts.join(',').trim();
+      var initials=rest.split(/\s+/).filter(Boolean).map(function(w){return w.charAt(0).toUpperCase()+'.';}).join(' ');
+      return last + (initials?', '+initials:'');
+    }
+    var words=n.split(/\s+/).filter(Boolean);
+    if(words.length>1){
+      var surname=words.pop();
+      var ini=words.map(function(w){return w.charAt(0).toUpperCase()+'.';}).join(' ');
+      return surname + (ini?', '+ini:'');
+    }
+    return n;
+  }
+  if(n.indexOf(' ')>=0) return n.replace(/\s+/,' ');
+  if(/^[\u4e00-\u9fff]{2,}$/.test(n)) return n.charAt(0)+' '+n.slice(1);
+  return n;
+}
+// 格式化作者列表：3位以内全列，超过3位按语言使用「等 / et al.」
 function fmtAuthors(list){
-  if(list.length === 0) return '佚名';
-  if(list.length <= 3) return list.join(', ');
-  return list.slice(0,3).join(', ') + ', 等';
+  if(list.length === 0) return citationLang()==='en'?'Anonymous':'佚名';
+  var names=list.map(fmtOneAuthor).filter(Boolean);
+  if(names.length <= 3) return names.join(', ');
+  return names.slice(0,3).join(', ') + (citationLang()==='en'?', et al':', 等');
+}
+function saveCitationDraft(t){
+  if(!t) return;
+  var d={};
+  document.querySelectorAll('#extraFields input,#extraFields select').forEach(function(el){ if(el.id) d[el.id]=el.value; });
+  citationDrafts[t]=d;
+}
+function restoreCitationDraft(t){
+  var d=citationDrafts[t]||{};
+  Object.keys(d).forEach(function(id){ var el=document.getElementById(id); if(el) el.value=d[id]; });
+}
+function loadCitationExample(){
+  var t=document.getElementById('docType').value;
+  var ex={
+    book:{title:'图书馆学概论',seq:'1',edition:'2',place:'北京',publisher:'科学出版社',year:'2023',pages:'35-42'},
+    journal:{title:'数字图书馆建设与发展研究',seq:'1',journal:'中国图书馆学报',volissue:'2023,49(3)',pages:'12-18'},
+    thesis:{title:'高校图书馆阅读推广研究',seq:'1',school:'北京大学',place:'北京',year:'2023'},
+    conference:{title:'智慧图书馆服务模式研究',seq:'1',conf:'全国图书馆学学术研讨会',place:'上海',publisher:'中国图书馆学会',year:'2023',pages:'45-52'},
+    report:{title:'国家图书馆事业发展报告',seq:'1',place:'北京',publisher:'国家科技图书文献中心',year:'2023'},
+    standard:{title:'信息与文献 参考文献著录规则',seq:'1',stdno:'GB/T 7714-2015',place:'北京',publisher:'中国标准出版社',year:'2015'},
+    patent:{title:'一种图书馆智能书架',seq:'1',patno:'ZL202310000000.1',year:'2023-06-15'},
+    newspaper:{title:'全民阅读服务再升级',seq:'1',paper:'人民日报',date:'2023-05-20',edition:'第5版'},
+    web:{title:'数字图书馆标准规范',seq:'1',url:'https://example.com/lib-standard',date:'2023-08-01',cited:'2024-01-10'}
+  }[t];
+  citationDrafts[t]=ex; citationCurrentType=t;
+  document.getElementById('title').value=ex.title||''; document.getElementById('seq').value=ex.seq||'1';
+  restoreCitationDraft(t); render();
 }
 
 function onTypeChange(){
   var t = document.getElementById('docType').value;
+  if(citationCurrentType && citationCurrentType!==t) saveCitationDraft(citationCurrentType);
+  citationCurrentType=t;
   var html = '';
   if(t === 'book'){
     html += '<div class="input-row"><label for="edition">版本（第几版，留空=第1版）</label><input type="text" id="edition" value="" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="place">出版地</label><input type="text" id="place" value="北京" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="publisher">出版社</label><input type="text" id="publisher" value="科学出版社" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="year">出版年</label><input type="text" id="year" value="2023" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="place">出版地</label><input type="text" id="place" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="publisher">出版社</label><input type="text" id="publisher" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="year">出版年</label><input type="text" id="year" value="" oninput="render()"></div>';
     html += '<div class="input-row"><label for="pages">页码（可选）</label><input type="text" id="pages" value="" oninput="render()"></div>';
   }else if(t === 'journal'){
-    html += '<div class="input-row"><label for="journal">期刊名</label><input type="text" id="journal" value="中国图书馆学报" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="volissue">年,卷(期)</label><input type="text" id="volissue" value="2023,49(3)" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="pages">起止页码</label><input type="text" id="pages" value="12-18" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="journal">期刊名</label><input type="text" id="journal" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="volissue">年,卷(期)</label><input type="text" id="volissue" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="pages">起止页码</label><input type="text" id="pages" value="" oninput="render()"></div>';
   }else if(t === 'thesis'){
-    html += '<div class="input-row"><label for="school">授予单位</label><input type="text" id="school" value="北京大学" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="place">授予地</label><input type="text" id="place" value="北京" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="year">年份</label><input type="text" id="year" value="2023" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="school">授予单位</label><input type="text" id="school" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="place">授予地</label><input type="text" id="place" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="year">年份</label><input type="text" id="year" value="" oninput="render()"></div>';
   }else if(t === 'conference'){
-    html += '<div class="input-row"><label for="conf">会议名称</label><input type="text" id="conf" value="全国图书馆学学术研讨会" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="place">会议地点</label><input type="text" id="place" value="上海" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="publisher">出版社</label><input type="text" id="publisher" value="中国图书馆学会" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="year">出版年</label><input type="text" id="year" value="2023" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="pages">页码</label><input type="text" id="pages" value="45-52" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="conf">会议名称</label><input type="text" id="conf" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="place">会议地点</label><input type="text" id="place" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="publisher">出版社</label><input type="text" id="publisher" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="year">出版年</label><input type="text" id="year" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="pages">页码</label><input type="text" id="pages" value="" oninput="render()"></div>';
   }else if(t === 'report'){
-    html += '<div class="input-row"><label for="place">报告地</label><input type="text" id="place" value="北京" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="publisher">报告机构</label><input type="text" id="publisher" value="国家科技图书文献中心" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="year">年份</label><input type="text" id="year" value="2023" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="place">报告地</label><input type="text" id="place" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="publisher">报告机构</label><input type="text" id="publisher" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="year">年份</label><input type="text" id="year" value="" oninput="render()"></div>';
   }else if(t === 'standard'){
-    html += '<div class="input-row"><label for="stdno">标准号</label><input type="text" id="stdno" value="GB/T 7714-2015" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="place">出版地</label><input type="text" id="place" value="北京" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="publisher">出版社</label><input type="text" id="publisher" value="中国标准出版社" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="year">年份</label><input type="text" id="year" value="2015" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="stdno">标准号</label><input type="text" id="stdno" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="place">出版地</label><input type="text" id="place" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="publisher">出版社</label><input type="text" id="publisher" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="year">年份</label><input type="text" id="year" value="" oninput="render()"></div>';
   }else if(t === 'patent'){
-    html += '<div class="input-row"><label for="patno">专利号</label><input type="text" id="patno" value="ZL202310000000.1" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="year">公告日期</label><input type="text" id="year" value="2023-06-15" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="patno">专利号</label><input type="text" id="patno" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="year">公告日期</label><input type="text" id="year" value="" oninput="render()"></div>';
   }else if(t === 'newspaper'){
-    html += '<div class="input-row"><label for="paper">报纸名</label><input type="text" id="paper" value="人民日报" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="date">出版日期(YYYY-MM-DD)</label><input type="text" id="date" value="2023-05-20" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="edition">版次</label><input type="text" id="edition" value="第5版" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="paper">报纸名</label><input type="text" id="paper" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="date">出版日期(YYYY-MM-DD)</label><input type="text" id="date" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="edition">版次</label><input type="text" id="edition" value="" oninput="render()"></div>';
   }else if(t === 'web'){
-    html += '<div class="input-row"><label for="url">网址</label><input type="text" id="url" value="https://www.example.com/article/123" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="date">更新日期(YYYY-MM-DD)</label><input type="text" id="date" value="2023-08-01" oninput="render()"></div>';
-    html += '<div class="input-row"><label for="cited">引用日期(YYYY-MM-DD)</label><input type="text" id="cited" value="2024-01-10" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="url">网址</label><input type="text" id="url" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="date">更新日期(YYYY-MM-DD)</label><input type="text" id="date" value="" oninput="render()"></div>';
+    html += '<div class="input-row"><label for="cited">引用日期(YYYY-MM-DD)</label><input type="text" id="cited" value="" oninput="render()"></div>';
   }
-  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('extraFields').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('extraFields').innerHTML=__h2;
+  const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('extraFields').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('extraFields').innerHTML=__h2; restoreCitationDraft(t);
 }
 
 function gv(id){ var el = document.getElementById(id); return el ? el.value.trim() : ''; }
 
 function render(){
-// NUMCLR2：全部数值/日期输入为空时不输出 0 与结论
-var __ni=Array.prototype.slice.call(document.querySelectorAll('input[type=number],input[type=date]'));
-if(__ni.length && __ni.every(function(e){return String(e.value).trim()==='';})){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 请填写必要的输入参数后再计算</p>';return;}
   var t = document.getElementById('docType').value;
   var tag = typeTag[t];
   var authorStr = fmtAuthors(collectAuthors());
   var title = gv('title');
+  if(!title){ document.getElementById('output').textContent='请填写题名后再生成；英文作者请按 Last, First 或 First Last 输入，生成后仍需人工核对。'; return; }
   var seq = gv('seq') || '1';
   var s = '[' + seq + '] ';
 
+  function cjoin(parts, sep){ return parts.filter(function(x){ return String(x||'').trim()!==''; }).join(sep); }
+  function pubTail(place, pub, year){
+    var p1 = cjoin([place, pub], ': ');
+    if(year) p1 = cjoin([p1, year], ', ');
+    return p1 ? '. ' + p1 + '.' : '.';
+  }
   if(t === 'book'){
     var ed = gv('edition');
     s += authorStr + '. ' + title;
     if(ed) s += '[M]. ' + ed + '版';
     else s += '[M]';
-    s += '. ' + gv('place') + ': ' + gv('publisher') + ', ' + gv('year') + '.';
+    s += pubTail(gv('place'), gv('publisher'), gv('year'));
     if(gv('pages')) s += gv('pages') + '.';
   }else if(t === 'journal'){
-    s += authorStr + '. ' + title + '[J]. ' + gv('journal') + ', ' + gv('volissue') + ': ' + gv('pages') + '.';
+    var j = gv('journal');
+    if(gv('volissue')) j = cjoin([j, gv('volissue')], ', ');
+    if(gv('pages')) j = cjoin([j, gv('pages')], ': ');
+    s += authorStr + '. ' + title + '[J].' + (j ? ' ' + j + '.' : '');
   }else if(t === 'thesis'){
-    s += authorStr + '. ' + title + '[D]. ' + gv('place') + ': ' + gv('school') + ', ' + gv('year') + '.';
+    s += authorStr + '. ' + title + '[D]' + pubTail(gv('place'), gv('school'), gv('year'));
   }else if(t === 'conference'){
-    s += authorStr + '. ' + title + '[C]//' + gv('conf') + '. ' + gv('place') + ': ' + gv('publisher') + ', ' + gv('year') + ': ' + gv('pages') + '.';
+    s += authorStr + '. ' + title + '[C]//' + cjoin([gv('conf')], '') + '. ' + cjoin([cjoin([gv('place'), gv('publisher')], ': '), gv('year')], ', ') + (gv('pages') ? ': ' + gv('pages') : '') + '.';
   }else if(t === 'report'){
-    s += authorStr + '. ' + title + '[R]. ' + gv('place') + ': ' + gv('publisher') + ', ' + gv('year') + '.';
+    s += authorStr + '. ' + title + '[R]' + pubTail(gv('place'), gv('publisher'), gv('year'));
   }else if(t === 'standard'){
-    s += authorStr + '. ' + title + ': ' + gv('stdno') + '[S]. ' + gv('place') + ': ' + gv('publisher') + ', ' + gv('year') + '.';
+    s += authorStr + '. ' + title + (gv('stdno') ? ': ' + gv('stdno') : '') + '[S]' + pubTail(gv('place'), gv('publisher'), gv('year'));
   }else if(t === 'patent'){
-    s += authorStr + '. ' + title + ': ' + gv('patno') + '[P]. ' + gv('year') + '.';
+    s += authorStr + '. ' + title + (gv('patno') ? ': ' + gv('patno') : '') + '[P].' + (gv('year') ? ' ' + gv('year') + '.' : '');
   }else if(t === 'newspaper'){
-    s += authorStr + '. ' + title + '[N]. ' + gv('paper') + ', ' + gv('date') + ' (' + gv('edition') + ').';
+    s += authorStr + '. ' + title + '[N].' + (gv('paper') ? ' ' + gv('paper') : '') + (gv('date') ? ', ' + gv('date') : '') + (gv('edition') ? ' (' + gv('edition') + ')' : '') + '.';
   }else if(t === 'web'){
-    s += authorStr + '. ' + title + '[EB/OL]. (' + gv('date') + ')[' + gv('cited') + ']. ' + gv('url') + '.';
+    s += authorStr + '. ' + title + '[EB/OL].' + (gv('date') ? ' (' + gv('date') + ')' : '') + (gv('cited') ? '[' + gv('cited') + ']' : '') + (gv('url') ? ' ' + gv('url') : '') + '.';
   }
 
   document.getElementById('output').textContent = s;
@@ -456,7 +525,7 @@ render();
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>9 种文献类型</li>
-      <li>作者自动"等"处理</li>
+      <li>作者语言与「等 / et al.」处理</li>
       <li>顺序号可控</li>
       <li>一键复制</li>
     </ul>

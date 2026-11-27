@@ -142,7 +142,7 @@
   <div class="gen-field"><label for="year">年度</label><input type="text" id="year" value="2024" oninput="gen()" placeholder="2024"></div>
   <div class="gen-field"><label for="org">机构（或问题）</label><input type="text" id="org" value="办公室" oninput="gen()" placeholder="例如 办公室" data-i18n-ph="ph.library.org"></div>
   <div class="gen-field"><label for="range">起止件号</label><input type="text" id="range" value="0001-0150" oninput="gen()" placeholder="0001-0150"></div>
-  <div class="gen-field"><label for="boxNo">盒号</label><input type="text" id="boxNo" value="012" oninput="gen()" placeholder="012"><small style="font-size:11px;color:var(--text-muted);">支持 012-015 或 012,013 批量</small></div>
+  <div class="gen-field"><label for="boxNo">盒号</label><input type="text" id="boxNo" value="012" oninput="gen()" placeholder="012"><small style="font-size:11px;color:var(--text-muted);">支持 012-015 或 012,013 批量；最多 500 张，编号须在安全整数范围内，前导零会保留</small></div>
   <div class="gen-field"><label for="unit">单位名称</label><input type="text" id="unit" value="" oninput="gen()" placeholder="例如 市档案馆" data-i18n-ph="ph.library.unit"></div>
   <div class="gen-field"><label for="thick">脊背厚度</label><select id="thick" onchange="gen()"><option value="30">30 mm</option><option value="40">40 mm</option><option value="50">50 mm</option></select></div>
 </div>
@@ -237,25 +237,28 @@ function labelRows(){
   if(boxNo)rows.push({key:'盒号',val:boxNo});
   return rows;
 }
-var labelBoxesOver=false; // 407 复核重做：批量盒号超限标记，供 gen() 明确提示
+var labelBoxesOver=false;var labelBoxesErr=''; // 407 复核重做：批量盒号超限标记，供 gen() 明确提示
 function labelBoxes(raw){
-  labelBoxesOver=false;
+  labelBoxesOver=false; labelBoxesErr='';
   raw=String(raw||'').trim();
   if(!raw) return [];
   var m=raw.match(/^(\d+)\s*[-~～]\s*(\d+)$/);
   if(m){
-    var a=parseInt(m[1],10),b=parseInt(m[2],10);
-    if(a<=b){
-      // 407 复核重做：原 b-a<=500 含两端 ⇒ 0-500 得 501 项，超出「最多 500 张」承诺。
-      if(b-a+1>500){ labelBoxesOver=true; return []; }
-      var w=Math.max(m[1].length,m[2].length),arr=[];
-      for(var i=a;i<=b;i++){
-        var v=String(i);
-        while(v.length<w)v='0'+v;
-        arr.push(v);
-      }
-      return arr;
+    var a=Number(m[1]),b=Number(m[2]);
+    if(!Number.isSafeInteger(a)||!Number.isSafeInteger(b)){
+      labelBoxesErr='盒号范围超出安全整数上限（最多 16 位有效数字），请改用逗号列表或缩短编号。';
+      return [];
     }
+    if(a>b){ labelBoxesErr='盒号范围起点不能大于终点。'; return []; }
+    // 407 复核重做：原 b-a<=500 含两端 ⇒ 0-500 得 501 项，超出「最多 500 张」承诺。
+    if(b-a+1>500){ labelBoxesOver=true; return []; }
+    var w=Math.max(m[1].length,m[2].length),arr=[];
+    for(var k=0;k<b-a+1;k++){
+      var v=String(a+k);
+      while(v.length<w)v='0'+v;
+      arr.push(v);
+    }
+    return arr;
   }
   var list=raw.split(/[,，、\s]+/).filter(function(x){return x;});
   // 407 复核重做：逗号列表分支原本完全无上限，可一次生成任意多张。
@@ -278,6 +281,7 @@ function gen(){
   var rows=labelRows();
   if(!rows.length){res.innerHTML='<p>请至少填写一项标签内容。</p>';window.__labelData=null;return;}
   var thick=labelThick(),boxes=labelBoxes(labelVal('boxNo'));
+  if(labelBoxesErr){ res.innerHTML='<p>'+labelBoxesErr+'</p>'; window.__labelData=null; return; }
   if(labelBoxesOver){ res.innerHTML='<p>盒号批量数量超过上限 500 张，请缩小范围或减少列表项后再生成。</p>'; window.__labelData=null; return; }
   var base=rows.filter(function(r){return r.key!=='盒号';});
   var labels=[];
@@ -368,7 +372,7 @@ gen();
     </a>
     <a href="stats-report.html" class="related-tool-card">
       <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">统计（数量/类型/利用）报表</span><span class="rt-desc">录入馆藏总量、年度借阅量、注册读者与到馆人次，汇总利用率、周转率、人均借阅与人均到馆等馆藏利用报表指…</span></span>
+      <span class="rt-info"><span class="rt-name">统计（数量/类型/利用）报表</span><span class="rt-desc">录入馆藏总量、年度借阅量、注册读者与到馆人次，汇总借阅册次/馆藏比、可选的馆藏利用率、周转率、人均借…</span></span>
     </a>
     <a href="archive-label.html" class="related-tool-card">
       <span class="rt-icon">✨</span>

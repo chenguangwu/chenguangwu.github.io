@@ -141,7 +141,7 @@ window.INDUSTRY_INFO = {
   'security'             : { name: '网络安全', icon: '🔒', hot: 88226 },
   'forex'                : { name: '外汇交易', icon: '💱', hot: 87767 },
   'cleaning'             : { name: '清洁保洁', icon: '🧹', hot: 85752 },
-  'library'              : { name: '图书档案', icon: '📚', hot: 85210 },
+  'library'              : { name: '图书档案', icon: '📚', hot: 85209 },
   'pr'                   : { name: '公关传播', icon: '📢', hot: 81735 },
   'urban'                : { name: '城市规划', icon: '🏙️', hot: 80279 },
   'audio'                : { name: '音频处理', icon: '🎧', hot: 80271 },
