@@ -88,14 +88,14 @@ const CASES = [
   {
     slug: "music/convert-speed",
     inputs: { dur: "120", ob: "120", nb: "90" },
-    expect: ["降速 25%"],
+    expect: ["降速 25.0%"],
     ref: "FE-N13：目标 BPM(90) < 原 BPM(120) 为降速，旧实现写死「提速 -25%」方向反。修复后按 nb/ob-1 符号分支：负 →「降速 25%」。"
        + "锚「降速」仅降速输入下出现，默认态（空/等速）输出「请输入有效正数」或「不变」，非逃生。",
   },
   {
     slug: "music/convert-speed",
     inputs: { dur: "120", ob: "120", nb: "150" },
-    expect: ["提速 25%"],
+    expect: ["提速 25.0%"],
     ref: "FE-N13：目标 BPM(150) > 原 BPM(120) 为提速，校验正方向分支输出「提速 25%」；与降速用例互为对照，覆盖 nb/ob-1 正负两侧。",
   },
 

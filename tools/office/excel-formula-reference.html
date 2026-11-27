@@ -37,6 +37,14 @@
 .xfr-actions button{appearance:none;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;}
 .xfr-actions button:hover{border-color:var(--accent,#1D4ED8);color:var(--accent,#1D4ED8);}
 .xfr-privacy{font-size:12px;color:var(--text-muted);margin:10px 0 0;line-height:1.6;}
+.xfr-tabs{display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 8px;}
+.xfr-tabs .tbk-tab{appearance:none;border:1px solid var(--border-color);background:var(--bg-secondary);color:var(--text);padding:7px 14px;border-radius:10px;font-size:14px;cursor:pointer;}
+.xfr-tabs .tbk-tab.active{background:var(--accent,#1D4ED8);color:#fff;border-color:var(--accent,#1D4ED8);}
+.xfr-panel[hidden]{display:none;}
+.xfr-fav{appearance:none;border:1px solid var(--border-color);background:var(--bg);color:var(--text);border-radius:8px;padding:4px 10px;font-size:12px;cursor:pointer;}
+.xfr-fav[aria-pressed="true"]{color:var(--accent,#1D4ED8);border-color:var(--accent,#1D4ED8);}
+.xfr-fav-empty{padding:18px;border:1px dashed var(--border-color);border-radius:10px;color:var(--text-muted);font-size:13px;}
+
 
 </style>
 
@@ -142,16 +150,31 @@
   
 </div>
 
-    <div class="xfr-controls">
-      <input id="keyword" type="search" placeholder="搜索：VLOOKUP / 查找 / 条件计数" oninput="render()" aria-label="搜索函数名或用途关键词" autocomplete="off">
-      <button class="btn" type="button" id="xfrClear">清除</button>
+    <div class="xfr-tabs" role="tablist" aria-label="Excel 公式速查视图">
+      <button class="tbk-tab active" type="button" role="tab" aria-selected="true" data-xfr-pane="list">公式速查</button>
+      <button class="tbk-tab" type="button" role="tab" aria-selected="false" data-xfr-pane="stats">分类对比</button>
+      <button class="tbk-tab" type="button" role="tab" aria-selected="false" data-xfr-pane="fav">我的收藏</button>
     </div>
-    <div class="xfr-cats" id="xfrCats" role="group" aria-label="按分类筛选"></div>
-    <p class="xfr-count" id="xfrCount" aria-live="polite"></p>
-    <div class="toolbar" style="margin:0 0 10px;"><button class="btn" type="button" onclick="__excel_formula_referenceExport()">导出当前结果 CSV</button></div>
-    <div class="formula-list" id="list"></div>
-    <div class="xfr-empty" id="xfrEmpty" hidden><strong>没有匹配的公式</strong><span>试试函数名、用途关键词，或清除筛选后浏览全部条目。</span><div class="xfr-suggest"><button class="xfr-chip" type="button" data-suggest="SUM">SUM</button><button class="xfr-chip" type="button" data-suggest="XLOOKUP">XLOOKUP</button><button class="xfr-chip" type="button" data-suggest="FILTER">FILTER</button><button class="xfr-chip" type="button" id="xfrEmptyClear">清除筛选</button></div></div>
-    <div class="xfr-privacy">搜索与筛选只在当前浏览器内存中完成，不记录搜索词、不上传服务器；刷新页面即清空。导出的 CSV 只包含当前筛选结果。</div>
+    <div class="xfr-panel" id="xfrPaneList" data-xfr-panel="list">
+      <div class="xfr-controls">
+        <input id="keyword" type="search" placeholder="搜索：VLOOKUP / 查找 / 条件计数" oninput="render()" aria-label="搜索函数名或用途关键词" autocomplete="off">
+        <button class="btn" type="button" id="xfrClear">清除</button>
+      </div>
+      <div class="xfr-cats" id="xfrCats" role="group" aria-label="按分类筛选"></div>
+      <p class="xfr-count" id="xfrCount" aria-live="polite"></p>
+      <div class="toolbar" style="margin:0 0 10px;"><button class="btn" type="button" onclick="__excel_formula_referenceExport()">导出当前结果 CSV</button></div>
+      <div class="formula-list" id="list"></div>
+      <div class="xfr-empty" id="xfrEmpty" hidden><strong>没有匹配的公式</strong><span>试试函数名、用途关键词，或清除筛选后浏览全部条目。</span><div class="xfr-suggest"><button class="xfr-chip" type="button" data-suggest="SUM">SUM</button><button class="xfr-chip" type="button" data-suggest="XLOOKUP">XLOOKUP</button><button class="xfr-chip" type="button" data-suggest="FILTER">FILTER</button><button class="xfr-chip" type="button" id="xfrEmptyClear">清除筛选</button></div></div>
+      <div class="xfr-privacy">搜索与筛选只在当前浏览器内存中完成，不记录搜索词、不上传服务器；刷新页面即清空。导出的 CSV 只包含当前筛选结果。点条目上的「收藏」可把常用公式保存在本机浏览器，下次打开仍可查看。</div>
+    </div>
+    <div class="xfr-panel" id="xfrPaneStats" data-xfr-panel="stats" hidden>
+      <div class="xfr-privacy">按分类对比收录数量，判断哪类函数最常被查；柱高只反映本速查表收录条数，不代表函数在实际工作表中的使用频率。</div>
+      <div id="xfrCompare"></div>
+    </div>
+    <div class="xfr-panel" id="xfrPaneFav" data-xfr-panel="fav" hidden>
+      <div class="xfr-privacy">收藏只写入本机浏览器的 localStorage，不上传服务器；换浏览器或清理站点数据后需重新收藏。</div>
+      <div class="formula-list" id="xfrFavList"></div>
+    </div>
   </div>
 </div>
 
@@ -377,6 +400,16 @@
   ];
 
   var ALL_ZH='全部', ALL_EN='All';
+  var FAV_KEY='xfr_favorites_v1';
+  var favs=[];
+  try{ var saved=JSON.parse(localStorage.getItem(FAV_KEY)||'[]'); if(Array.isArray(saved)) favs=saved; }catch(e){}
+  function isFav(i){ return favs.indexOf(i)>=0; }
+  function saveFavs(){ try{ localStorage.setItem(FAV_KEY, JSON.stringify(favs)); }catch(e){} }
+  function toggleFav(i){
+    var at=favs.indexOf(i);
+    if(at>=0) favs.splice(at,1); else favs.push(i);
+    saveFavs(); render(); renderFav();
+  }
   var state={cat:ALL_ZH};
   var input=document.getElementById('keyword');
   var list=document.getElementById('list');
@@ -420,7 +453,8 @@
       + '<p class="xfr-result">'+L('预期结果：','Expected result: ')+esc(field(item,'result'))+'</p></div>'
       + '<p class="xfr-note">'+esc(field(item,'note'))+'</p>'
       + '<div class="xfr-actions"><button type="button" data-copy="syntax" data-i="'+idx+'">'+L('复制语法模板','Copy syntax')+'</button>'
-      + '<button type="button" data-copy="example" data-i="'+idx+'">'+L('复制示例公式','Copy example')+'</button></div>'
+      + '<button type="button" data-copy="example" data-i="'+idx+'">'+L('复制示例公式','Copy example')+'</button>'
+      + '<button type="button" class="xfr-fav" data-fav="'+idx+'" aria-pressed="'+(isFav(idx)?'true':'false')+'">'+(isFav(idx)?'★ '+L('已收藏','Saved'):'☆ '+L('收藏','Save'))+'</button></div>'
       + '</div>';
   }
   function renderCats(){
@@ -443,7 +477,36 @@
       count.textContent = items.length ? L('找到 ','Showing ')+items.length+L(' 条公式',' formulas') : L('没有匹配结果','No matching formulas');
     }
     if(empty) empty.hidden = items.length>0;
-    renderCats();
+    renderCats(); renderFav();
+  }
+  function renderStats(){
+    var host=document.getElementById('xfrCompare'); if(!host) return;
+    var labels=[], counts=[], seen={};
+    DATA.forEach(function(item){
+      var key=item.cat[0]; if(seen[key]) return;
+      seen[key]=1; labels.push(field(item,'cat')); counts.push(DATA.filter(function(x){return x.cat[0]===key;}).length);
+    });
+    host.innerHTML='';
+    try{
+      if(window.TBKit&&TBKit.chart&&typeof TBKit.chart.bar==='function'){
+        TBKit.chart.bar('#xfrCompare',{labels:labels,series:[{name:L('公式数','Formulas'),data:counts}],height:250,title:L('各分类公式数量对比','Formula count by category')});
+        return;
+      }
+    }catch(e){}
+    host.innerHTML='<p class="xfr-privacy">'+labels.map(function(n,i){return n+'：'+counts[i]+' 条';}).join('；')+'</p>';
+  }
+  function renderFav(){
+    var host=document.getElementById('xfrFavList'); if(!host) return;
+    if(!favs.length){ host.innerHTML='<div class="xfr-fav-empty">'+L('还没有收藏。在「公式速查」里点 ☆ 即可把常用公式存到本机。','No saved formulas yet. Tap ☆ in the formula list to keep one on this device.')+'</div>'; return; }
+    host.innerHTML=favs.filter(function(i){return !!DATA[i];}).map(function(i){return makeItem(DATA[i],i);}).join('');
+  }
+  function showPane(name){
+    document.querySelectorAll('[data-xfr-pane]').forEach(function(b){
+      var on=b.getAttribute('data-xfr-pane')===name; b.classList.toggle('active',on); b.setAttribute('aria-selected',on?'true':'false');
+    });
+    document.querySelectorAll('[data-xfr-panel]').forEach(function(p){ p.hidden=p.getAttribute('data-xfr-panel')!==name; });
+    if(name==='stats') renderStats();
+    if(name==='fav') renderFav();
   }
   function selectCat(c){ state.cat=c; render(); }
   function clearFilters(){ if(input) input.value=''; state.cat=ALL_ZH; render(); if(input) input.focus(); }
@@ -497,13 +560,19 @@
   var emptyBox=document.getElementById('xfrEmpty');
   if(emptyBox) emptyBox.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-suggest]'); if(b){ if(input) input.value=b.getAttribute('data-suggest'); state.cat=ALL_ZH; render(); } });
   if(catsBox) catsBox.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-cat]'); if(b) selectCat(b.getAttribute('data-cat')); });
-  if(list) list.addEventListener('click',function(e){
+  function onListClick(e){
+    var fb=e.target.closest&&e.target.closest('[data-fav]');
+    if(fb){ toggleFav(parseInt(fb.getAttribute('data-fav'),10)); return; }
     var b=e.target.closest&&e.target.closest('[data-copy]'); if(!b) return;
     var item=DATA[parseInt(b.getAttribute('data-i'),10)]; if(!item) return;
     var kind=b.getAttribute('data-copy'); var text=kind==='example'?item.example:item.syntax;
     var codeEl=b.closest('.formula-item').querySelector(kind==='example'?'.xfr-example code':'.xfr-syntax');
     copyText(text,kind==='example'?L('示例公式','example formula'):L('语法模板','syntax template'),codeEl,b);
-  });
+  }
+  if(list) list.addEventListener('click',onListClick);
+  var favList=document.getElementById('xfrFavList'); if(favList) favList.addEventListener('click',onListClick);
+  var tabbar=document.querySelector('.xfr-tabs');
+  if(tabbar) tabbar.addEventListener('click',function(e){ var b=e.target.closest&&e.target.closest('[data-xfr-pane]'); if(b) showPane(b.getAttribute('data-xfr-pane')); });
   window.render=render; window.__excel_formula_referenceExport=exportCsv; window.__xfrData=DATA;
   render();
 })();

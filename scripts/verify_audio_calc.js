@@ -92,9 +92,9 @@ const CASES = [
 },
 {
   "slug": "audio/audio-sample-rate",
-  "inputs": { "duration": "60" },
-  "expect": ["22,050 Hz", "24,000 Hz", "10.99"],
-  "ref": "第1025批：频率上限改为精确 Hz（44.1k→22,050、48k→24,000），不再 22.1/24.0 一位小数；PCM 数据量 44.1k/16bit/2ch/60s≈10.09 MiB，48k≈10.99 MiB。"
+  "inputs": { "duration": "90" },
+  "expect": ["22,050 Hz", "24,000 Hz", "15.14", "16.48"],
+  "ref": "第1025批：频率上限改为精确 Hz（44.1k→22,050、48k→24,000），不再 22.1/24.0 一位小数；PCM 数据量 44.1k/16bit/2ch/90s≈15.14 MiB，48k≈16.48 MiB；默认 60s 为 10.09/10.99，不命中。"
 },
 {
   "slug": "audio/audio-sample-rate",

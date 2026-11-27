@@ -19768,7 +19768,7 @@ const CASES = [
   },
   {
     slug: "it/base64-converter",
-    inputs: { mode: "text" },
+    inputs: {},
     clicks: ["document.getElementById('input').value='\\uFEFFabc';encodeText();var e=document.getElementById('output').value;document.getElementById('input').value=e;decodeText();var ok=document.getElementById('output').value.codePointAt(0)===0xFEFF;document.getElementById('__tbProbe').textContent='BOM64 '+(ok?'OK':'BAD');"],
     expect: ["BOM64 OK"],
     ref: "UTF-8 BOM 往返：'\\uFEFFabc' 以 Base64 编码再解码，首字符必须仍是 U+FEFF；旧版 TextDecoder 默认剥 BOM 得到 'abc'。",

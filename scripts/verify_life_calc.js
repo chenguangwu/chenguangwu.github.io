@@ -123,8 +123,9 @@ const CASES = [
   // ── 饮水计划（体重×30ml + 运动 + 高温 + 特殊）─────────────────
   {
     slug: "life/drinking-water-plan",
-    expect: ["2,550.00"],
-    ref: "默认 60×30 = 1800；运动中档 +500；26°C（≥25）+250；特殊 0 → 2550.00 ml（分段合计另由下一用例校验）",
+    inputs: { w: "70", temp: "26", act: "mid", stage: "normal" },
+    expect: ["2,850.00 ml 每日饮水目标"],
+    ref: "非默认 70×30 = 2100；运动中档 +500；26°C（≥25）+250；特殊 0 → 2850.00 ml（默认 60kg → 2550.00，不命中）",
   },
   {
     slug: "life/drinking-water-plan",

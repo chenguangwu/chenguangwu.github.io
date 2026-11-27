@@ -5,37 +5,37 @@ const NL = "String.fromCharCode(10)";
 const CASES = [
 {
   "slug": "research/analysis-49",
-  "clicks": ["document.getElementById('matrix').value=['1,2','3,4','5'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('matrix').value=['1,2','3,4','5'].join(String.fromCharCode(10));calc();"],
   "expect": ["第 3 行有 1 列，与首行 2 列不一致"],
   "ref": "单列记录不再被静默丢弃：第 3 行只有 1 列，必须报错并阻止计算。默认矩阵无单列行，0 逃生。"
 },
 {
   "slug": "research/analysis-49",
-  "clicks": ["document.getElementById('matrix').value=['1,,3','2,,6','3,,9','4,,12'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('matrix').value=['1,,3','2,,6','3,,9','4,,12'].join(String.fromCharCode(10));calc();"],
   "expect": ["第 1 行第 2 列为空或不是数值"],
   "ref": "空字段保留并按原行列定位报错，不再 filter 掉空列后照常计算。默认矩阵无空字段。"
 },
 {
   "slug": "research/analysis-49",
-  "clicks": ["document.getElementById('matrix').value=['1,2','2,1','3,0','4,-1'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('matrix').value=['1,2','2,1','3,0','4,-1'].join(String.fromCharCode(10));calc();"],
   "expect": ["总分方差为 0"],
   "ref": "每行总分均为 3，方差为 0，α 无定义；旧版会给出 α=0 并判信度不足。默认矩阵方差>0，0 逃生。"
 },
 {
   "slug": "research/analysis-50",
-  "clicks": ["document.getElementById('data').value=['甲公司,300','乙公司,200','丙公司,100'].join(" + NL + ");document.getElementById('market').value='600';calc();"],
+  "clicks": ["document.getElementById('data').value=['甲公司,300','乙公司,200','丙公司,100'].join(String.fromCharCode(10));document.getElementById('market').value='600';calc();"],
   "expect": ["覆盖率： 100.00%", "口径判定： 高度集中"],
   "ref": "市场总规模 600 与已录合计 600 一致，覆盖率 100% 才允许套用集中度阈值：HHI=3888.89，高度集中。"
 },
 {
   "slug": "research/analysis-50",
-  "clicks": ["document.getElementById('data').value=['甲公司,300','乙公司,200','丙公司,100'].join(" + NL + ");document.getElementById('market').value='10000';calc();"],
+  "clicks": ["document.getElementById('data').value=['甲公司,300','乙公司,200','丙公司,100'].join(String.fromCharCode(10));document.getElementById('market').value='10000';calc();"],
   "expect": ["覆盖率：6.00%", "不套用 2500/1500 阈值判定"],
   "ref": "市场总规模 10000 时覆盖率仅 6%，CR/HHI 只能标为样本内/已知部分，不得套用完整市场阈值。默认未填 market，0 逃生。"
 },
 {
   "slug": "research/analysis-50",
-  "clicks": ["document.getElementById('data').value=['甲,300','乙,12abc','丙,100'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('data').value=['甲,300','乙,12abc','丙,100'].join(String.fromCharCode(10));calc();"],
   "expect": ["第 2 行：「12abc」不是有效正数营收"],
   "ref": "营收带尾随文字不再被 parseFloat 截成 12，必须按原行号报错并阻止计算。默认数据合法。"
 },
@@ -53,7 +53,7 @@ const CASES = [
 },
 {
   "slug": "research/analysis-52",
-  "clicks": ["document.getElementById('codes').value=['A,10,5','B,6,2'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('codes').value=['A,10,5','B,6,2'].join(String.fromCharCode(10));calc();"],
   "expect": ["CR3 不适用：当前只有 2 个编码"],
   "ref": "不足 3 个编码时「前三项合计」恒为 100%，不得据此判观点集中；旧版会输出 100%。默认 5 个编码。"
 },
@@ -65,20 +65,21 @@ const CASES = [
 },
 {
   "slug": "research/analysis-54",
-  "clicks": ["document.getElementById('data').value=['\"访谈1，内容含逗号、分号\",价格,服务','访谈2|价格敏感,含逗号|服务','访谈3,价格'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('data').value=['\"访谈1，内容含逗号、分号\",价格,服务','访谈2|价格敏感,含逗号|服务','访谈3,价格'].join(String.fromCharCode(10));calc();"],
   "expect": ["资料条目：3 条，已编码：3 条（覆盖率 100.0%）", "总编码数：5"],
   "ref": "双引号包住正文中的逗号/分号、竖线优先作分隔符：3 条资料全部保留，总编码 5，正文里的逗号不被误切。"
 },
 {
   "slug": "research/analysis-54",
-  "clicks": ["document.getElementById('data').value=[',主题',',服务'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('data').value=[',主题',',服务'].join(String.fromCharCode(10));calc();"],
   "expect": ["第 1、2 行缺少资料文本（逗号/竖线前为空）"],
   "ref": "空正文资料行必须按原行号报错并整表不统计；旧版会把空正文当空行跳过。默认资料正文非空。"
 },
 {
   "slug": "research/calc-97",
-  "expect": ["965 所需样本量（满足±3%）", "69.29% 实际抽样误差（n=2）"],
-  "ref": "默认 N=10000、p=50%、e=3%：有限总体校正后所需 965；n=2 时误差 69.29%。"
+  "inputs": { "N": "20000", "p": "45", "e": "4" },
+  "expect": ["578 所需样本量（满足±4%）", "4.83% 实际抽样误差（n=400）"],
+  "ref": "非默认 N=20000、p=45%、e=4%：有限总体校正后所需 578；n=400 时误差 4.83%；默认 p=50/e=3 输出 965、4.8%，不命中。"
 },
 {
   "slug": "research/calc-97",
@@ -100,8 +101,9 @@ const CASES = [
 },
 {
   "slug": "research/assessor-50",
-  "expect": ["广告效果指数AEI", "CPM(元/千次曝光)"],
-  "ref": "默认输入下完整输出 AEI 与 CPM；旧版通用守卫不会拦截任何字段。"
+  "inputs": { "reach": "20000", "frequency": "2", "ctr": "4", "cost": "20" },
+  "expect": ["广告效果指数AEI 20.0%", "¥5000.00 CPM(元/千次曝光)"],
+  "ref": "非默认触达 20000、频次 2、CTR 4%、投入 20 万元：AEI 20.0%、CPM ¥5000.00；默认 50000/3.5/2.5/50 输出 AEI 50.0%、CPM ¥2857.14，不命中。"
 },
 {
   "slug": "research/assessor-50",
@@ -129,14 +131,14 @@ const CASES = [
 {
   "slug": "research/tester-17",
   "clicks": [
-    "var a=[];for(var i=0;i<20;i++){a.push((i+1)+','+(10+0.8*i)+','+(30+2.5*i)+','+(55+2.5*i)+','+(70+2.5*i));}document.getElementById('psmData').value=a.join(" + NL + ");document.getElementById('sampleSize').value='20';calc();document.getElementById('__tbProbe').textContent=String(document.getElementById('res').innerHTML);"
+    "var a=[];for(var i=0;i<20;i++){a.push((i+1)+','+(10+0.8*i)+','+(30+2.5*i)+','+(55+2.5*i)+','+(70+2.5*i));}document.getElementById('psmData').value=a.join(String.fromCharCode(10));document.getElementById('sampleSize').value='20';calc();document.getElementById('__tbProbe').textContent=String(document.getElementById('res').innerHTML);"
   ],
   "expect": ["PMC 边际便宜点（下限） ¥40.10", "OPP 最优价格点 ¥66.22", "PME 边际昂贵点（上限） ¥73.75"],
   "ref": "20 位受访者四问数据：PMC=40.10、OPP=66.22、PME=73.75、IDP=47.63，区间宽 50.8%；来自标准累计曲线交点，非汇总价算术。"
 },
 {
   "slug": "research/tester-17",
-  "clicks": ["document.getElementById('psmData').value=['1,10,30,55,70','2,20,40,60,80','3,10,30,55,70'].join(" + NL + ");calc();"],
+  "clicks": ["document.getElementById('psmData').value=['1,10,30,55,70','2,20,40,60,80','3,10,30,55,70'].join(String.fromCharCode(10));calc();"],
   "expect": ["逐位数据只有 3 人，无法形成稳定累计曲线；至少录入 5 人"],
   "ref": "逐位数据少于 5 人时拒绝给交点结论；旧版无逐位模式。"
 },
