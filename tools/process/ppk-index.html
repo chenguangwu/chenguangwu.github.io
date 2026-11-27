@@ -297,13 +297,18 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+var __ppk_indexOk=false;
+function __ppk_indexClear(){['ppk_indexTable','ppkdChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
+function __ppMsg(zh,en){try{if(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return en;}catch(e){}return /(^|[?&])lang=en/i.test(location.search)||(document.documentElement.lang||'').toLowerCase().indexOf('en')===0?en:zh;}
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
+            __ppk_indexOk=false; __ppk_indexClear();
               var __ig=__tbInputGuard(['usl', 'lsl', 'mu', 'slt'],["上规格限 USL", "下规格限 LSL", "过程均值 μ", "长期标准差 σ_lt"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const usl=num('usl'),lsl=num('lsl'),m=num('mu'),s=num('slt');
             if(!(s>0)){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：长期标准差 σ_lt 必须大于 0</p>';return;}
             if(!(usl>lsl)){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：上规格限 USL 必须大于下规格限 LSL</p>';return;}
+            __ppk_indexOk=true;
             const __g2=dataGrid([
                 [Math.min((usl-m)/(3*s),(m-lsl)/(3*s)).toFixed(3),'Ppk'],
                 [((usl-lsl)/(6*s)).toFixed(3), 'Pp = (USL−LSL)/(6σ)'],
@@ -319,6 +324,7 @@ calcTool();
 
 function __ppk_indexNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __ppk_indexExtras(){
+    if(!__ppk_indexOk){__ppk_indexClear();return;}
     function __ppk_indexRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var usl=num('usl'),lsl=num('lsl'),m=num('mu'),s=num('slt');
@@ -340,6 +346,7 @@ function __ppk_indexExtras(){
 }
 function __ppk_indexExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__ppk_indexOk){try{ToolBox.showToast(__ppMsg('请先执行有效计算，暂无可导出数据','Run a valid calculation before exporting'),'warning');}catch(e){}return;}
     try { TBKit.util.exportTable('#ppk_indexTable','ppk-index.csv'); } catch(e){}
 }
 function __ppk_indexPresets(){
@@ -398,6 +405,7 @@ else document.addEventListener('DOMContentLoaded', __ppk_indexBoot);
 </section>
 <script>
 function __ppkdChart(){
+  if(!__ppk_indexOk){var __c=document.getElementById('ppkdChart');if(__c)__c.innerHTML='';return;}
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var usl=num('usl'),lsl=num('lsl'),s=num('slt');
   if(!isFinite(usl)||!isFinite(lsl)||!isFinite(s)||!(usl>lsl)||!(s>0))return;
