@@ -180,9 +180,9 @@ const CASES = [
   "expect": [
     "2400.0",
     "2.4000",
-    "140.00%"
+    "24.00"
   ],
-  "ref": "v0=180,v1=75 → 剥离强度=180×1000/75=2400.0 N/m、2.4000 kN/m、相对 1.0 kN/m 富余 (2.4-1)×100=140.00%（默认 100/50 → 2000.0/2.0000/100.00%；swap 500.0/0.5000/-50.00%，均不重合）"
+  "ref": "v0=180,v1=75 → 剥离强度=180×1000/75=2400.0 N/m、2.4000 kN/m、每厘米 24.00 N/cm；参考基准留空，不再输出 1.0 kN/m 富余度（默认 100/50 → 2000.0/2.0000/20.00）"
 },
 {
   "slug": "paper/strength-9",
@@ -200,7 +200,7 @@ const CASES = [
 {
   "slug": "paper/roll-length",
   "inputs": { "targetLen": "500", "coreDia2": "-76", "paperThk2": "0.1" },
-  "expect": ["纸芯内径不能留空，且需为 ≥0 的数值"],
+  "expect": ["纸芯外径不能留空，且需为 ≥0 的数值"],
   "ref": "12-K6：负纸芯内径旧实现仍算 D=263.5 mm、壁厚 169.8 mm、层数 1698；现在拒绝。默认纸芯 76 合法不出现该文案。"
 },
 {
@@ -212,7 +212,7 @@ const CASES = [
 {
   "slug": "paper/roll-length",
   "inputs": { "outerDia": "100", "coreDia": "-10", "paperThk": "0.1" },
-  "expect": ["纸芯内径需≥0"],
+  "expect": ["纸芯外径需≥0"],
   "ref": "12-K6 续：calcLen 旧实现只校验 D>d 与 t>0，负纸芯照样算出长度；现拒绝并提示纸芯内径 ≥0。"
 },
 {
@@ -225,7 +225,7 @@ const CASES = [
 {
   "slug": "paper/roll-length",
   "clicks": ["document.getElementById('outerDia').value='200';document.getElementById('coreDia').value='';document.getElementById('paperThk').value='0.1';calcLen();document.getElementById('__tbProbe').textContent=document.getElementById('lenResult').innerText;"],
-  "expect": ["纸芯内径不能留空"],
+  "expect": ["纸芯外径不能留空"],
   "ref": "清空纸芯不得按 0 计算；必须明确输入 0 才允许无缝纸芯。"
 },
 {
@@ -319,6 +319,67 @@ const CASES = [
   "inputs": {"defSize":"5","defPerSqm":"3","area":"10"},
   "expect": ["单项超出参考阈值"],
   "ref": "仅尺寸超阈值时不得判为参考优等/参考一等。"
+},
+
+{
+  "slug": "paper/roll-length",
+  "inputs": {"outerDia":"1000","coreDia":"100","paperThk":"0.1"},
+  "expect": ["7775442"],
+  "ref": "纸芯外径 100mm：π×(1000²−100²)/(4×0.1)≈7775442 mm；旧 76mm 内径为 7808621，不同。"
+},
+{
+  "slug": "paper/strength-10",
+  "inputs": {"v0":"180","v1":"75","v2":"1.2"},
+  "expect": ["100.00%","参考基准由你填写"],
+  "ref": "自填 1.2 kN/m：(2.4/1.2−1)×100=100.00%，且明确为用户自填、非通用标准。"
+},
+{
+  "slug": "paper/strength-10",
+  "inputs": {"v0":"-5","v1":"50"},
+  "expect": ["剥离力」须不小于 0"],
+  "ref": "负剥离力必须拒绝，不再算出负强度。"
+},
+{
+  "slug": "paper/basis-weight",
+  "clicks": ["document.getElementById('knownReamKg').value='12.5';calcReverseGsm();document.getElementById('reamSize').value='a4';document.getElementById('reamSize').dispatchEvent(new Event('change',{bubbles:true}));document.getElementById('__tbProbe').textContent=document.getElementById('reverseResult').innerText;"],
+  "expect": ["g/m²"],
+  "ref": "反算后切换规格，反算区必须自动重算（A4 面积变化，结果不再是 29.09）。"
+},
+{
+  "slug": "paper/carbon-5",
+  "inputs": {"v0":"800","v1":"-10","v2":"70"},
+  "expect": ["加填率」须不小于 0"],
+  "ref": "负加填率必须拒绝，不再得到 -80kg 的伪结果。"
+},
+{
+  "slug": "paper/strength-1",
+  "inputs": {"rctFace":"","rctLiner":"4000","rctMed":"2500"},
+  "expect": ["估算模式须完整填写三项环压值"],
+  "ref": "估算模式清空面纸环压不得再按 0 计算，必须提示补填或改用直接 ECT。"
+},
+{
+  "slug": "paper/strength-1",
+  "inputs": {"rctFace":"","rctLiner":"","rctMed":"","ectDirect":"7000"},
+  "expect": ["直接输入 7000"],
+  "ref": "直接 ECT 模式完全忽略三项环压；环压留空仍可算 BCT。"
+},
+{
+  "slug": "paper/detector-17",
+  "inputs": {"defState":"measured","defSize":"2.5","defPerSqm":"0","area":"10"},
+  "expect": ["相互矛盾"],
+  "ref": "尺寸>0 而密度=0 必须拒绝，不生成等级。"
+},
+{
+  "slug": "paper/detector-17",
+  "inputs": {"defState":"none","defSize":"0","defPerSqm":"0","area":"10"},
+  "expect": ["不生成参考等级","未检出"],
+  "ref": "未检出明确记录 0/0，只说明未检出，不生成等级。"
+},
+{
+  "slug": "paper/detector-17",
+  "inputs": {"defState":"unknown","defSize":"0","defPerSqm":"12","area":"10"},
+  "expect": ["尺寸未知","不生成参考等级"],
+  "ref": "尺寸未知只输出估计缺陷数，不硬凑 0 尺寸等级。"
 },
 
 ];

@@ -50,6 +50,14 @@
         "@type": "Answer",
         "text": "正度 787×1092mm≈0.8594 m²，大度 889×1194mm≈1.061 m²，同定量下大度令重比正度高约 23%。报价与排版务必注明纸度。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "反算结果会随规格变化自动更新吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "会。更改纸张规格、每令张数或已知令重时，反算区会自动重算；清空已知令重则清空反算结果。“复制反算结果”会同时带上数值、规格、张数与令重，便于追溯。"
+      }
     }
   ]
 }
@@ -77,7 +85,7 @@
 <script src="../../js/tool-i18n.js" defer></script>
 <!-- TOOLBOX-I18N-SCRIPT -->
 <meta name="title-en" content="Basis Weight">
-<meta name="desc-en" content="Convert between gsm, ream weight, and lb in both directions with custom sheet size and sheets per ream">
+<meta name="desc-en" content="Convert between g/m², ream weight and pounds, or back-calculate grammage from a known ream weight; results update with sheet size and sheet count">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/paper/basis-weight.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/paper/basis-weight.html">
@@ -159,7 +167,7 @@
         </div>
         <div>
           <label for="reamSize">规格尺寸</label>
-          <select id="reamSize" onchange="calcReam()">
+          <select id="reamSize" onchange="calcReam();onReverseSpecChange()">
             <option value="787,1092">787×1092mm（正度）</option>
             <option value="889,1194">889×1194mm（大度）</option>
             <option value="841,1189">841×1189mm（A0）</option>
@@ -168,7 +176,7 @@
         </div>
         <div>
           <label for="reamCount">每令张数</label>
-          <select id="reamCount" onchange="calcReam()">
+          <select id="reamCount" onchange="calcReam();onReverseSpecChange()">
             <option value="500">500张</option>
             <option value="480">480张</option>
             <option value="1000">1000张</option>
@@ -181,10 +189,11 @@
       <div class="input-row" style="margin-top:12px;">
       <div>
         <label for="knownReamKg">已知令重（kg）→ 反算 GSM</label>
-        <input type="number" id="knownReamKg" min="0" step="0.01" placeholder="如 12.5">
+        <input type="number" id="knownReamKg" min="0" step="0.01" placeholder="如 12.5" oninput="onReverseSpecChange()">
       </div>
       <div style="align-self:flex-end;">
         <button type="button" class="btn" onclick="calcReverseGsm()">反算克重</button>
+        <button type="button" class="btn" onclick="copyReverse()">复制反算结果</button>
       </div>
     </div>
     <div class="result-box" id="reverseResult"></div>
@@ -233,6 +242,7 @@
 <dl class="dd-faq">
 <dt>定量 g/m² 与 磅(lb) 怎么换算？</dt><dd>磅(lb)通常指『500 张大度纸的令重』，近似 1 lb≈1.128 g/m²（即 gsm×0.895≈lb/令）。更严谨应直接用令重公式按实际纸度计算，避免不同纸度混淆。</dd>
 <dt>正度、大度纸的面积差多少？</dt><dd>正度 787×1092mm≈0.8594 m²，大度 889×1194mm≈1.061 m²，同定量下大度令重比正度高约 23%。报价与排版务必注明纸度。</dd>
+<dt>反算结果会随规格变化自动更新吗？</dt><dd>会。更改纸张规格、每令张数或已知令重时，反算区会自动重算；清空已知令重则清空反算结果。“复制反算结果”会同时带上数值、规格、张数与令重，便于追溯。</dd>
 </dl>
 </div>
 </section>
@@ -306,6 +316,18 @@ function __reamSpec(){
   var count = parseInt(document.getElementById('reamCount').value,10);
   if(!isFinite(w)||!isFinite(h)||w<=0||h<=0||!isFinite(count)||count<=0) return null;
   return {w:w,h:h,count:count};
+}
+function onReverseSpecChange(){
+  var raw=String(document.getElementById('knownReamKg').value==null?'':document.getElementById('knownReamKg').value).trim();
+  if(raw===''){ToolBox.setResult('reverseResult','<p style="color:var(--text-muted);">填写已知令重后，结果显示反算克重及所用规格；更改规格或每令张数会自动重算。</p>');return;}
+  calcReverseGsm();
+}
+function copyReverse(){
+  var kg=readNum('knownReamKg'),spec=__reamSpec();
+  if(isNaN(kg)||kg<=0||!spec){ToolBox.showToast(__msg('已知令重、规格或每令张数无效，暂无可复制的反算结果','Known ream weight, sheet size or sheets per ream is invalid; nothing to copy.'),'warning');return;}
+  var gsm=(kg*1000)/(spec.w*spec.h*spec.count);
+  var text=__msg('反算克重: ','Back-calculated grammage: ')+gsm.toFixed(2)+' g/m² ('+__msg('已知令重','known ream weight ')+kg+' kg, '+Math.round(spec.w*1000)+'×'+Math.round(spec.h*1000)+'mm, '+spec.count+__msg(' 张/令）',' sheets/ream)');
+  ToolBox.copyText(text,i18nText('msg413'));
 }
 function calcReverseGsm() {
   var kg = readNum('knownReamKg');

@@ -51,7 +51,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Paper Defect Detector">
-<meta name="desc-en" content="Enter defect type, size and density to screen paper quality against built-in reference thresholds; results are screening references, not a standard pass/fail…">
+<meta name="desc-en" content="Screen paper defects against built-in reference thresholds; not detected, size unknown and measured defect are distinguished, and incomplete data produces no…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/paper/detector-17.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/paper/detector-17.html">
@@ -80,18 +80,18 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "不同纸种的缺陷阈值一样吗？",
+      "name": "密度是实测值还是估计值？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "不一样。本工具内置印刷/包装/生活/工业四类参考阈值：如孔洞，印刷纸尺寸≤2mm、密度≤5 个/m²；工业纸放宽到尺寸≤10mm、密度≤10 个/m²。选错纸种会得到偏移的参考结论；这些阈值不是国家标准限值。"
+        "text": "页面按“每 m² 估计密度”记录，总缺陷数=密度×检测面积，是面积外推估计，不是逐张计数。尺寸与密度应来自同一检测样本。"
       }
     },
     {
       "@type": "Question",
-      "name": "尺寸和密度哪个更关键？",
+      "name": "未检出和尺寸未知有什么区别？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "都关键，但大尺寸缺陷（孔洞、气泡）对印刷断纸/外观影响更致命，通常优先卡尺寸；密度反映整体洁净度。两项同时超出时提示“两项均超出参考阈值”，是否不合格仍须按合同或产品标准判定。"
+        "text": "未检出表示尺寸与密度均为 0，不生成等级；尺寸未知表示只有估计密度、缺少最大尺寸，也不生成等级。两者都不能当作“0 尺寸的实测缺陷”。"
       }
     }
   ]
@@ -149,8 +149,13 @@
       <option value="wrinkle">褶皱</option>
       <option value="bubble">气泡/泡疤</option>
     </select></div></div>
+    <div class="input-row"><div><label for="defState">缺陷记录状态</label><select id="defState" onchange="onDefStateChange()">
+      <option value="measured">已测缺陷（尺寸与密度均为实测/估计）</option>
+      <option value="none">未检出（尺寸与密度均为 0）</option>
+      <option value="unknown">尺寸未知（仅有每 m² 估计密度）</option>
+    </select></div></div>
     <div class="input-row"><div><label for="defSize">最大缺陷尺寸 (mm)</label><input type="number" id="defSize" value="2.5" step="0.1" min="0" style="font-size:16px;" oninput="calc()" placeholder="如 2.5"></div></div>
-    <div class="input-row"><div><label for="defPerSqm">每平方米缺陷数</label><input type="number" id="defPerSqm" value="8" step="1" min="0" style="font-size:16px;" oninput="calc()" placeholder="如 8"></div></div>
+    <div class="input-row"><div><label for="defPerSqm">每平方米缺陷数（估计值）</label><input type="number" id="defPerSqm" value="8" step="1" min="0" style="font-size:16px;" oninput="calc()" placeholder="如 8"></div></div>
     <div class="input-row"><div><label for="area">检测面积 (m²)</label><input type="number" id="area" value="10" step="0.5" min="0" style="font-size:16px;" oninput="calc()" placeholder="如 10"></div></div>
     <div class="toolbar"><div id="detector_17Presets"></div><button type="button" class="btn primary" onclick="calc()">检测判定</button><button class="btn" type="button" onclick="__detector_17Export()">导出明细 CSV</button><button type="button" class="btn" onclick="copyReport()">复制报告</button></div>
     <div class="result-box" id="res"></div> <div id="detector_17Table"></div> <div id="detector_17Diff"></div> <div id="detector_17Chart"></div> <div id="detector_17Hist"></div>
@@ -178,16 +183,16 @@
 <h2>📚 深度解析：纸病（孔洞/刮痕）检测</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>外观质检中，按纸种与缺陷类型对照内置参考阈值（尺寸、密度）提示风险等级。</li>
+<li>外观质检中，按纸种与缺陷类型对照内置参考阈值（尺寸、密度）做筛查提示，不生成法定合格判定。</li>
 <li>印刷用纸对孔洞/斑点敏感，包装用纸对刮痕/气泡容忍度不同，参考阈值各异。</li>
-<li>整批放行前，统计单位面积缺陷数，结合单缺陷尺寸做初步筛查，再按合同或产品标准复核。</li>
+<li>记录缺陷时先区分“未检出”“尺寸未知”“已测缺陷”；信息不全时不输出等级。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：印刷纸孔洞判定（尺寸 2.5mm，密度 8 个/m²，面积 10m²）</div><div class="dd-ex-body">印刷纸孔洞内置参考阈值：尺寸≤2mm、密度≤5 个/m²。实测尺寸 2.5mm&gt;2、密度 8&gt;5，均超出参考阈值；该 10 m² 区域按密度×面积估算约 80 个缺陷。该结果只提示筛查风险，不等同国家标准不合格判定。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例：分级规则</div><div class="dd-ex-body">尺寸与密度均在阈值内且均不超过阈值一半→参考优等；均在阈值内→参考一等；仅一项超出→单项超出参考阈值；两项均超出→两项均超出参考阈值。参考阈值按纸种内置，不替代合同或产品标准。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：印刷纸孔洞（尺寸 2.5mm，估计密度 8 个/m²，面积 10m²）</div><div class="dd-ex-body">印刷纸孔洞参考阈值：尺寸≤2mm、密度≤5 个/m²。尺寸 2.5&gt;2、密度 8&gt;5，两项均超出参考阈值；10m² 内估计约 80 个缺陷。该结果只提示筛查风险，不等同国家标准不合格判定。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：矛盾组合会被拒绝</div><div class="dd-ex-body">若尺寸&gt;0 而密度=0，或密度&gt;0 而尺寸=0，页面提示相互矛盾，不生成等级；未检出须两项均为 0，尺寸未知须尺寸为 0 且估计密度&gt;0。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>不同纸种的缺陷阈值一样吗？</dt><dd>不一样。本工具内置印刷/包装/生活/工业四类参考阈值：如孔洞，印刷纸尺寸≤2mm、密度≤5 个/m²；工业纸放宽到尺寸≤10mm、密度≤10 个/m²。选错纸种会得到偏移的参考结论；这些阈值不是国家标准限值。</dd>
-<dt>尺寸和密度哪个更关键？</dt><dd>都关键，但大尺寸缺陷（孔洞、气泡）对印刷断纸/外观影响更致命，通常优先卡尺寸；密度反映整体洁净度。两项同时超出时提示“两项均超出参考阈值”，是否不合格仍须按合同或产品标准判定。</dd>
+<dt>密度是实测值还是估计值？</dt><dd>页面按“每 m² 估计密度”记录，总缺陷数=密度×检测面积，是面积外推估计，不是逐张计数。尺寸与密度应来自同一检测样本。</dd>
+<dt>未检出和尺寸未知有什么区别？</dt><dd>未检出表示尺寸与密度均为 0，不生成等级；尺寸未知表示只有估计密度、缺少最大尺寸，也不生成等级。两者都不能当作“0 尺寸的实测缺陷”。</dd>
 </dl>
 </div>
 </section>
@@ -234,16 +239,40 @@
 var __detValid=false;
 function __dEn(zh,en){try{return document.documentElement.lang==='en-US'?en:zh;}catch(e){return zh;}}
 function __dNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(raw==='')return NaN;if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
+function onDefStateChange(){
+  var st=document.getElementById('defState').value;
+  if(st==='none'){document.getElementById('defSize').value='0';document.getElementById('defPerSqm').value='0';}
+  if(st==='unknown'){document.getElementById('defSize').value='0';}
+  calc();
+}
 function calc(){
   var pt=document.getElementById('paperType').value;
   var dt=document.getElementById('defectType').value;
+  var state=document.getElementById('defState').value;
   var ds=__dNum('defSize');
   var dps=__dNum('defPerSqm');
   var area=__dNum('area');
-  if(isNaN(ds)||isNaN(dps)||isNaN(area)){__detValid=false;document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ '+__dEn('请完整填写最大缺陷尺寸、每平方米缺陷数与检测面积；不能留空或输入文字。','Enter maximum defect size, defects per m² and inspected area; blanks or text are not accepted.')+'</p>';return;}
-  if(ds<0||dps<0||area<=0){__detValid=false;document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ '+__dEn('缺陷尺寸与密度不能为负，检测面积必须大于 0。','Defect size and density cannot be negative; inspected area must be greater than 0.')+'</p>';return;}
+  function stop(msg){__detValid=false;document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';var t=document.getElementById('detector_17Table');if(t)t.innerHTML='';var c=document.getElementById('detector_17Chart');if(c)c.innerHTML='';var d=document.getElementById('detector_17Diff');if(d)d.innerHTML='';ToolBox.showToast(msg,'warning');}
+  if(isNaN(ds)||isNaN(dps)||isNaN(area)){stop(__dEn('请完整填写最大缺陷尺寸、每平方米缺陷数与检测面积；尺寸未知时填 0 并选择“尺寸未知”，未检出时两项均填 0。','Enter maximum defect size, estimated defects per m² and inspected area; use 0 with the matching state when not measured or not detected.'));return;}
+  if(ds<0||dps<0||area<=0){stop(__dEn('缺陷尺寸与密度不能为负，检测面积必须大于 0。','Defect size and density cannot be negative; inspected area must be greater than 0.'));return;}
+  if(state==='none'&&(ds!==0||dps!==0)){stop(__dEn('“未检出”要求尺寸与密度均为 0；若已有缺陷请改回“已测缺陷”。','“Not detected” requires both size and density to be 0; switch back to “Measured defect” if defects exist.'));return;}
+  if(state==='unknown'&&(ds!==0||dps<=0)){stop(__dEn('“尺寸未知”要求尺寸为 0 且估计密度大于 0；如尺寸已测请改回“已测缺陷”。','“Size unknown” requires size 0 and estimated density > 0; switch back to “Measured defect” if size was measured.'));return;}
+  if(state==='measured'){
+    if(ds>0&&dps===0){stop(__dEn('尺寸大于 0 但密度为 0 相互矛盾：单个缺陷至少对应非零密度；请核对样本或改选“尺寸未知”/“未检出”。','Size > 0 but density = 0 is contradictory; a defect implies non-zero density. Check the sample or choose “Size unknown”/“Not detected”.'));return;}
+    if(ds===0&&dps>0){stop(__dEn('密度大于 0 但尺寸为 0：0 尺寸不能代表实测缺陷，请填写实测尺寸或改选“尺寸未知”。','Density > 0 but size = 0: zero size cannot represent a measured defect; enter a measured size or choose “Size unknown”.'));return;}
+    if(ds===0&&dps===0){stop(__dEn('尺寸与密度均为 0，应选择“未检出”，不应按“已测缺陷”生成等级。','Both size and density are 0; choose “Not detected” instead of generating a grade from “Measured defect”.'));return;}
+  }
   var ptName=__dEn({'print':'印刷用纸','pack':'包装用纸','tissue':'生活用纸','industrial':'工业用纸'}[pt],{'print':'Printing paper','pack':'Packaging paper','tissue':'Household tissue','industrial':'Industrial paper'}[pt]);
   var dtName=__dEn({'hole':'孔洞','scratch':'刮痕/裂口','spot':'斑点/尘埃','wrinkle':'褶皱','bubble':'气泡/泡疤'}[dt],{'hole':'Holes','scratch':'Scratches/tears','spot':'Spots/dirt','wrinkle':'Wrinkles','bubble':'Bubbles'}[dt]);
+  var ptName2=ptName,dtName2=dtName;
+  if(state==='none'||state==='unknown'){
+    __detValid=true;
+    var why=state==='none'?__dEn('本次记录为“未检出”：尺寸与密度均为 0，不生成参考等级。','Recorded as “not detected”: size and density are both 0, so no reference grade is generated.'):__dEn('本次记录为“尺寸未知”：只有每 m² 估计密度，缺少缺陷尺寸，不生成参考等级。','Recorded as “size unknown”: only estimated density per m² is available, so no reference grade is generated.');
+    var h='<p>'+__dEn('纸张类型','Paper type')+__dEn('：',': ')+'<strong>'+ptName+'</strong></p><p>'+__dEn('缺陷类型','Defect type')+__dEn('：',': ')+dtName+'</p><p>'+__dEn('记录状态','Record state')+__dEn('：',': ')+why+'</p>';
+    if(state==='unknown'){var total0=dps*area;h+='<p>'+__dEn('检测面积内估计缺陷数','Estimated defects in inspected area')+__dEn('：',': ')+total0+__dEn(' 个','')+'（密度×面积，密度为估计值）</p>';}
+    h+='<div class="tip-box tip-info">'+__dEn('信息不全时不输出等级；请补测最大尺寸，或按合同/产品标准的抽样规则判定。','No grade is produced when information is incomplete; measure the maximum size or follow the contract/product-standard sampling rule.')+'</div>';
+    document.getElementById('res').innerHTML=h;return;
+  }
   var limits={
     print:{hole:{size:2,count:5},scratch:{size:3,count:3},spot:{size:1,count:15},wrinkle:{size:5,count:2},bubble:{size:2,count:5}},
     pack:{hole:{size:5,count:8},scratch:{size:8,count:5},spot:{size:2,count:20},wrinkle:{size:10,count:3},bubble:{size:5,count:8}},
@@ -268,6 +297,7 @@ function calc(){
   html+='<p><strong>'+__dEn('判定口径','Basis')+__dEn('：',': ')+'</strong>'+__dEn('本工具内置参考阈值，非国家标准合格判定；如需放行或索赔，请以合同、产品标准与第三方检测报告为准。','Built-in reference thresholds, not a national-standard pass/fail judgement. For release or claims, rely on the contract, product standard and third-party test reports.')+'</p>';
   html+='<p>'+__dEn('最大缺陷尺寸','Maximum defect size')+__dEn('：',': ')+ds+' mm'+__dEn('（',' (')+__dEn('参考阈值','reference threshold')+'≤'+lim.size+'mm'+__dEn('）',')')+(sizePass?' <span style="color:var(--success);">✓ '+__dEn('阈值内','within threshold')+'</span>':' <span style="color:var(--danger);">'+__dEn('超出参考阈值','exceeds reference threshold')+'</span>')+'</p>';
   html+='<p>'+__dEn('每m²缺陷数','Defects per m²')+__dEn('：',': ')+dps+__dEn(' 个','')+__dEn('（',' (')+__dEn('参考阈值','reference threshold')+'≤'+lim.count+__dEn('）',')')+(countPass?' <span style="color:var(--success);">✓ '+__dEn('阈值内','within threshold')+'</span>':' <span style="color:var(--danger);">'+__dEn('超出参考阈值','exceeds reference threshold')+'</span>')+'</p>';
+  html+='<p>'+__dEn('记录状态','Record state')+'：'+__dEn('已测缺陷；密度为每 m² 估计值，尺寸与密度应来自同一检测样本','Measured defect; density is an estimate per m² and size/density should come from the same inspected sample')+'</p>';
   html+='<p>'+__dEn('检测面积内总缺陷数','Estimated total defects in inspected area')+__dEn('：',': ')+totalDef+__dEn(' 个','')+__dEn('（按密度×面积估算）',' (density × area)')+'</p>';
   html+='<p>'+__dEn('参考分级','Reference grade')+'：<strong style="font-size:22px;color:'+color+';">'+grade+'</strong></p>';
   if(grade.indexOf('参考优等')<0&&grade.indexOf('参考一等')<0&&grade.indexOf('Reference:')<0){
@@ -302,11 +332,11 @@ document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}})
     </a>
     <a href="carbon-5.html" class="related-tool-card">
       <span class="rt-icon">📄</span>
-      <span class="rt-info"><span class="rt-name">填料（碳酸钙/滑石粉）添加</span><span class="rt-desc">按绝干浆量与加填率估算填料加入量、留着量与成纸灰分，辅助造纸加填配方与灰分控制</span></span>
+      <span class="rt-info"><span class="rt-name">填料（碳酸钙/滑石粉）添加</span><span class="rt-desc">按绝干浆量与加填率计算填料加入量、留着量与简化填料质量占比；留着率为可修改示例，结果不是实测灰分</span></span>
     </a>
     <a href="roll-length.html" class="related-tool-card">
       <span class="rt-icon">📏</span>
-      <span class="rt-info"><span class="rt-name">纸卷长度计算</span><span class="rt-desc">输入纸卷外径、纸芯直径与纸张厚度，按螺旋展开公式估算纸卷总长度（米）。</span></span>
+      <span class="rt-info"><span class="rt-name">纸卷长度计算</span><span class="rt-desc">输入纸卷外径、纸芯外径与纸张厚度，按环形截面展开公式估算总长度，也可由目标长度反推外径</span></span>
     </a>
     <a href="moisture-calc.html" class="related-tool-card">
       <span class="rt-icon">🧮</span>
