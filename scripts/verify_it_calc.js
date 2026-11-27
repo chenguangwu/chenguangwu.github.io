@@ -11069,6 +11069,38 @@ const CASES = [
     "expect": ["AM3 n=0 q=1"],
     "ref": "IT-N397：对象数组换序同样应判为无内容差异。比较键用排序后的规范序列化，故键序不同的 `{id:1}` 也能配对上。修复前是 `items[0].id`、`items[1].id` 两处 mod。"
   },
+  // ---- 第1051批：数组按内容匹配的左右指针、根节点空指针 ----
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"arr\":[1,2]}';document.getElementById('right').value='{\"arr\":[0,1,3]}';document.getElementById('arrayMatch').checked=true;doDiff();var d=lastDiff.filter(function(x){return x.op==='mod';})[0];document.getElementById('__tbProbe').textContent='CROSS '+d.path+'->'+d.pathRight+' '+d.pointer+'->'+d.pointerRight+' cp='+(copyDiff().indexOf('[/arr/1] → arr[0] [/arr/0]')>=0?1:0);"],
+    expect: ["CROSS arr[1]->arr[0] /arr/1->/arr/0 cp=1"],
+    ref: "第1051批：左侧 [1,2] 与右侧 [0,1,3] 按内容对齐后，剩余 2 与 0 跨下标配对；必须同时记录左 /arr/1 与右 /arr/0，复制文本也保留两侧位置。旧实现只保存左侧 path/pointer，右侧 /1 实际是 1。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["var d=deepDiff(1,2,'',false,'');document.getElementById('__tbProbe').textContent='ROOT ptr='+(d[0].pointer===''?'1':'0')+' label='+(jdPointerLabel(d[0].pointer,false).indexOf('根节点')>=0?'1':'0')+' same='+(d[0].pathRight===d[0].path?'1':'0');"],
+    expect: ["ROOT ptr=1 label=1 same=1"],
+    ref: "第1051批：根节点替换的 JSON Pointer 必须是空字符串，不能显示成 '/'（'/' 表示空字符串键）；路径视图与复制文本都要明确写“根节点，空指针”，JSON 导出仍保留空字符串。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"\":1}';document.getElementById('right').value='{\"\":2}';doDiff();switchView('paths');var t=copyDiff();document.getElementById('__tbProbe').textContent='EMPTY key='+(t.indexOf('（空键）')>=0?'1':'0')+' ptr='+(t.indexOf('[/]')>=0?'1':'0')+' root='+(t.indexOf('（根节点，空指针）')>=0?'0':'1');"],
+    expect: ["EMPTY key=1 ptr=1 root=1"],
+    ref: "第1051批：空字符串键的 JSON Pointer 是 '/'，要显示为“空键”而不是根节点；复制文本必须同时含 `[/]` 且不含根节点说明。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"a/b\":1,\"x~y\":2}';document.getElementById('right').value='{\"a/b\":3,\"x~y\":4}';doDiff();var d=lastDiff;document.getElementById('__tbProbe').textContent='ESC '+d.map(function(x){return x.pointer;}).join('|');"],
+    expect: ["ESC /a~1b|/x~0y"],
+    ref: "第1051批：含 / 与 ~ 的键仍按 RFC 6901 转义（/a~1b、/x~0y），不能被新增的左右指针字段破坏。",
+  },
+  {
+    slug: "it/json-diff",
+    clicks: ["document.getElementById('left').value='{\"arr\":[1]}';document.getElementById('right').value='{\"arr\":[{\"a\":2}]}';document.getElementById('arrayMatch').checked=true;doDiff();var d=lastDiff;document.getElementById('__tbProbe').textContent='TYPEMIX '+d.map(function(x){return x.op;}).join(',')+' '+d.map(function(x){return x.path;}).join(',');"],
+    expect: ["TYPEMIX del,add arr[0],arr[0]"],
+    ref: "第1051批：内容无法可靠配对且类型不同（数字 vs 对象）时，必须拆成删除 + 新增，不能强行报成同路径 mod。",
+  },
+
   // ---- 第723批：JSON 差异重复键、大整数与顶层假值 ----
   {
     "slug": "it/json-diff",

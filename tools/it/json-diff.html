@@ -662,21 +662,21 @@ function jdType(v) {
   return Array.isArray(v) ? 'array' : (v === null ? 'null' : typeof v);
 }
 
-function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
+function deepDiff(a, b, path = '', arrayMatch = false, pointer = '', pathRight = path, pointerRight = pointer) {
   const diffs = [];
   if (a === b && !(a instanceof JDNumber)) return diffs;
 
   const ta = jdType(a), tb = jdType(b);
 
   if (ta !== tb) {
-    diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
+    diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer, pathRight: pathRight || '(root)', pointerRight: pointerRight });
     return diffs;
   }
 
   // 数字按「数值语义」比较：大整数原样保留，1 / 1.0 / 1e0 视为同一个值
   if (ta === 'number') {
     if (jdNumKey(jdNumRaw(a)) !== jdNumKey(jdNumRaw(b))) {
-      diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
+      diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer, pathRight: pathRight || '(root)', pointerRight: pointerRight });
     }
     return diffs;
   }
@@ -689,14 +689,16 @@ function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
     for (const k of allKeys) {
       const curPath = path ? path + '.' + k : k;
       const curPointer = pointer + '/' + k.replace(/~/g, '~0').replace(/\//g, '~1');
+      const curPathRight = pathRight ? pathRight + '.' + k : k;
+      const curPointerRight = pointerRight + '/' + k.replace(/~/g, '~0').replace(/\//g, '~1');
       const inA = Object.prototype.hasOwnProperty.call(a, k);
       const inB = Object.prototype.hasOwnProperty.call(b, k);
       if (!inB) {
-        diffs.push({ op: 'del', path: curPath, value: a[k], pointer: curPointer });
+        diffs.push({ op: 'del', path: curPath, value: a[k], pointer: curPointer, pathRight: null, pointerRight: null });
       } else if (!inA) {
-        diffs.push({ op: 'add', path: curPath, value: b[k], pointer: curPointer });
+        diffs.push({ op: 'add', path: curPath, value: b[k], pointer: curPointer, pathRight: curPathRight, pointerRight: curPointerRight });
       } else {
-        diffs.push(...deepDiff(a[k], b[k], curPath, arrayMatch, curPointer));
+        diffs.push(...deepDiff(a[k], b[k], curPath, arrayMatch, curPointer, curPathRight, curPointerRight));
       }
     }
     return diffs;
@@ -733,10 +735,19 @@ function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
         const pendingB = restB.filter(j => !usedB.has(j));
         const k2 = Math.min(pendingA.length, pendingB.length);
         for (let t = 0; t < k2; t++) {
-          diffs.push(...deepDiff(a[pendingA[t]], b[pendingB[t]], path + '[' + pendingA[t] + ']', arrayMatch, pointer + '/' + pendingA[t]));
+          const ai = pendingA[t], bi = pendingB[t];
+          const lp = pointer + '/' + ai, rp = pointerRight + '/' + bi;
+          const lpath = path + '[' + ai + ']', rpath = pathRight + '[' + bi + ']';
+          // 只有两侧类型一致才视为修改；类型都不同时分别按删除/新增表示，避免暗示同一条路径。
+          if (jdType(a[ai]) === jdType(b[bi])) {
+            diffs.push(...deepDiff(a[ai], b[bi], lpath, arrayMatch, lp, rpath, rp));
+          } else {
+            diffs.push({ op: 'del', path: lpath, value: a[ai], pointer: lp, pathRight: null, pointerRight: null });
+            diffs.push({ op: 'add', path: rpath, value: b[bi], pointer: rp, pathRight: rpath, pointerRight: rp });
+          }
         }
-        for (let t = k2; t < pendingA.length; t++) diffs.push({ op: 'del', path: path + '[' + pendingA[t] + ']', value: a[pendingA[t]], pointer: pointer + '/' + pendingA[t] });
-        for (let t = k2; t < pendingB.length; t++) diffs.push({ op: 'add', path: path + '[' + pendingB[t] + ']', value: b[pendingB[t]], pointer: pointer + '/' + pendingB[t] });
+        for (let t = k2; t < pendingA.length; t++) diffs.push({ op: 'del', path: path + '[' + pendingA[t] + ']', value: a[pendingA[t]], pointer: pointer + '/' + pendingA[t], pathRight: null, pointerRight: null });
+        for (let t = k2; t < pendingB.length; t++) diffs.push({ op: 'add', path: pathRight + '[' + pendingB[t] + ']', value: b[pendingB[t]], pointer: pointerRight + '/' + pendingB[t], pathRight: pathRight + '[' + pendingB[t] + ']', pointerRight: pointerRight + '/' + pendingB[t] });
         return diffs;
       }
     }
@@ -745,17 +756,17 @@ function deepDiff(a, b, path = '', arrayMatch = false, pointer = '') {
       const curPath = path + '[' + i + ']';
       const curPointer = pointer + '/' + i;
       if (i >= a.length) {
-        diffs.push({ op: 'add', path: curPath, value: b[i], pointer: curPointer });
+        diffs.push({ op: 'add', path: curPath, value: b[i], pointer: curPointer, pathRight: curPath, pointerRight: curPointer });
       } else if (i >= b.length) {
-        diffs.push({ op: 'del', path: curPath, value: a[i], pointer: curPointer });
+        diffs.push({ op: 'del', path: curPath, value: a[i], pointer: curPointer, pathRight: null, pointerRight: null });
       } else {
-        diffs.push(...deepDiff(a[i], b[i], curPath, arrayMatch, curPointer));
+        diffs.push(...deepDiff(a[i], b[i], curPath, arrayMatch, curPointer, curPath, curPointer));
       }
     }
     return diffs;
   }
   
-  diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer });
+  diffs.push({ op: 'mod', path: path || '(root)', from: a, to: b, pointer: pointer, pathRight: pathRight || '(root)', pointerRight: pointerRight });
   return diffs;
 }
 
@@ -773,13 +784,13 @@ function simpleDiff(a, b) {
       const inA = Object.prototype.hasOwnProperty.call(a, k);
       const inB = Object.prototype.hasOwnProperty.call(b, k);
       const cp = '/' + k.replace(/~/g, '~0').replace(/\//g, '~1');
-      if (!inB) diffs.push({ op: 'del', path: k, value: a[k], pointer: cp });
-      else if (!inA) diffs.push({ op: 'add', path: k, value: b[k], pointer: cp });
-      else if (jdKey(a[k]) !== jdKey(b[k])) diffs.push({ op: 'mod', path: k, from: a[k], to: b[k], pointer: cp });
+      if (!inB) diffs.push({ op: 'del', path: k, value: a[k], pointer: cp, pathRight: null, pointerRight: null });
+      else if (!inA) diffs.push({ op: 'add', path: k, value: b[k], pointer: cp, pathRight: k, pointerRight: cp });
+      else if (jdKey(a[k]) !== jdKey(b[k])) diffs.push({ op: 'mod', path: k, from: a[k], to: b[k], pointer: cp, pathRight: k, pointerRight: cp });
     }
     return diffs;
   }
-  if (jdKey(a) !== jdKey(b)) diffs.push({ op: 'mod', path: '(root)', from: a, to: b, pointer: '' });
+  if (jdKey(a) !== jdKey(b)) diffs.push({ op: 'mod', path: '(root)', from: a, to: b, pointer: '', pathRight: '(root)', pointerRight: '' });
   return diffs;
 }
 
@@ -956,6 +967,18 @@ function invalidateDiff() {
   jdSetExportState(false);
 }
 
+function jdPathLabel(d, en) {
+  // path 为空字符串（对根）时 deepDiff 会写成 (root)；空字符串键的 pointer 是 '/'，必须与根节点区分。
+  if (d.path === '(root)' && d.pointer && d.pointer !== '') return en ? '(empty key)' : '（空键）';
+  return d.path;
+}
+
+function jdPointerLabel(pointer, en) {
+  if (pointer === undefined || pointer === null) return '';
+  if (pointer === '') return en ? '(root, empty pointer)' : '（根节点，空指针）';
+  return String(pointer);
+}
+
 function doDiff() {
   const leftVal = document.getElementById('left').value;
   const rightVal = document.getElementById('right').value;
@@ -1016,10 +1039,10 @@ function doDiff() {
       : diffs.map(d => `
         <div class="path-item">
           <span class="path-type ${d.op}">${d.op === 'add' ? '新增' : d.op === 'del' ? '删除' : '修改'}</span>
-          <span style="flex:1;">${escapeHtml(d.path)}</span>
+          <span style="flex:1;">${escapeHtml(jdPathLabel(d, jdIsEn()))}${(d.pathRight && d.pathRight !== d.path) ? ' → ' + escapeHtml(d.pathRight) : ''}</span>
           <span style="color:var(--text-muted);font-size:11px;">
             ${d.op === 'mod' ? escapeHtml(formatValue(d.from)) + ' → ' + escapeHtml(formatValue(d.to)) : escapeHtml(formatValue(d.value))}
-            ${d.pointer !== undefined ? `<code style="margin-left:8px;color:var(--text-muted);font-size:11px;">JSON Pointer: ${escapeHtml(d.pointer || '/')}</code>` : ''}
+            ${d.pointer !== undefined ? `<code style="margin-left:8px;color:var(--text-muted);font-size:11px;">JSON Pointer: ${jdIsEn() ? 'L ' : '左 '}${escapeHtml(jdPointerLabel(d.pointer, jdIsEn()))}${(d.pointerRight !== undefined && d.pointerRight !== null && d.pointerRight !== d.pointer) ? (jdIsEn() ? ' / R ' : ' / 右 ') + escapeHtml(jdPointerLabel(d.pointerRight, jdIsEn())) : ''}</code>` : ''}
           </span>
         </div>
       `).join('');document.getElementById('pathList').innerHTML=__h3;
@@ -1064,9 +1087,13 @@ function copyDiff() {
     const diffs = lastDiff;
     if (!diffs.length) text = jdEmptyText();
     else text = diffs.map(d => {
+      const en = jdIsEn();
       const icon = d.op === 'add' ? '+ ' : d.op === 'del' ? '- ' : '~ ';
       const val = d.op === 'mod' ? `${jdStringify(d.from)} → ${jdStringify(d.to)}` : jdStringify(d.value);
-      return `${icon}${d.path} [${d.pointer || '/'}]: ${val}`;
+      const left = `${jdPathLabel(d, en)} [${jdPointerLabel(d.pointer, en)}]`;
+      const rightDiff = (d.pathRight && d.pathRight !== d.path) || (d.pointerRight !== undefined && d.pointerRight !== null && d.pointerRight !== d.pointer);
+      const right = rightDiff ? ` → ${d.pathRight} [${jdPointerLabel(d.pointerRight, en)}]` : '';
+      return `${icon}${left}${right}: ${val}`;
     }).join('\n');
   }
   if (!text) { ToolBox.showToast(i18nText('toast.msg474')); return ''; }
