@@ -138,7 +138,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入建筑面积、公摊系数、物业费单价与缴费周期，计算套内面积、公摊面积、物业费与公摊费用，并汇总应缴总额。">Calc Shared Property Fee</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">公摊面积 = 建筑面积 × 公摊系数；套内面积 = 建筑面积 − 公摊面积；物业费 = 建筑面积 × 物业单价 × 月数，公摊费 = 公摊面积 × 公摊单价 × 月数；应缴总额 = 两者之和，月均 = 总额 ÷ 月数。校验：建筑面积须大于 0、公摊系数须在 0–100% 区间，自定义月数按四舍五入且至少取 1。判据：月均用于分摊到单月核对，总额即该周期应缴口径。</div>
+      <div class="formula-eq">公摊面积 = 建筑面积 × 公摊系数；套内面积 = 建筑面积 − 公摊面积；物业费 = 建筑面积 × 物业单价 × 月数；公摊费是否单列由“公摊费用口径”决定：单列时 = 公摊面积 × 公摊单价 × 月数，已含在物业费内时记 0；应缴总额 = 物业费 + 单列公摊费，月均 = 总额 ÷ 月数。校验：建筑面积必须大于 0，公摊系数 0–100%，物业费/公摊费单价不得为空或负数（0 合法），自定义月数必须为大于 0 的整数；任一无效即停止计算并指出字段。计费假设：物业费按建筑面积计，公摊费按公摊面积单列或视为已含；未考虑滞纳金、优惠、空置减免、税费等。请对照合同与收费公示核对，避免重复计费。</div>
       <p class="formula-desc">输入建筑面积、公摊系数、物业费单价与缴费周期，计算套内面积、公摊面积、物业费与公摊费用，并汇总应缴总额。</p>
     </div>
 
@@ -161,6 +161,9 @@
         </select>
       </div>
       <div><label for="customPeriod">自定义周期（月）</label><input type="number" id="customPeriod" value="12" min="1" step="1" oninput="calc()" enterkeyhint="done" placeholder="如 12"></div>
+    </div>
+    <div class="input-row">
+      <div><label for="sharedMode">公摊费用口径</label><select id="sharedMode" onchange="calc()"><option value="separate">公摊费单列（另收）</option><option value="included">已含在物业费内（不另收）</option></select></div>
     </div>
 
     <div class="toolbar">
@@ -215,15 +218,35 @@ var HKEY='tb_property_fee_history';
 function num(id){var v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function fmt(n,d){if(!isFinite(n))return '-';d=d==null?2:d;return n.toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
-  var area=num('totalArea'),ratio=num('sharedRatio')/100,feeRate=num('feeRate'),sharedRate=num('sharedFeeRate');
+  var res=document.getElementById('res');
+  function field(id,label,opt){
+    opt=opt||{};
+    var el=document.getElementById(id);
+    var raw=el?String(el.value).trim():'';
+    if(raw==='')throw new Error('「'+label+'」未填写（0 为合法值）。');
+    var v=parseFloat(raw);
+    if(!isFinite(v))throw new Error('「'+label+'」请输入有效数字。');
+    if(opt.int&&Math.abs(Math.round(v)-v)>1e-9)throw new Error('「'+label+'」必须为整数。');
+    if(opt.min!==undefined&&v<opt.min)throw new Error('「'+label+'」不能小于 '+opt.min+'。');
+    if(opt.max!==undefined&&v>opt.max)throw new Error('「'+label+'」不能大于 '+opt.max+'。');
+    return v;
+  }
+  var area,ratio,feeRate,sharedRate,period;
   var periodSelect=document.getElementById('period').value;
-  var period=periodSelect==='custom'?Math.max(1,Math.round(num('customPeriod'))):parseInt(periodSelect);
-  if(area<=0||ratio<0||ratio>1){document.getElementById('res').innerHTML='<p style="color:var(--danger);">请输入有效的建筑面积与公摊系数（0–100%）。</p>';return;}
+  var sharedMode=document.getElementById('sharedMode').value;
+  try{
+    area=field('totalArea','建筑面积',{min:0.000001});
+    ratio=field('sharedRatio','公摊系数（%）',{min:0,max:100})/100;
+    feeRate=field('feeRate','物业费单价',{min:0});
+    sharedRate=field('sharedFeeRate','公摊费用单价',{min:0});
+    period=periodSelect==='custom'?field('customPeriod','自定义周期（月）',{int:true,min:1}):parseInt(periodSelect);
+    if(!isFinite(period)||period<1||Math.abs(Math.round(period)-period)>1e-9)throw new Error('缴费周期无效，请选择正整数月。');
+  }catch(e){res.innerHTML='<div class="info-box">'+e.message+'</div>';return;}
 
   var sharedArea=area*ratio;
   var innerArea=area-sharedArea;
   var propertyFee=area*feeRate*period;
-  var sharedFee=sharedArea*sharedRate*period;
+  var sharedFee=(sharedMode==='separate')?sharedArea*sharedRate*period:0;
   var total=propertyFee+sharedFee;
   var monthly=total/period;
 
@@ -234,33 +257,35 @@ function calc(){
     '<div class="stat-card"><div class="val">'+fmt(sharedFee,2)+'</div><div class="lbl">公摊费（元）</div></div>'+
     '</div>';
 
+  var sharedNote=(sharedMode==='separate')?'按公摊面积单列另收':'已含在物业费内，不另收';
   var rows=[
     ['建筑面积',fmt(area,2)+' ㎡',''],
     ['公摊系数',fmt(ratio*100,1)+'%',''],
     ['公摊面积',fmt(sharedArea,2)+' ㎡',''],
     ['套内面积',fmt(innerArea,2)+' ㎡',''],
-    ['物业费单价',fmt(feeRate,2)+' 元/㎡·月',''],
-    ['公摊费单价',fmt(sharedRate,2)+' 元/㎡·月','按公摊面积'],
+    ['物业费单价',fmt(feeRate,2)+' 元/㎡·月','按建筑面积'],
+    ['公摊费单价',fmt((sharedMode==='separate'?sharedRate:0),2)+' 元/㎡·月',sharedNote],
     ['缴费周期',period+' 个月',periodSelect==='custom'?'自定义':''],
     ['物业费小计',fmt(propertyFee,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"),'建筑面积 × 单价 × 周期'],
-    ['公摊费小计',fmt(sharedFee,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"),'公摊面积 × 单价 × 周期'],
-    ['费用合计',fmt(total,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"),'物业费 + 公摊费']
+    ['公摊费小计',fmt(sharedFee,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"),sharedNote],
+    ['费用合计',fmt(total,2)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" CNY":" 元"),'物业费 + 单列公摊费']
   ];
   var tbl=ToolBox.createTable(['项目',((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Value":"数值"),'说明'],rows);
 
-  const __g2=cards+
+  var html=cards+
     '<h3 style="margin-top:12px;">📋 费用明细</h3>'+tbl+
     '<div class="result-box" style="margin-top:8px;">'+
     '<p>应缴总额：<strong>'+fmt(total,2)+' 元</strong>（共 '+period+' 个月），月均 <strong>'+fmt(monthly,2)+' 元</strong>。</p>'+
-    '<p>其中物业费 '+fmt(propertyFee,2)+' 元，公摊费 '+fmt(sharedFee,2)+' 元；公摊面积 '+fmt(sharedArea,2)+' ㎡，套内面积 '+fmt(innerArea,2)+' ㎡。</p>'+
-    '<p style="color:var(--text-muted);font-size:12px;">若公摊费已包含在物业费单价中，可将“公摊费用单价”设为 0。</p>'+
-    '</div>';document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    '<p>其中物业费 '+fmt(propertyFee,2)+' 元，公摊费 '+fmt(sharedFee,2)+' 元（'+sharedNote+'）；公摊面积 '+fmt(sharedArea,2)+' ㎡，套内面积 '+fmt(innerArea,2)+' ㎡。</p>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:10px;">计费假设：物业费按建筑面积计；公摊费按公摊面积单列，或视为已含在物业费内（不另收）。本结果未考虑滞纳金、优惠、空置减免、税费等，也未自动判断合同口径。请对照物业合同、收费公示或账单核对：若合同按套内面积收费或公摊已并入物业费，应相应调整，避免重复计费。</div>';
+  res.innerHTML=html;
   saveHistory({area:area,ratio:ratio*100,feeRate:feeRate,sharedRate:sharedRate,period:period,total:total});
 }
 function copyRes(){var t=document.getElementById('res').innerText;if(!t.trim()){ToolBox.showToast(i18nText(), 'warning');return;}ToolBox.copyText(t);}
 function resetAll(){
   document.getElementById('totalArea').value=100;document.getElementById('sharedRatio').value=20;
-  document.getElementById('feeRate').value=2.5;document.getElementById('sharedFeeRate').value=0.5;
+  document.getElementById('feeRate').value=2.5;document.getElementById('sharedFeeRate').value=0.5;var sm=document.getElementById('sharedMode');if(sm)sm.value='separate';
   document.getElementById('period').value='12';document.getElementById('customPeriod').value=12;
   calc();ToolBox.showToast(i18nText(), 'info');
 }
