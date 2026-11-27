@@ -138,13 +138,22 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按报修与响应时刻计算维修响应时长，并对照 SLA 阈值判定达标等级，用于物业报修服务考核。">Maintenance</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">响应时长 = 响应时刻 − 报修时刻（分钟）；SLA 例：≤30 分钟优秀、≤60 分钟良好</div>
-      <p class="formula-desc">物业维修响应时效以报修到响应的间隔衡量：将报修/响应时刻折算为当日分钟数，响应时长=响应−报修。对照 SLA 阈值（如 30/60 分钟）判定达标等级，用于服务考核与改进。</p>
+      <div class="formula-eq">响应时长 = 响应时间 − 报修时间；跨日自动计算，SLA 阈值可配置（默认 ≤30 分钟优秀、≤60 分钟良好）</div>
+      <p class="formula-desc">输入完整报修与响应日期时间，跨日不再按当日分钟相减。可选自然时间（24 小时连续）或工作时间（周一至周五指定时段）口径；工作时间口径不内置法定节假日，遇节假日请改用自然时间或另行扣除。</p>
     </div>
     <div class="input-row">
-      <div><label for="v0">报修时刻 (分钟, 0-1439)</label><input type="number" id="v0" value="570" step="any" oninput="calc()" enterkeyhint="done" aria-label="报修" placeholder="如 570"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label for="v1">响应时刻 (分钟)</label><input type="number" id="v1" value="595" step="any" oninput="calc()" enterkeyhint="done" aria-label="响应" placeholder="如 595"></div>
+      <div><label for="v0">报修时间</label><input type="datetime-local" id="v0" value="2026-11-27T09:30" oninput="calc()" aria-label="报修时间"></div>
+      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换报修/响应" aria-label="互换报修/响应" style="padding:10px 12px;">⇄</button></div>
+      <div><label for="v1">响应时间</label><input type="datetime-local" id="v1" value="2026-11-27T10:05" oninput="calc()" aria-label="响应时间"></div>
+    </div>
+    <div class="input-row">
+      <div><label for="v2">优秀阈值（分钟）</label><input type="number" id="v2" value="30" min="1" step="1" oninput="calc()" aria-label="优秀阈值"></div>
+      <div><label for="v3">良好阈值（分钟）</label><input type="number" id="v3" value="60" min="1" step="1" oninput="calc()" aria-label="良好阈值"></div>
+      <div><label for="mode">计时口径</label><select id="mode" onchange="syncMode()"><option value="natural">自然时间（24 小时连续）</option><option value="work">工作时间（周一至周五）</option></select></div>
+    </div>
+    <div class="input-row" id="workRow" style="display:none;">
+      <div><label for="v4">工作开始（时）</label><input type="number" id="v4" value="9" min="0" max="23" step="1" oninput="calc()" aria-label="工作开始小时"></div>
+      <div><label for="v5">工作结束（时）</label><input type="number" id="v5" value="18" min="1" max="24" step="1" oninput="calc()" aria-label="工作结束小时"></div>
     </div>
     <div class="toolbar">
       <div id="response_1Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__response_1Export()">导出明细 CSV</button>
@@ -152,7 +161,7 @@
       <button class="btn" type="button" onclick="resetAll()">🗑️ 重置</button>
     </div>
     <div class="result-box" id="res"></div> <div id="response_1Table"></div> <div id="response_1Diff"></div> <div id="response_1Chart"></div> <div id="response_1Hist"></div>
-    <div class="info-box">💡 响应时长 = 响应时刻 − 报修时刻（分钟）；≤30 分钟优秀，≤60 分钟良好。</div>
+    <div class="info-box">💡 响应时长按所选计时口径计算；自然时间含夜间、周末与节假日，工作时间仅计周一至周五指定时段且未内置法定节假日。</div>
 <div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -216,10 +225,12 @@ function copyRes(){
   ToolBox.copyText(text);
 }
 function resetAll(){
-  document.getElementById('v0').value=100;
-  document.getElementById('v1').value=50;
-  setInvalid(document.getElementById('v0'),false);
-  setInvalid(document.getElementById('v1'),false);
+  document.getElementById('v0').value='2026-11-27T09:30';
+  document.getElementById('v1').value='2026-11-27T10:05';
+  document.getElementById('v2').value=30;
+  document.getElementById('v3').value=60;
+  document.getElementById('mode').value='natural';
+  document.getElementById('workRow').style.display='none';
   calc();
   ToolBox.showToast(i18nText(), 'info');
 }
@@ -284,22 +295,53 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function parseDT(id){var el=document.getElementById(id);if(!el||!el.value)return null;var d=new Date(el.value);return isFinite(d.getTime())?d:null;}
+function workMinutes(a,b,ws,we){
+  var total=0,cursor=new Date(a.getTime());
+  while(cursor<b){
+    var dy=cursor.getFullYear(),dm=cursor.getMonth(),dd=cursor.getDate();
+    var dayStart=new Date(dy,dm,dd,ws,0,0,0),dayEnd=new Date(dy,dm,dd,we,0,0,0);
+    var st=cursor>dayStart?cursor:dayStart,en=b<dayEnd?b:dayEnd;
+    var wd=new Date(dy,dm,dd).getDay();
+    if(en>st&&wd>=1&&wd<=5){total+=(en-st)/60000;}
+    cursor=new Date(dy,dm,dd+1,0,0,1);
+  }
+  return total;
+}
+function syncMode(){
+  var m=document.getElementById('mode'),row=document.getElementById('workRow');
+  if(m&&row){row.style.display=(m.value==='work')?'':'none';}
+  calc();
+}
 function calc(){
-  var e0=document.getElementById('v0'),e1=document.getElementById('v1');
-  var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
-  if(!(B>=A)){box.innerHTML='<div class="info-box">响应时刻应不早于报修时刻。</div>';return;}
+  var en=/lang=en/i.test(location.search)||((document.documentElement.getAttribute('lang')||'').indexOf('en')===0)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  function T(z,e){return en?e:z;}
+  var A=parseDT('v0'),B=parseDT('v1');
+  if(!A||!B){box.innerHTML='<div class="info-box">请填写完整的报修时间与响应时间后再计算，未填写不输出结论。</div>';return;}
+  if(B<A){box.innerHTML='<div class="info-box">响应时间不得早于报修时间，请检查跨日与日期。</div>';return;}
+  var e2=document.getElementById('v2'),e3=document.getElementById('v3');
+  var ex=e2?parseFloat(e2.value):NaN,gd=e3?parseFloat(e3.value):NaN;
+  if(!isFinite(ex)||!isFinite(gd)||ex<=0||gd<=0){box.innerHTML='<div class="info-box">优秀/良好阈值必须为大于 0 的分钟数。</div>';return;}
+  if(gd<ex){box.innerHTML='<div class="info-box">良好阈值不得小于优秀阈值。</div>';return;}
+  var mode=(document.getElementById('mode')||{}).value||'natural',mins;
+  if(mode==='work'){
+    var ws=parseFloat((document.getElementById('v4')||{}).value),we=parseFloat((document.getElementById('v5')||{}).value);
+    if(!isFinite(ws)||!isFinite(we)||ws<0||ws>23||we<1||we>24||we<=ws){box.innerHTML='<div class="info-box">工作时间须满足 0 ≤ 开始 < 结束 ≤ 24。</div>';return;}
+    mins=workMinutes(A,B,ws,we);
+    if(mins<=0){box.innerHTML='<div class="info-box">所选区间内没有可计入的工作时间（周一至周五 '+ws+':00–'+we+':00），本次不输出结论。</div>';return;}
+  }else{mins=(B-A)/60000;}
+  var lvl=mins<=ex?T('优秀','Excellent'):(mins<=gd?T('良好','Good'):T('超时','Overdue'));
   var items=[];
-  items.push([(B-A).toFixed(0)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?" min":" 分钟"), "响应时长"]);
-  items.push([((B-A)/60).toFixed(2)+" h", "折算小时"]);
-  items.push([((B-A)<=30?"优秀":((B-A)<=60?"良好":"超时")), "SLA 等级"]);
-
+  items.push([mins.toFixed(1)+(en?" min":" 分钟"),T("响应时长","Response time")]);
+  items.push([(mins/60).toFixed(2)+" h",T("折算小时","In hours")]);
+  items.push([lvl,T("SLA 等级","SLA level")]);
+  items.push([mode==='work'?T("工作时间","Work hours"):T("自然时间","Natural time"),T("计时口径","Time basis")]);
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 响应时长 = 响应时刻 − 报修时刻（分钟）；≤30 分钟优秀，≤60 分钟良好。';
-  const __g7=html;box.innerHTML=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
-  if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">'+T('口径：','Time basis: ')+(mode==='work'?T('仅计周一至周五指定工作时段，未内置法定节假日。','counts only the specified weekday work window; statutory holidays are not built in.'):T('24 小时连续计时，含夜间、周末与节假日。','continuous 24-hour clock, including nights, weekends and holidays.'))+T(' 阈值：≤',' Thresholds: ≤')+ex+T(' 分钟优秀，≤',' min excellent, ≤')+gd+T(' 分钟良好。',' min good.')+'</p>';
+  box.innerHTML=html;
+  if(typeof saveHistory==='function'){try{saveHistory(A.getTime(),B.getTime());}catch(e){}}
 }
 function resetAll(){
   var a=document.getElementById('v0'),b=document.getElementById('v1');
@@ -422,7 +464,7 @@ function __response_1Export(){
 }
 function __response_1Presets(){
     if (typeof TBKit === 'undefined') return;
-    TBKit.preset.bar('#response_1Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'570', 'v1':'595'}},{"label":"白天 9:30 报修","labelEn":"Daytime 9:30 report","values":{"v0":"570","v1":"578"}},{"label":"夜间 22:10 报修","labelEn":"Night 22:10 report","values":{"v0":"1330","v1":"1345"}},{"label":"周末 14:00 报修","labelEn":"Weekend 14:00 report","values":{"v0":"840","v1":"860"}}],function(){ calc(); });
+    TBKit.preset.bar('#response_1Presets',[{label:'默认参数',labelEn:'Default',values:{'v0':'2026-11-27T09:30','v1':'2026-11-27T10:05'}},{label:'跨日 22:10 → 次日 08:15',labelEn:'Overnight 22:10 to next 08:15',values:{'v0':'2026-11-27T22:10','v1':'2026-11-28T08:15'}},{label:'周末 14:00 → 14:20',labelEn:'Weekend 14:00 to 14:20',values:{'v0':'2026-11-28T14:00','v1':'2026-11-28T14:20'}},{label:'超时 2 小时',labelEn:'Overdue 2 h',values:{'v0':'2026-11-27T09:00','v1':'2026-11-27T11:00'}}],function(){ calc(); });
 }
 var __response_1_f0=(typeof calc==='function')?calc:null;
 if(__response_1_f0){
