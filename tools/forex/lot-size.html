@@ -141,8 +141,8 @@
     <h2 data-zh="🧮 外汇手数计算器">Forex Lot Size Calculator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据账户资金与止损点数，计算合适的交易手数">Lot Size - online utility on ToolBox.</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">每手每点价值 = 100,000 × 点值(pipSize) ÷ 1 USD 兑报价货币数；每手止损风险 = 止损点数 × 每手每点价值；建议手数 = 风险金额 ÷ 每手止损风险</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：balance × riskPct ÷ 100；min(calcLots, maxLots)">Key formulas: balance × riskPct ÷ 100; min(calcLots, maxLots)</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">每手每点价值 = 100,000 × 点值(pipSize) ÷ 1 USD 兑报价货币数；每手止损风险 = 止损点数 × 每手每点价值；建议手数 = floor(min(风险金额 ÷ 每手止损风险, 最大手数) ÷ 手数步长) × 手数步长</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：balance × riskPct ÷ 100；min(calcLots, maxLots)">Key formulas: balance × riskPct ÷ 100; floor(min(calcLots, maxLots) / lotStep) × lotStep</p>
     </div>
 
     <div class="input-row">
@@ -194,6 +194,16 @@
       <div>
         <label for="maxLots">最大手数限制</label>
         <input type="number" id="maxLots" value="10" step="1" min="0" oninput="calc()" placeholder="如 10">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="minLot">平台最小手数</label>
+        <input type="number" id="minLot" value="0.01" step="0.01" min="0" oninput="calc()" placeholder="如 0.01">
+      </div>
+      <div>
+        <label for="lotStep">手数步长</label>
+        <input type="number" id="lotStep" value="0.01" step="0.01" min="0.0001" oninput="calc()" placeholder="如 0.01">
       </div>
     </div>
 
@@ -322,6 +332,15 @@ function onPairChange(){
   calc();
 }
 
+function lotDecimals(step){
+  var s=String(step);
+  if(s.indexOf('.')>=0){var d=s.split('.')[1].length;return Math.min(6,Math.max(0,d));}
+  return 0;
+}
+function floorToLotStep(v,step){
+  var dp=lotDecimals(step);
+  return +(Math.floor((v+1e-9)/step)*step).toFixed(dp);
+}
 function calc(){
   var balance = getVal('balance');
   var riskPct = getVal('riskPct');
@@ -333,10 +352,12 @@ function calc(){
   var quoteUsdRate = getVal('quoteUsdRate');
   var targetPips = getVal('targetPips');
   var maxLots = getVal('maxLots');
+  var minLot = getVal('minLot');
+  var lotStep = getVal('lotStep');
 
-  if(balance <= 0 || stopPips <= 0 || quoteUsdRate <= 0){
+  if(balance <= 0 || stopPips <= 0 || quoteUsdRate <= 0 || maxLots <= 0 || lotStep <= 0 || riskPct < 0 || riskPct > 100 || minLot < 0 || targetPips < 0){
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的账户余额、止损点数和汇率</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的账户余额、风险比例、止损点数、汇率、最大手数和手数步长</p>';
     return;
   }
 
@@ -344,13 +365,18 @@ function calc(){
   var pipValuePerLot = 100000 * pipSize / quoteUsdRate;
   var riskPerLot = stopPips * pipValuePerLot;
   var calcLots = riskPerLot > 0 ? riskAmount / riskPerLot : 0;
-  var safeLots = Math.min(calcLots, maxLots);
+  var cappedLots = Math.min(calcLots, maxLots);
+  var executableLots = floorToLotStep(cappedLots, lotStep);
+  var meetsMin = executableLots > 0 && executableLots >= minLot;
+  var safeLots = meetsMin ? executableLots : 0;
   var actualRisk = safeLots * riskPerLot;
   var actualRiskPct = balance > 0 ? actualRisk / balance * 100 : 0;
   var potentialProfit = targetPips > 0 ? safeLots * targetPips * pipValuePerLot : 0;
   var rrRatio = stopPips > 0 ? targetPips / stopPips : 0;
+  var lotDp = lotDecimals(lotStep);
+  var minLotDp = Math.max(lotDp,lotDecimals(minLot));
 
-  var statHtml = '<div class="stat-card"><div class="val">' + safeLots.toFixed(2) + '</div><div class="lbl">建议手数</div></div>'
+  var statHtml = '<div class="stat-card"><div class="val">' + safeLots.toFixed(lotDp) + '</div><div class="lbl">建议手数</div></div>'
     + '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(riskAmount, 0) + '</div><div class="lbl">风险金额</div></div>'
     + '<div class="stat-card"><div class="val">$' + ToolBox.formatNumber(actualRisk, 2) + '</div><div class="lbl">实际亏损</div></div>'
     + '<div class="stat-card"><div class="val">' + rrRatio.toFixed(2) + '</div><div class="lbl">盈亏比</div></div>';
@@ -367,11 +393,15 @@ function calc(){
   html += '<p>每手止损风险 = ' + stopPips + ' × $' + ToolBox.formatNumber(pipValuePerLot, 4) + ' = <strong>$' + ToolBox.formatNumber(riskPerLot, 2) + '</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p>理论手数 = $' + ToolBox.formatNumber(riskAmount, 2) + ' ÷ $' + ToolBox.formatNumber(riskPerLot, 2) + ' = <strong>' + calcLots.toFixed(4) + ' 手</strong></p>';
-  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">建议交易手数 = ' + safeLots.toFixed(2) + ' 手</p>';
-  if(calcLots > maxLots){
-    html += '<div class="tip-box tip-warn">理论手数超过最大限制，已限制为 ' + maxLots + ' 手，实际风险比例为 ' + actualRiskPct.toFixed(2) + '%。</div>';
+  if(calcLots > maxLots) html += '<p>按最大手数限制后 = <strong>' + maxLots + ' 手</strong></p>';
+  html += '<p>按 ' + lotStep + ' 手步长向下取整 = <strong>' + executableLots.toFixed(lotDp) + ' 手</strong>（最低手数 ' + minLot.toFixed(minLotDp) + ' 手）</p>';
+  html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">建议交易手数 = ' + safeLots.toFixed(lotDp) + ' 手</p>';
+  if(!meetsMin){
+    html += '<div class="tip-box tip-warn">按步长向下取整后不足最低手数 ' + minLot.toFixed(minLotDp) + ' 手，当前风险预算无法满足该平台的最小下单量；请提高风险预算、缩小止损或调整平台参数。</div>';
+  } else if(calcLots > maxLots){
+    html += '<div class="tip-box tip-warn">理论手数超过最大限制，已限制为 ' + maxLots + ' 手，再按步长取整；实际风险比例为 ' + actualRiskPct.toFixed(2) + '%。</div>';
   }
-  html += '<p>实际最大亏损 = <strong style="color:var(--danger);">-$' + ToolBox.formatNumber(actualRisk, 2) + '</strong>（占账户 ' + actualRiskPct.toFixed(2) + '%）</p>';
+  html += '<p>实际最大亏损（按建议手数） = <strong style="color:var(--danger);">-$' + ToolBox.formatNumber(actualRisk, 2) + '</strong>（占账户 ' + actualRiskPct.toFixed(2) + '%）</p>';
   if(targetPips > 0){
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
     html += '<p style="font-weight:600;">止盈情景：</p>';
