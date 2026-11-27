@@ -96,6 +96,14 @@
         "@type": "Answer",
         "text": "简单的 D=H/tan(高度角) 假设遮挡物在正南。实际阴影有东西偏移，北向投影 = H·cos(方位角)/tan(高度角) 才是投射到正北方向的距离，能更准确判断对北侧地块的遮挡。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "目标时长为 0 或等于日长时怎么算？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "目标为 0 小时表示没有日照要求，工具返回所需间距 0，并明确这不是法定合规结论。目标恰等于当日理论日长时，边缘太阳高度角接近 0，公式无法形成有限间距；极夜下任何正目标都不可实现，极昼则按午夜太阳高度计算有限间距。实际项目应调整目标或采用专业日照分析。"
+      }
     }
   ]
 }
@@ -244,6 +252,11 @@ function calc(){
   if(isNaN(H)||H<=0||isNaN(phi)||Math.abs(phi)>90||isNaN(T)||T<0||!dateStr){
     document.getElementById('res').innerHTML='<p style="color:var(--danger);">'+(en?'Please enter valid values (building height > 0, latitude within ±90, target hours ≥ 0).':'请输入有效参数（建筑高度>0，纬度±90以内，目标时长≥0）')+'</p>';return;
   }
+  if(T===0){
+    var zeroNote=en?'Target daylight is 0 h: no spacing is required for a zero sunlight target. This is a geometric result, not a statutory daylight-compliance conclusion.':'目标日照时长为 0 小时：零日照要求下不需要为日照留间距；这是几何计算结果，不代表法定日照合规结论。';
+    document.getElementById('res').innerHTML='<div class="data-grid"><div class="data-card"><div class="num">0.00</div><div class="label">'+(en?'Required spacing (m)':'所需间距 (m)')+'</div></div></div><p style="margin-top:10px;font-size:13px;color:var(--text-light);">'+zeroNote+'</p><p style="font-size:12px;color:var(--text-muted);">'+(en?'Model assumes a south-facing facade, a ground-level target point and no other obstructions; facade orientation and window height require separate correction.':'模型按正南朝向、地面目标点、无其他遮挡估算；立面朝向与目标窗台高度需另行修正。')+'</p>';
+    window.__lastSpacing=0;saveHistory(H,phi,dateStr,0,'0.0');return;
+  }
   var N=dayOfYear(dateStr);
   var delta=declination(N);
   // 正午高度角（h=0）
@@ -253,8 +266,9 @@ function calc(){
   var h0 = (cosH0>=1)?0 : (cosH0<=-1?180:Math.acos(cosH0)*R2D);
   var dayLen=2*h0/15;
   var sunrise=12-h0/15, sunset=12+h0/15;
-  if(dayLen<=0.0001){document.getElementById('res').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ 该日期与纬度处于极夜，当日无日照，任何目标日照时长均不可实现。</p>';return;}
-  if(T>dayLen+1e-9){document.getElementById('res').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ 目标日照 '+T+' 小时超过当日理论日长 '+dayLen.toFixed(2)+' 小时，目标不可实现。</p>';return;}
+  if(dayLen<=0.0001){document.getElementById('res').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+(en?'This date and latitude are in polar night: there is no daylight, so any positive target duration is unattainable.':'该日期与纬度处于极夜，当日无日照，任何正的目标日照时长均不可实现。')+'</p>';return;}
+  if(T>dayLen+1e-9){document.getElementById('res').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+(en?'Target daylight '+T+' h exceeds the theoretical day length '+dayLen.toFixed(2)+' h; the target is unattainable.':'目标日照 '+T+' 小时超过当日理论日长 '+dayLen.toFixed(2)+' 小时，目标不可实现。')+'</p>';return;}
+  var atDayLength=Math.abs(T-dayLen)<=1e-6;
 
   // 目标日照边缘时角（正午对称）
   var hc=(T/2)*15;
@@ -262,13 +276,13 @@ function calc(){
   var altC=altitude(phi,delta,hc);
   var azC=azimuthSouth(phi,delta,hc,altC);
   // 简单日照间距 D=H/tan(altC)
-  var dSimple = altC>0 ? H/Math.tan(altC*D2R) : Infinity;
+  var dSimple = altC>0.01 ? H/Math.tan(altC*D2R) : Infinity;
   // 考虑方位角的北向投影 D=H*cos(az)/tan(altC)
-  var dAz = altC>0 ? H*Math.cos(azC*D2R)/Math.tan(altC*D2R) : Infinity;
+  var dAz = altC>0.01 ? H*Math.cos(azC*D2R)/Math.tan(altC*D2R) : Infinity;
   // 正午阴影长度
   var shadowNoon = altNoon>0 ? H/Math.tan(altNoon*D2R) : Infinity;
   // 日照间距系数
-  var coefSimple = altC>0 ? 1/Math.tan(altC*D2R) : Infinity;
+  var coefSimple = altC>0.01 ? 1/Math.tan(altC*D2R) : Infinity;
 
   var dateLabel=new Date(dateStr).toLocaleDateString('zh-CN',{month:'long',day:'numeric'});
 
@@ -279,14 +293,14 @@ function calc(){
     '<div class="data-card"><div class="num">'+dayLen.toFixed(2)+'</div><div class="label">日照时数 (h)</div></div>'+
     '</div>'+
     '<div class="data-grid" style="margin-top:8px;">'+
-    '<div class="data-card"><div class="num">'+(isFinite(dSimple)?dSimple.toFixed(2):'∞')+'</div><div class="label">最小日照间距 (m)</div></div>'+
-    '<div class="data-card"><div class="num">'+(isFinite(dAz)?dAz.toFixed(2):'∞')+'</div><div class="label">方位修正间距 (m)</div></div>'+
+    '<div class="data-card"><div class="num">'+(isFinite(dSimple)?dSimple.toFixed(2):'不可形成有限间距')+'</div><div class="label">最小日照间距 (m)</div></div>'+
+    '<div class="data-card"><div class="num">'+(isFinite(dAz)?dAz.toFixed(2):'不可形成有限间距')+'</div><div class="label">方位修正间距 (m)</div></div>'+
     '<div class="data-card"><div class="num">'+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+'</div><div class="label">日照间距系数</div></div>'+
     '<div class="data-card"><div class="num">'+altC.toFixed(2)+'°</div><div class="label">边缘高度角</div></div>'+
     '</div>'+
-    (en?'<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+' (latitude '+phi+'°N), target daylight '+T+' h: ensuring '+(T/2)+' h either side of noon gives a minimum spacing of about <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):'∞')+' m</strong> (spacing coefficient '+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+').</p>':'<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+'（北纬 '+phi+'°），目标日照 '+T+' 小时：保证正午前后各 '+(T/2)+' 小时日照，所需最小间距约 <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):'∞')+' m</strong>（间距系数 '+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+'）。</p>')+
+    (en?'<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+' (latitude '+phi+'°N), target daylight '+T+' h: ensuring '+(T/2)+' h either side of noon gives a minimum spacing of about <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):(en?'no finite spacing':'∞'))+' m</strong> (spacing coefficient '+(isFinite(coefSimple)?coefSimple.toFixed(3):'∞')+').</p>':'<p style="margin-top:10px;font-size:13px;color:var(--text-light);">📅 '+dateLabel+'（北纬 '+phi+'°），目标日照 '+T+' 小时：保证正午前后各 '+(T/2)+' 小时日照，所需最小间距约 <strong>'+(isFinite(dSimple)?dSimple.toFixed(2):(en?'no finite spacing':'∞'))+' m</strong>（间距系数 '+(isFinite(coefSimple)?coefSimple.toFixed(3):(en?'∞':'∞'))+'）。</p>')+
     (en?'<p style="font-size:12px;color:var(--text-muted);">⏰ Sunrise '+sunrise.toFixed(2)+' / sunset '+sunset.toFixed(2)+' (solar time)</p>':'<p style="font-size:12px;color:var(--text-muted);">⏰ 日出 '+sunrise.toFixed(2)+' 时 / 日落 '+sunset.toFixed(2)+' 时（太阳时）</p>')+
-    '<p style="font-size:12px;color:var(--text-muted);">模型按正午前后对称、单一建筑高度与无其他遮挡估算；实际受朝向、地形、相邻建筑与规划规定影响，需专业复核。</p>';
+    '<p style="font-size:12px;color:var(--text-muted);">'+(en?'The model assumes symmetry about noon, a due-south facade, a ground-level target point, one building height and no other obstructions; the northward projection applies only to a south-facing facade. Window height, facade orientation, terrain and neighboring buildings need separate correction, and the result is not a statutory daylight-compliance conclusion.':'模型按正午前后对称、正南朝向、地面目标点、单一建筑高度与无其他遮挡估算；北向投影只适用于南向立面，目标窗台高度、建筑朝向、地形与相邻建筑需另行修正，结果不构成法定日照合规结论。')+'</p>'+((atDayLength&&altC<=0.01)||!isFinite(dSimple)?'<p style="color:var(--warning);">⚠ '+(en?'The target equals the theoretical day length, the edge solar altitude is near 0 and the formula cannot produce a finite spacing; adjust the target or use professional daylight analysis.':'目标时长等于当日理论日长，边缘太阳高度角接近 0，公式无法形成有限间距；实际项目应调整目标或采用专业日照分析。')+'</p>':'');
 
   // 逐时阴影长度表（太阳时 8~16 或日出日落范围内）
   var rows=[];
@@ -539,6 +553,8 @@ else document.addEventListener('DOMContentLoaded', __calc_spacingBoot);
 <li>住宅小区规划中，保证后排底层住户在大寒日/冬至日获得规定时长日照，需按<a class="term-link" href="/tools/astronomy/solar-elevation.html">太阳高度角</a>反算最小楼间距 D = H / tan(边缘高度角)。</li>
 <li>单栋建筑正午阴影长度 = H / tan(正午太阳高度角)，用于判断对相邻场地的遮挡范围。</li>
 <li>给定目标日照时长 T，取正午前后各 T/2 小时的边缘时刻高度角，得到最不利间距，再结合方位角做北向投影修正。</li>
+<li>目标时长为 0 时单独返回“零日照要求、无需留间距”；目标等于当日理论日长且边缘高度角接近 0 时，明确提示无法形成有限间距；极昼、极夜与赤道边界分别处理。</li>
+<li>模型按正午对称、正南朝向、地面目标点、单一建筑高度与无其他遮挡估算；北向投影只适用于南向立面，窗台高度、建筑朝向、地形和相邻建筑需另行修正，结果不构成法定日照合规结论。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">冬至日 2 小时日照间距算例</div><div class="dd-ex-body">北纬 30°、建筑高 H=30 m、目标日照 T=2 h、日期取冬至（太阳赤纬 δ≈−23.44°）：
 正午太阳高度角 = 36.56°；边缘时刻（±1 h，时角 15°）高度角 = 34.66°。
@@ -548,6 +564,7 @@ else document.addEventListener('DOMContentLoaded', __calc_spacingBoot);
 <dl class="dd-faq">
 <dt>太阳赤纬 δ 怎么取？</dt><dd>δ 随日期变化，春分/秋分约 0°，夏至约 +23.44°，冬至约 −23.44°。可用 δ ≈ −23.44°·cos(2π·(N+10)/365)（N 为年内第几天）近似，或直接使用标准天文值。规划常用大寒日（1 月 20 日前后）作为最低日照标准。</dd>
 <dt>为什么要做方位角修正？</dt><dd>简单的 D=H/tan(高度角) 假设遮挡物在正南。实际阴影有东西偏移，北向投影 = H·cos(方位角)/tan(高度角) 才是投射到正北方向的距离，能更准确判断对北侧地块的遮挡。</dd>
+<dt>目标时长为 0 或等于日长时怎么算？</dt><dd>目标为 0 小时表示没有日照要求，工具返回所需间距 0，并明确这不是法定合规结论。目标恰等于当日理论日长时，边缘太阳高度角接近 0，公式无法形成有限间距；极夜下任何正目标都不可实现，极昼则按午夜太阳高度计算有限间距。实际项目应调整目标或采用专业日照分析。</dd>
 </dl>
 </div>
 </section>

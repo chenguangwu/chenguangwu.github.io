@@ -110,7 +110,7 @@
       "name": "航空限高适用于哪些场景？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "适用于机场、军用机场、航路走廊附近的净空保护区。建筑物、铁塔、烟囱等突出物高度不得超过 H_limit。计算式中的坡度取自该航段公布的进近/离场剖面，安全超高一般取 5–15 m。"
+        "text": "适用于机场、军用机场、航路走廊附近的净空保护区，用于方案初期粗算。工具按单坡面简化模型给出参考限高，不能替代净空面类型、坐标、跑道基准与地方规定的专业核验，也不输出审批意义上的“可行/禁建”结论。计算式中的坡度取自该航段公布的进近/离场剖面，安全超高一般取 5–15 m。"
       }
     }
   ]
@@ -211,7 +211,7 @@
   <div class="input-row">
     <div>
       <label for="inGround">建筑地面标高 (m)</label>
-      <input type="number" id="inGround" value="0" step="1" oninput="calc()" placeholder="如 100（与跑道同一高程基准）">
+      <input type="number" id="inGround" value="0" step="1" oninput="calc()" placeholder="100">
     </div>
     <div style="font-size:12px;color:var(--text-muted);align-self:center;">可用高度 = 限制面标高 − 建筑地面标高</div>
   </div>
@@ -304,7 +304,7 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>南侧已建高层，北侧地块需核算：在给定<a class="term-link" href="/tools/urban/calc-spacing.html">日照间距</a> D 与本地间距系数 L 下，新建建筑允许的最大高度 H_max = D / L，再除以层高得到可建层数。</li>
-<li>机场净空保护区内，建筑高度受航空限高控制：H_limit = 跑道标高 H0 + 距跑道端距离 L × 起降坡度 − 安全超高，超过即禁建。</li>
+<li>机场净空保护区内，可用单坡面模型粗算参考限高：H_limit = 跑道标高 H0 + 距跑道端距离 L × 起降坡度 − 安全超高。结果只表示该简化假设下的可用高度，不构成“可行/禁建”审批结论，须另行核实净空面类型、坐标、跑道基准与地方航空限高要求。</li>
 <li>已知规划限高，反算可建楼层数：层数 = 限高 ÷ 层高（取整数层），用于方案初期的体量推敲。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">日照间距限高算例</div><div class="dd-ex-body">北纬 30° 城市（auto 间距系数 L=1.2），南侧已有建筑与用地边界的日照间距 D=40 m，拟建层高 3 m：
@@ -316,7 +316,7 @@ H_limit = 50 + 2000 × 0.015 − 10 = 50 + 30 − 10 = 70 m。
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>间距系数 L 与纬度是什么关系？</dt><dd>工具内置分段取值：纬度 ≥43° 取 1.8、≥38° 取 1.5、≥33° 取 1.3、≥28° 取 1.2，其余取 1.0。高纬度地区<a class="term-link" href="/tools/astronomy/solar-elevation.html">太阳高度角</a>低、阴影长，因此需要更大的间距系数（更严的限高）。也可手动指定 L 覆盖自动值。</dd>
-<dt>航空限高适用于哪些场景？</dt><dd>适用于机场、军用机场、航路走廊附近的净空保护区。建筑物、铁塔、烟囱等突出物高度不得超过 H_limit。计算式中的坡度取自该航段公布的进近/离场剖面，安全超高一般取 5–15 m。</dd>
+<dt>航空限高适用于哪些场景？</dt><dd>适用于机场、军用机场、航路走廊附近的净空保护区，用于方案初期粗算。工具按单坡面简化模型给出参考限高，不能替代净空面类型、坐标、跑道基准与地方规定的专业核验，也不输出审批意义上的“可行/禁建”结论。计算式中的坡度取自该航段公布的进近/离场剖面，安全超高一般取 5–15 m。</dd>
 </dl>
 </div>
 </section>
@@ -397,15 +397,18 @@ function calcSun(){
   var lat=parseInt(document.getElementById('inLat').value,10);
   var coeffSel=document.getElementById('inCoeff').value;
   var floorH=parseFloat(document.getElementById('inFloorH').value);
-  if(!D||D<=0||!floorH)return;
+  function failSun(msg){['resH','resFloor','resExtra'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-fail">无法计算</span>';document.getElementById('diagram').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
+  if(!isFinite(D)||D<=0||!isFinite(floorH)||floorH<=0)return failSun(en?'Daylight spacing must be greater than 0 and floor height must be a finite value greater than 0.':'日照间距须大于 0，层高须为大于 0 的有限数值。');
+  if(!isFinite(lat))return failSun(en?'Please select a valid latitude.':'请选择有效纬度。');
   var coeff=coeffSel==='auto'?coeffByLat(lat):parseFloat(coeffSel);
+  if(!isFinite(coeff)||coeff<=0)return failSun(en?'The daylight spacing coefficient must be greater than 0.':'日照间距系数须大于 0。');
   var hMax=D/coeff;
   var floors=Math.floor(hMax/floorH);
   const __g1=fmt(hMax,1)+' m';document.getElementById('resH').textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
   const __g2=floors+(PAGE_EN?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   const __g3=coeff.toFixed(2);document.getElementById('resExtra').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   document.getElementById('resExtraLbl').textContent='间距系数 L';
-  const __g5='<span class="grade-tag grade-good">'+fmt(hMax/floorH,1)+(en?' layers':' 层')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  const __g5='<span class="grade-tag grade-good">'+(en?'Indicative ':'参考 ')+fmt(hMax/floorH,1)+(en?' layers':' 层')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6=drawBuildings(hMax,floorH,floors);document.getElementById('diagram').innerHTML=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
   const __g7='H_max = D / L = '+D+' / '+coeff.toFixed(2);document.getElementById('formulaText').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
   const __g8='H_max：日照间距允许最大建筑高度(m)；D：日照间距(m)；L：日照间距系数<br>日照间距系数与纬度'+lat+'°N对应：'+coeff.toFixed(2);document.getElementById('formulaDesc').innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
@@ -432,8 +435,8 @@ function calcAviation(){
   var slope=parseFloat(document.getElementById('inSlope').value);
   var safety=parseFloat(document.getElementById('inSafety').value);
   function fail(msg){document.getElementById('resH').textContent='--';document.getElementById('resFloor').textContent='--';document.getElementById('resExtra').textContent='--';document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-fail">无法计算</span>';document.getElementById('diagram').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
-  if(!isFinite(H0)||H0<0||!isFinite(L)||L<0||!isFinite(ground)||!isFinite(safety)||safety<0)return fail('跑道标高、距离、地面标高须为有效数值，安全超高须 ≥0。');
-  if(!isFinite(slope)||slope<=0)return fail('起降坡度无效，请重新选择。');
+  if(!isFinite(H0)||H0<0||!isFinite(L)||L<0||!isFinite(ground)||!isFinite(safety)||safety<0)return fail(en?'Runway elevation, distance and ground elevation must be valid numbers, and safety clearance must be ≥0.':'跑道标高、距离、地面标高须为有效数值，安全超高须 ≥0。');
+  if(!isFinite(slope)||slope<=0)return fail(en?'Invalid takeoff/approach slope; please select again.':'起降坡度无效，请重新选择。');
   var hLimit=H0+L*slope-safety;          // 限制面标高（绝对高程）
   var available=hLimit-ground;           // 地面以上可用高度
   const __g10=fmt(available,1)+' m';document.getElementById('resH').textContent=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
@@ -441,11 +444,11 @@ function calcAviation(){
   const __g11=(available>0?Math.floor(available/3):0)+(PAGE_EN?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
   const __g12=fmt(hLimit,1)+' m';document.getElementById('resExtra').textContent=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));
   document.getElementById('resExtraLbl').textContent='限制面标高（绝对高程）';
-  const __g14='<span class="grade-tag '+(available>0?'grade-good':'grade-fail')+'">'+(available>0?'可行':'禁建/无可用高度')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
+  const __g14='<span class="grade-tag '+(available>0?'grade-good':'grade-fail')+'">'+(available>0?'简化模型：有可用高度':'简化模型：无可用高度')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g14==='number'?(isFinite(__g14)?__g14:'—'):String(__g14).replace(/Infinity|NaN/g,'—'));
   var floorH=3;
   const __g15=available>0?drawBuildings(available,floorH,Math.floor(available/3)):'';document.getElementById('diagram').innerHTML=(typeof __g15==='number'?(isFinite(__g15)?__g15:'—'):String(__g15).replace(/Infinity|NaN/g,'—'));
   document.getElementById('formulaText').textContent='H_surface = H0 + L × slope − safety;  H_available = H_surface − ground';
-  document.getElementById('formulaDesc').innerHTML='H_surface：限制面标高（绝对高程）；H0：跑道标高；L：距跑道端距离；slope：起降坡度；ground：建筑地面标高<br>建筑地面以上可用高度 = 限制面标高 − 地面标高，两个基准不得混用；本模型为简化估算，须以当地航空限高规定与专业审批为准。';
+  document.getElementById('formulaDesc').innerHTML='H_surface：限制面标高（绝对高程）；H0：跑道标高；L：距跑道端距离；slope：起降坡度；ground：建筑地面标高<br>建筑地面以上可用高度 = 限制面标高 − 地面标高，两个基准不得混用；本模型为单坡面简化估算，不构成审批结论；须核实净空面类型、坐标、跑道基准与当地航空限高规定。';
   const __g18='<p><strong>跑道标高：</strong>'+H0+' m</p>'+
     '<p><strong>距跑道端距离：</strong>'+L+' m</p>'+
     '<p><strong>起降坡度：</strong>'+slope+' ('+fmt(slope*100,1)+'%)</p>'+
@@ -453,9 +456,9 @@ function calcAviation(){
     '<p><strong>限制面标高：</strong>'+H0+' + '+L+'×'+slope+' − '+safety+' = '+fmt(hLimit,1)+' m（绝对高程）</p>'+
     '<p><strong>建筑地面标高：</strong>'+ground+' m</p>'+
     '<p><strong>地面以上可用高度：</strong>'+fmt(hLimit,1)+' − '+ground+' = '+fmt(available,1)+' m</p>'+
-    (available>0?'<p><strong>参考层数：</strong>'+Math.floor(available/3)+' 层（按 3 m 层高）</p><p><strong>校核：</strong>地面以上建筑高度不得超过 '+fmt(available,1)+' m</p>':'<p style="color:var(--danger);"><strong>校核：</strong>限制面标高不高于建筑地面标高，无可建高度，应禁建或另行申请评估。</p>');document.getElementById('result').innerHTML=(typeof __g18==='number'?(isFinite(__g18)?__g18:'—'):String(__g18).replace(/Infinity|NaN/g,'—'));
+    (available>0?'<p><strong>参考层数：</strong>'+Math.floor(available/3)+' 层（按 3 m 层高）</p><p><strong>简化模型结果：</strong>地面以上建筑高度参考上限 '+fmt(available,1)+' m；须另行核实净空面、坐标与地方航空限高要求。</p>':'<p style="color:var(--danger);"><strong>校核：</strong>限制面标高不高于建筑地面标高，无可建高度，应禁建或另行申请评估。</p>');document.getElementById('result').innerHTML=(typeof __g18==='number'?(isFinite(__g18)?__g18:'—'):String(__g18).replace(/Infinity|NaN/g,'—'));
   if(en){document.getElementById('resHLbl').textContent='Usable height above ground';document.getElementById('resExtraLbl').textContent='Limiting surface elevation (absolute)';
-    document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(available>0?'grade-good':'grade-fail')+'">'+(available>0?'Feasible':'No buildable height')+'</span>';
+    document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(available>0?'grade-good':'grade-fail')+'">'+(available>0?'Simplified model: usable height':'Simplified model: no usable height')+'</span>';
     document.getElementById('result').innerHTML=
     '<p><strong>Runway elevation:</strong>'+H0+' m</p>'+
     '<p><strong>Distance from runway end:</strong>'+L+' m</p>'+
@@ -474,12 +477,12 @@ function calcFloor(){
   var diff=parseFloat(document.getElementById('inDiff').value);
   var parapet=parseFloat(document.getElementById('inParapet').value);
   function fail(msg){document.getElementById('resH').textContent='--';document.getElementById('resFloor').textContent='--';document.getElementById('resExtra').textContent='--';document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-fail">无可建楼层</span>';document.getElementById('diagram').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
-  if(!isFinite(limit)||limit<=0||!isFinite(floorH)||floorH<2.4||floorH>6)return fail('规划限高须 >0，层高须在 2.4–6 m 之间。');
-  if(!isFinite(diff)||diff<0||diff>3||!isFinite(parapet)||parapet<0||parapet>3)return fail('室内外高差与女儿墙高度须在 0–3 m 之间。');
+  if(!isFinite(limit)||limit<=0||!isFinite(floorH)||floorH<2.4||floorH>6)return fail(en?'The planned height limit must be >0 and floor height must be between 2.4 and 6 m.':'规划限高须 >0，层高须在 2.4–6 m 之间。');
+  if(!isFinite(diff)||diff<0||diff>3||!isFinite(parapet)||parapet<0||parapet>3)return fail(en?'The indoor-outdoor height difference and parapet height must be between 0 and 3 m.':'室内外高差与女儿墙高度须在 0–3 m 之间。');
   var buildH=limit-diff-parapet;
-  if(buildH<=1e-9)return fail('限高 '+limit+' m 小于等于室内外高差与女儿墙之和 '+(diff+parapet).toFixed(1)+' m，可用于楼层的高度 ≤0，无可建楼层。');
+  if(buildH<=1e-9)return fail(en?'The height limit '+limit+' m is not greater than the indoor-outdoor difference plus parapet ('+(diff+parapet).toFixed(1)+' m), so the usable floor height is ≤0 and no floor can be built.':'限高 '+limit+' m 小于等于室内外高差与女儿墙之和 '+(diff+parapet).toFixed(1)+' m，可用于楼层的高度 ≤0，无可建楼层。');
   var floors=Math.floor(buildH/floorH);
-  if(floors<=0)return fail('可用于楼层的高度 '+fmt(buildH,1)+' m 不足一个层高 '+floorH+' m，无可建楼层。');
+  if(floors<=0)return fail(en?'The usable height '+fmt(buildH,1)+' m is less than one floor height '+floorH+' m, so no floor can be built.':'可用于楼层的高度 '+fmt(buildH,1)+' m 不足一个层高 '+floorH+' m，无可建楼层。');
   var actualH=floors*floorH+diff+parapet;
   const __g19=fmt(buildH,1)+' m';document.getElementById('resH').textContent=(typeof __g19==='number'?(isFinite(__g19)?__g19:'—'):String(__g19).replace(/Infinity|NaN/g,'—'));
   const __g20=floors+(PAGE_EN?" layers":" 层");document.getElementById('resFloor').textContent=(typeof __g20==='number'?(isFinite(__g20)?__g20:'—'):String(__g20).replace(/Infinity|NaN/g,'—'));
@@ -514,10 +517,16 @@ function calcFloor(){
 function copyResult(){
   if(!window._lastResult)return;
   var r=window._lastResult;
+  if(PAGE_EN){
+    if(r.type==='日照间距限高')ToolBox.copyText('Daylight spacing height-limit result:\nMaximum allowed height: '+fmt(r.hMax,1)+' m\nBuildable floors: '+r.floors+'\nSpacing coefficient: '+r.coeff.toFixed(2)+'\nDaylight spacing: '+r.D+' m');
+    else if(r.type==='航空限高')ToolBox.copyText('Aviation height-limit result (simplified model):\nHeight limit: '+fmt(r.hLimit,1)+' m\nDistance from runway: '+r.L+' m\nApproach slope: '+r.slope+'\nNote: verify obstacle surfaces, coordinates and local aviation requirements.');
+    else ToolBox.copyText('Floor estimate result:\nPlanned height limit: '+r.limit+' m\nBuildable floors: '+r.floors+'\nActual height: '+fmt(r.actualH,1)+' m\nCheck: '+(r.ok?'within limit':'exceeds limit'));
+    return;
+  }
   if(r.type==='日照间距限高'){
     ToolBox.copyText('日照间距限高结果：\n允许最大高度: '+fmt(r.hMax,1)+' m\n可建层数: '+r.floors+' 层\n间距系数: '+r.coeff.toFixed(2)+'\n日照间距: '+r.D+' m');
   }else if(r.type==='航空限高'){
-    ToolBox.copyText('航空限高结果：\n限高: '+fmt(r.hLimit,1)+' m\n距跑道距离: '+r.L+' m\n起降坡度: '+r.slope);
+    ToolBox.copyText('航空限高结果（简化模型估算）：\n限高: '+fmt(r.hLimit,1)+' m\n距跑道距离: '+r.L+' m\n起降坡度: '+r.slope+'\n提示: 需核实净空面、坐标与地方航空限高要求');
   }else{
     ToolBox.copyText('楼层估算结果：\n规划限高: '+r.limit+' m\n可建层数: '+r.floors+' 层\n实际高度: '+fmt(r.actualH,1)+' m\n校核: '+(r.ok?'满足':'超限'));
   }

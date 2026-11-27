@@ -118,6 +118,14 @@
         "@type": "Answer",
         "text": "它反映了规划的人均土地集约程度，是控规的核心指标之一。标准按城市规模（大/中/小城市、镇、村庄）给出区间，过低意味拥挤、过高则土地浪费。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "面积留空或填 0 怎么处理？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "七类用地面积必须逐项填写，显式填 0 合法且参与求和；留空、负数或非数值会被拒绝并清空旧结果。总用地合计为 0 时无法计算比例，不会固定显示 100%，也不输出达标结论。"
+      }
     }
   ]
 }
@@ -230,6 +238,7 @@
 <li>控制性详细规划编制&quot;<a class="term-link" href="/guides/land-use-guide.html">用地平衡表</a>&quot;：列出居住(R)、公共管理与服务(A)、商业服务(B)、工业(M)、道路(S)、公用设施(U)、绿地与广场(G)等七类用地的面积与占比。</li>
 <li>校核人均建设用地 = 总用地 ×10000 ÷ 规划人口，判断是否落在城市规模标准区间内。</li>
 <li>逐类校核占地比例是否落在分类标准区间（如居住用地 25%–40%、绿地 10%–15%）。</li>
+<li>面积留空、负数或非数值会被拒绝，显式填 0 合法；总用地为 0 时不显示 100% 或达标结论，人口缺失时清空旧结果并提示“未完成校核”。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">用地平衡表算例</div><div class="dd-ex-body">规划人口 80000 人，七类用地面积（ha）：R=300, A=80, B=60, M=100, S=150, U=20, G=120，合计 830 ha：
 人均建设用地 = 830 × 10000 / 80000 = 103.8 m²/人（大城市标准 80–105，达标）；
@@ -240,6 +249,7 @@
 <dl class="dd-faq">
 <dt>用地分类代码 R/A/B/M/S/U/G 分别代表什么？</dt><dd>R 居住用地、A 公共管理与公共服务、B 商业服务业设施、M 工业、S 道路与交通设施、U 公用设施、G 绿地与广场。这是《城市用地分类与规划建设用地标准》GB 50137 的一级类代码。</dd>
 <dt>人均建设用地标准的意义？</dt><dd>它反映了规划的人均土地集约程度，是控规的核心指标之一。标准按城市规模（大/中/小城市、镇、村庄）给出区间，过低意味拥挤、过高则土地浪费。</dd>
+<dt>面积留空或填 0 怎么处理？</dt><dd>七类用地面积必须逐项填写，显式填 0 合法且参与求和；留空、负数或非数值会被拒绝并清空旧结果。总用地合计为 0 时无法计算比例，不会固定显示 100%，也不输出达标结论。</dd>
 </dl>
 </div>
 </section>
@@ -281,6 +291,7 @@
 <!-- /注意事项区块 -->
 </div>
 <script>
+var PAGE_EN=/[?&]lang=en-US(?:&|$)/.test(location.search)||(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
 var LAND_TYPES=[
   {key:'R',name:'居住用地',color:'#FF6B35',default:300,stdMin:25,stdMax:40,perCapMin:23,perCapMax:38},
   {key:'A',name:'公共管理与服务',color:'#7C3AED',default:80,stdMin:5,stdMax:8,perCapMin:5,perCapMax:9},
@@ -306,61 +317,107 @@ function buildTable(){
   html+='<div class="land-row total"><span>合计</span><span id="totalArea">--</span><span class="pct" id="totalPct">100%</span><span class="percap" id="totalPerCap">--</span><span></span></div>';
   const __g1=html;document.getElementById('landTable').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
+function clearOutputs(){
+  ['resTotal','resPerCap','resBuilt'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='--';});
+  var chk=document.getElementById('resCheck');if(chk)chk.innerHTML='<span class="grade-tag grade-fail">未完成校核</span>';
+  LAND_TYPES.forEach(function(l){['pct_','percap_','check_'].forEach(function(p){var el=document.getElementById(p+l.key);if(el)el.textContent='--';});});
+  var ta=document.getElementById('totalArea');if(ta)ta.textContent='--';
+  var tp=document.getElementById('totalPct');if(tp)tp.textContent='—';
+  var tpc=document.getElementById('totalPerCap');if(tpc)tpc.textContent='--';
+  document.getElementById('result').innerHTML='';
+  window._lastResult=null;
+}
+function fail(msg,msgEn){
+  clearOutputs();
+  document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+((PAGE_EN&&msgEn)?msgEn:msg)+'</p>';
+}
 function calc(){
-  var pop=parseFloat(document.getElementById('inPop').value);
+  var en=PAGE_EN?true:false;
+  var rawPop=String(document.getElementById('inPop').value||'').trim();
+  var pop=Number(rawPop);
   var cityType=document.getElementById('inCityType').value;
-  if(!pop||pop<=0)return;
-  var total=0;
-  var data=[];
+  if(rawPop===''||!isFinite(pop)||pop<=0){fail('请填写大于 0 的规划人口；缺少人口时不作达标判断。');return;}
+  var total=0,data=[],bad=[];
   LAND_TYPES.forEach(function(l){
-    var area=parseFloat(document.getElementById('area_'+l.key).value)||0;
+    var raw=String(document.getElementById('area_'+l.key).value||'').trim();
+    if(raw===''){bad.push(l.name+'未填写');return;}
+    var area=Number(raw);
+    if(!isFinite(area)||area<0){bad.push(l.name+'须为非负数值');return;}
     total+=area;
     data.push({key:l.key,name:l.name,area:area,color:l.color,stdMin:l.stdMin,stdMax:l.stdMax,perCapMin:l.perCapMin,perCapMax:l.perCapMax});
   });
+  if(bad.length){fail(bad.join('；')+'。面积可填 0，但不能留空或为负数。','All seven land-use areas must be filled; 0 is allowed, but blanks and negative values are not.');return;}
+  if(total<=0){
+    data.forEach(function(d){
+      document.getElementById('pct_'+d.key).textContent='—';
+      document.getElementById('percap_'+d.key).textContent='0.0';
+      document.getElementById('check_'+d.key).innerHTML='<span class="grade-tag grade-fail" style="font-size:10px;">未校核</span>';
+    });
+    ['resTotal','resPerCap'].forEach(function(id){document.getElementById(id).textContent='0.0';});
+    document.getElementById('totalArea').textContent='0.0 ha';
+    document.getElementById('totalPct').textContent='—';
+    document.getElementById('totalPerCap').textContent='0.0';
+    document.getElementById('resBuilt').textContent='—';
+    document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-fail">未完成校核</span>';
+    document.getElementById('result').innerHTML='<p style="color:var(--warning);">⚠ '+(en?'Total land is 0, so land-use shares and per-capita indicators cannot be calculated; enter at least one land-use area greater than 0.':'总用地为 0，无法计算各类用地比例或人均指标；请至少填写一类大于 0 的用地面积。')+'</p>';
+    window._lastResult=null;return;
+  }
   var perCapTotal=total*10000/pop;
   var cityStd=CITY_STD[cityType];
-  var issues=[];
+  var cityEn={large:'Metropolis',medium:'Medium city',small:'Small city'}[cityType]||cityType;
+  var nameEn={R:'Residential',A:'Public administration & services',B:'Commercial services',M:'Industrial',S:'Road & transport',U:'Utilities',G:'Green space & squares'};
+  var issues=[],issuesEn=[];
   data.forEach(function(d){
-    var pct=total>0?d.area/total*100:0;
+    var pct=d.area/total*100;
     var perCap=d.area*10000/pop;
     var okPct=pct>=d.stdMin&&pct<=d.stdMax;
-    const __g2=fmt(pct,1)+'%';document.getElementById('pct_'+d.key).textContent=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
-    const __g3=fmt(perCap,1);document.getElementById('percap_'+d.key).textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
-    var ck=document.getElementById('check_'+d.key);
-    const __g4='<span class="grade-tag '+(okPct?'grade-excellent':'grade-fail')+'" style="font-size:10px;">'+(okPct?'OK':'!')+'</span>';ck.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
-    if(!okPct)issues.push(d.name+fmt(pct,1)+'%(标'+d.stdMin+'~'+d.stdMax+'%)');
+    document.getElementById('pct_'+d.key).textContent=fmt(pct,1)+'%';
+    document.getElementById('percap_'+d.key).textContent=fmt(perCap,1);
+    document.getElementById('check_'+d.key).innerHTML='<span class="grade-tag '+(okPct?'grade-excellent':'grade-fail')+'" style="font-size:10px;">'+(okPct?'OK':'!')+'</span>';
+    if(!okPct){issues.push(d.name+fmt(pct,1)+'%(标'+d.stdMin+'~'+d.stdMax+'%)');issuesEn.push((nameEn[d.key]||d.name)+' '+fmt(pct,1)+'% (standard '+d.stdMin+'~'+d.stdMax+'%)');}
   });
-  const __g5=fmt(total,1)+' ha';document.getElementById('totalArea').textContent=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('totalArea').textContent=fmt(total,1)+' ha';
   document.getElementById('totalPct').textContent='100%';
-  const __g7=fmt(perCapTotal,1);document.getElementById('totalPerCap').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
-  // built area = total minus G (green) is not standard; use total as construction land
-  var okPerCap=perCapTotal>=cityStd.min&&perCapTotal<=cityStd.max;
-  const __g8=fmt(total,1)+' ha';document.getElementById('resTotal').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
-  const __g9=fmt(perCapTotal,1)+' m²';document.getElementById('resPerCap').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('totalPerCap').textContent=fmt(perCapTotal,1);
+  var perStatus=perCapTotal<cityStd.min?'偏低':perCapTotal>cityStd.max?'偏高':'达标';
+  var okPerCap=perStatus==='达标';
+  document.getElementById('resTotal').textContent=fmt(total,1)+' ha';
+  document.getElementById('resPerCap').textContent=fmt(perCapTotal,1)+' m²';
   document.getElementById('resBuilt').textContent='100%';
   var allOk=okPerCap&&issues.length===0;
-  const __g11='<span class="grade-tag '+(allOk?'grade-excellent':'grade-fail')+'">'+(allOk?'达标':'需调整')+'</span>';document.getElementById('resCheck').innerHTML=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(allOk?'grade-excellent':'grade-fail')+'">'+(allOk?'达标':'需调整')+'</span>';
   var detail='<p><strong>规划人口：</strong>'+pop.toLocaleString()+' 人</p>';
   detail+='<p><strong>城市规模：</strong>'+cityStd.name+'（人均 '+cityStd.min+'~'+cityStd.max+' m²）</p>';
   detail+='<p><strong>总用地：</strong>'+fmt(total,1)+' 公顷 ('+(total*0.01).toFixed(3)+' km²)</p>';
-  detail+='<p><strong>人均建设用地：</strong>'+fmt(perCapTotal,1)+' m²/人 '+
-    '<span class="grade-tag '+(okPerCap?'grade-excellent':'grade-fail')+'">'+(okPerCap?'达标':'超标')+'</span></p>';
+  detail+='<p><strong>人均建设用地：</strong>'+fmt(perCapTotal,1)+' m²/人 <span class="grade-tag '+(okPerCap?'grade-excellent':'grade-fail')+'">'+perStatus+'</span></p>';
   detail+='<p><strong>各类用地明细：</strong></p>';
   data.forEach(function(d){
-    var pct=total>0?d.area/total*100:0;
-    var perCap=d.area*10000/pop;
+    var pct=d.area/total*100, perCap=d.area*10000/pop;
     detail+='<p style="padding-left:12px;font-size:12px;">'+d.name+'：'+fmt(d.area,1)+'ha，'+fmt(pct,1)+'%，人均'+fmt(perCap,1)+'m²</p>';
   });
-  if(issues.length>0){
-    detail+='<p style="color:var(--danger);margin-top:8px;">⚠️ 存在问题：'+issues.join('；')+'</p>';
+  if(issues.length>0)detail+='<p style="color:var(--danger);margin-top:8px;">⚠️ 存在问题：'+issues.join('；')+'</p>';
+  if(en){
+    var perStatusEn=perStatus==='偏低'?'Low':perStatus==='偏高'?'High':'Meets standard';
+    document.getElementById('resCheck').innerHTML='<span class="grade-tag '+(allOk?'grade-excellent':'grade-fail')+'">'+(allOk?'Meets standard':'Needs adjustment')+'</span>';
+    detail='<p><strong>Planned population:</strong>'+pop.toLocaleString()+' persons</p>';
+    detail+='<p><strong>City size:</strong>'+cityEn+' (per capita '+cityStd.min+'~'+cityStd.max+' m²)</p>';
+    detail+='<p><strong>Total land:</strong>'+fmt(total,1)+' ha ('+(total*0.01).toFixed(3)+' km²)</p>';
+    detail+='<p><strong>Per-capita construction land:</strong>'+fmt(perCapTotal,1)+' m²/person <span class="grade-tag '+(okPerCap?'grade-excellent':'grade-fail')+'">'+perStatusEn+'</span></p>';
+    detail+='<p><strong>Land use breakdown:</strong></p>';
+    data.forEach(function(d){
+      var pct=d.area/total*100, perCap=d.area*10000/pop;
+      detail+='<p style="padding-left:12px;font-size:12px;">'+(nameEn[d.key]||d.name)+': '+fmt(d.area,1)+' ha, '+fmt(pct,1)+'%, '+fmt(perCap,1)+' m² per person</p>';
+    });
+    if(issuesEn.length>0)detail+='<p style="color:var(--danger);margin-top:8px;">⚠️ Issues: '+issuesEn.join('; ')+'</p>';
   }
-  const __g12=detail;document.getElementById('result').innerHTML=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));
-  window._lastResult={total:total,perCap:perCapTotal,ok:allOk,pop:pop,cityType:cityStd.name,issues:issues};
+  document.getElementById('result').innerHTML=detail;
+  window._lastResult={total:total,perCap:perCapTotal,ok:allOk,pop:pop,cityType:cityStd.name,cityEn:cityEn,issues:issues,issuesEn:issuesEn,perStatus:perStatus};
 }
 function copyResult(){
   if(!window._lastResult)return;
   var r=window._lastResult;
-  ToolBox.copyText('用地平衡表计算结果：\n规划人口: '+r.pop.toLocaleString()+' 人\n城市规模: '+r.cityType+'\n总用地: '+fmt(r.total,1)+' ha\n人均用地: '+fmt(r.perCap,1)+' m²\n校核: '+(r.ok?'达标':'需调整')+(r.issues.length>0?'\n问题: '+r.issues.join('；'):''));
+  if(PAGE_EN){ToolBox.copyText('Land use balance result:\nPlanned population: '+r.pop.toLocaleString()+' persons\nCity size: '+r.cityType+'\nTotal land: '+fmt(r.total,1)+' ha\nCheck: '+(r.ok?'Meets standard':'Needs adjustment')+'\nPer-capita land: '+fmt(r.perCap,1)+' m² ('+(r.perStatus==='偏低'?'Low':r.perStatus==='偏高'?'High':'Meets standard')+')'+(r.issuesEn.length>0?'\nIssues: '+String(r.issuesEn.join('; ')):''));return;}
+  ToolBox.copyText('用地平衡表计算结果：\n规划人口: '+r.pop.toLocaleString()+' 人\n城市规模: '+r.cityType+'\n总用地: '+fmt(r.total,1)+' ha\n校核: '+(r.ok?'达标':'需调整')+'\n人均用地: '+fmt(r.perCap,1)+' m²（'+r.perStatus+'）'+(r.issues.length>0?'\n问题: '+String(r.issues.join('；')):''));
 }
 function resetForm(){
   document.getElementById('inPop').value=100000;

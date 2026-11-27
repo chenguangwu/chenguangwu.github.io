@@ -113,6 +113,14 @@
         "@type": "Answer",
         "text": "按规划区类型：新建城市 85–105 m²/人、旧城改造 75–95、建制镇 80–100、村庄 90–120。低于下限说明密度过大，高于上限则土地偏粗放。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "居住用地面积留空会怎样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "毛密度与人均用地仍可计算，但净密度需要居住用地作分母，因此本次校核标记为“未完成”，页面、图表和复制结果都不会输出“符合/超标”结论。显式填 0 也视为无居住用地，净密度不计算。"
+      }
     }
   ]
 }
@@ -254,9 +262,9 @@
 <h2>📚 深度解析：人口密度与容量计算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>核算人口密度：人口毛密度 = 总人口 ÷ 总用地，人口净密度 = 总人口 ÷ 居住用地，用于规划区宜居性评估。</li>
+<li>核算人口密度：人口毛密度 = 总人口 ÷ 总用地，人口净密度 = 总人口 ÷ 居住用地，用于规划区宜居性评估；居住用地留空时净密度不计算，本次校核标记为未完成。</li>
 <li>计算人均用地 = 总用地×10000 ÷ 人口，对照规范人均标准（新建城市 85–105 m²/人等）判断是否超标。</li>
-<li>测算人口容量：取&quot;按人均用地&quot;与&quot;按净密度&quot;两者较小值，得到适宜承载人口。</li>
+<li>测算人口容量：取“按人均用地”与“按净密度”两者较小值，得到适宜承载人口；容量模式会校验用地、人均指标、居住用地占比与净密度的合理范围，失败时清空旧结果。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">人口密度算例</div><div class="dd-ex-body">某规划区常住人口 50000 人，总用地 500 ha，其中居住用地 250 ha：
 人口毛密度 = 50000 / 500 = 100 人/ha；
@@ -270,6 +278,7 @@
 <dl class="dd-faq">
 <dt>人口毛密度和净密度有什么区别？</dt><dd>毛密度用总用地（含道路、公服、工业等）作分母，数值较小；净密度只用居住用地作分母，数值较大、更贴近居住拥挤度。两者结合才能全面评价。</dd>
 <dt>人均建设用地标准如何取？</dt><dd>按规划区类型：新建城市 85–105 m²/人、旧城改造 75–95、建制镇 80–100、村庄 90–120。低于下限说明密度过大，高于上限则土地偏粗放。</dd>
+<dt>居住用地面积留空会怎样？</dt><dd>毛密度与人均用地仍可计算，但净密度需要居住用地作分母，因此本次校核标记为“未完成”，页面、图表和复制结果都不会输出“符合/超标”结论。显式填 0 也视为无居住用地，净密度不计算。</dd>
 </dl>
 </div>
 </section>
@@ -339,10 +348,11 @@ function calcDensity(){
   var resAreaRaw=String(document.getElementById('inResArea').value).trim();
   var pop=popRaw===''?NaN:+popRaw,area=areaRaw===''?NaN:+areaRaw,resArea=resAreaRaw===''?NaN:+resAreaRaw;
   var type=document.getElementById('inType').value;
-  function fail(msg){['resDensity','resNet','resPerCap','resCheck'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('bars').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+msg+'</p>';window._lastResult=null;}
-  if(!isFinite(pop)||pop<=0||!isFinite(area)||area<=0)return fail('请填写常住人口（>0）与总用地面积（>0 公顷）。');
-  var resAreaMissing=!isFinite(resArea)||resArea<=0;
-  if(!resAreaMissing&&resArea>area)return fail('居住用地面积不能大于总用地面积。');
+  function fail(msg,msgEn){['resDensity','resNet','resPerCap','resCheck'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('bars').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+(en&&msgEn?msgEn:msg)+'</p>';window._lastResult=null;}
+  if(!isFinite(pop)||pop<=0||!isFinite(area)||area<=0)return fail('请填写常住人口（>0）与总用地面积（>0 公顷）。','Enter a resident population (>0) and total land area (>0 ha).');
+  if(resAreaRaw!==''&&(!isFinite(resArea)||resArea<0))return fail('居住用地面积须为非负数值，留空表示未填写。','Residential land area must be non-negative; leave blank if not provided.');
+  var resAreaMissing=resAreaRaw===''||!isFinite(resArea)||resArea<=0;
+  if(!resAreaMissing&&resArea>area)return fail('居住用地面积不能大于总用地面积。','Residential land area cannot exceed the total land area.');
   var grossDensity=pop/area;
   var netDensity=resAreaMissing?NaN:pop/resArea;
   var perCap=area*10000/pop;
@@ -359,7 +369,7 @@ function calcDensity(){
   ];
   var bh='';
   bars.forEach(function(b){
-    if(b.val<=0)return;
+    if(!isFinite(b.val)||b.val<=0)return;
     var pct=Math.min(Math.round(b.val/b.max*100),100);
     bh+='<div class="bar-row"><span class="bar-lbl">'+b.lbl+'</span>'+
       '<div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;">'+fmt(b.val,1)+' '+b.unit+'</div></div></div>';
@@ -367,7 +377,7 @@ function calcDensity(){
   const __g5=bh;document.getElementById('bars').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
   const __g6='<p><strong>常住人口：</strong>'+pop.toLocaleString()+' 人</p>'+
     '<p><strong>总用地面积：</strong>'+area+' 公顷 ('+(area*0.01).toFixed(3)+' km²)</p>'+
-    '<p><strong>居住用地面积：</strong>'+resArea+' 公顷</p>'+
+    '<p><strong>居住用地面积：</strong>'+(!resAreaMissing?resArea+' 公顷':'未填写')+'</p>'+
     '<p><strong>规划区类型：</strong>'+std.name+'</p>'+
     '<p><strong>人口毛密度：</strong>'+pop+' ÷ '+area+' = '+fmt(grossDensity,0)+' 人/公顷 ('+fmt(grossDensity*100,0)+' 人/km²)</p>'+
     (resAreaMissing?'<p style="color:var(--danger);">居住用地面积缺失：人口净密度无法计算，本次未完成校核，不输出“符合/超标”结论。</p>':'<p><strong>人口净密度：</strong>'+pop+' ÷ '+resArea+' = '+fmt(netDensity,0)+' 人/公顷</p>')+
@@ -379,57 +389,80 @@ function calcDensity(){
     document.getElementById('result').innerHTML=
       '<p><strong>Resident population:</strong>'+pop.toLocaleString()+' persons</p>'+
       '<p><strong>Total land area:</strong>'+area+' ha ('+(area*0.01).toFixed(3)+' km²)</p>'+
-      '<p><strong>Residential land area:</strong>'+resArea+' ha</p>'+
+      '<p><strong>Residential land area:</strong>'+(!resAreaMissing?resArea+' ha':'not provided')+'</p>'+
       '<p><strong>Planning area type:</strong>'+std.nameEn+'</p>'+
       '<p><strong>Gross population density:</strong>'+pop+' ÷ '+area+' = '+fmt(grossDensity,0)+' persons/ha ('+fmt(grossDensity*100,0)+' persons/km²)</p>'+
       (resAreaMissing?'<p style="color:var(--danger);">Residential land area is missing, so net density cannot be calculated and the check is incomplete; no compliant / non-compliant conclusion is output.</p>':'<p><strong>Net population density:</strong>'+pop+' ÷ '+resArea+' = '+fmt(netDensity,0)+' persons/ha</p>')+
       '<p><strong>Land per person:</strong>'+area+'×10000 ÷ '+pop+' = '+fmt(perCap,1)+' m²/person</p>'+
       '<p><strong>Code standard:</strong> '+std.perCapMin+'~'+std.perCapMax+' m² per person, net density ≤'+std.netMax+' persons/ha</p>';
   }
-  window._lastResult={type:'人口密度',gross:grossDensity,net:netDensity,perCap:perCap,ok:ok,pop:pop};
+  window._lastResult={type:'人口密度',gross:grossDensity,net:netDensity,perCap:perCap,ok:ok,complete:!resAreaMissing,pop:pop};
 }
 function calcCapacity(){
-  var area=parseFloat(document.getElementById('inAreaC').value);
-  var perCap=parseFloat(document.getElementById('inPerCap').value);
-  var resRatio=parseFloat(document.getElementById('inResRatio').value)/100;
-  var netDensity=parseFloat(document.getElementById('inNetDensity').value);
-  if(!area||area<=0||!perCap||perCap<=0)return;
+  var en=PAGE_EN?true:false;
+  function failCap(msg,msgEn){['resDensity','resNet','resPerCap','resCheck'].forEach(function(id){document.getElementById(id).textContent='--';});document.getElementById('bars').innerHTML='';document.getElementById('result').innerHTML='<p class="tip-error" style="color:var(--danger);">⚠ '+(en&&msgEn?msgEn:msg)+'</p>';window._lastResult=null;}
+  var raw={area:document.getElementById('inAreaC').value,perCap:document.getElementById('inPerCap').value,resRatio:document.getElementById('inResRatio').value,net:document.getElementById('inNetDensity').value};
+  for(var k in raw){raw[k]=String(raw[k]||'').trim();}
+  if(raw.area===''||raw.perCap===''||raw.resRatio===''||raw.net==='')return failCap('请完整填写用地面积、目标人均用地、居住用地占比与目标净密度。','Complete all fields: land area, target land per person, residential land share and target net density.');
+  var area=Number(raw.area),perCap=Number(raw.perCap),resRatio=Number(raw.resRatio)/100,netDensity=Number(raw.net);
+  if(!isFinite(area)||area<=0)return failCap('用地面积须为大于 0 的有限数值。','Land area must be a finite value greater than 0.');
+  if(!isFinite(perCap)||perCap<=0||perCap>1000)return failCap('目标人均用地须在 0–1000 m²/人 之间。','Target land per person must be between 0 and 1000 m²/person.');
+  if(!isFinite(resRatio)||resRatio<0||resRatio>1)return failCap('居住用地占比须在 0–100% 之间。','Residential land share must be between 0% and 100%.');
+  if(!isFinite(netDensity)||netDensity<=0||netDensity>10000)return failCap('目标净密度须在 0–10000 人/公顷 之间。','Target net density must be between 0 and 10000 persons/ha.');
   var capByArea=area*10000/perCap;
   var resArea=area*resRatio;
   var capByNet=resArea*netDensity;
   var capFinal=Math.min(capByArea,capByNet);
+  if(!isFinite(capFinal)||capFinal<=0)return failCap('参数组合无法得到有效人口容量，请检查输入。','This parameter combination gives no valid population capacity; check the inputs.');
   var actualPerCap=area*10000/capFinal;
-  const __g7=fmt(capByArea,0)+' 人';document.getElementById('resDensity').textContent=(typeof __g7==='number'?(isFinite(__g7)?__g7:'—'):String(__g7).replace(/Infinity|NaN/g,'—'));
-  const __g8=fmt(capByNet,0)+' 人';document.getElementById('resNet').textContent=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
-  const __g9=fmt(actualPerCap,1)+' m²';document.getElementById('resPerCap').textContent=(typeof __g9==='number'?(isFinite(__g9)?__g9:'—'):String(__g9).replace(/Infinity|NaN/g,'—'));
-  const __g10='<span class="grade-tag grade-excellent">'+fmt(capFinal,0)+' 人</span>';document.getElementById('resCheck').innerHTML=(typeof __g10==='number'?(isFinite(__g10)?__g10:'—'):String(__g10).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('resDensity').textContent=fmt(capByArea,0)+(en?' persons':' 人');
+  document.getElementById('resNet').textContent=fmt(capByNet,0)+(en?' persons':' 人');
+  document.getElementById('resPerCap').textContent=fmt(actualPerCap,1)+' m²';
+  document.getElementById('resCheck').innerHTML='<span class="grade-tag grade-excellent">'+fmt(capFinal,0)+(en?' persons':' 人')+'</span>';
+  var maxV=Math.max(capByArea,capByNet)*1.1;
   var bars=[
-    {lbl:'按人均用地',val:capByArea,max:Math.max(capByArea,capByNet)*1.1,unit:'人'},
-    {lbl:'按净密度',val:capByNet,max:Math.max(capByArea,capByNet)*1.1,unit:'人'},
-    {lbl:'适宜容量',val:capFinal,max:Math.max(capByArea,capByNet)*1.1,unit:'人'}
+    {lbl:en?'By land per person':'按人均用地',val:capByArea,max:maxV,unit:en?'persons':'人'},
+    {lbl:en?'By net density':'按净密度',val:capByNet,max:maxV,unit:en?'persons':'人'},
+    {lbl:en?'Suitable capacity':'适宜容量',val:capFinal,max:maxV,unit:en?'persons':'人'}
   ];
   var bh='';
   bars.forEach(function(b){
+    if(!isFinite(b.val)||b.val<=0||!isFinite(b.max)||b.max<=0)return;
     var pct=Math.min(Math.round(b.val/b.max*100),100);
-    bh+='<div class="bar-row"><span class="bar-lbl">'+b.lbl+'</span>'+
-      '<div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;">'+fmt(b.val,0)+' '+b.unit+'</div></div></div>';
+    bh+='<div class="bar-row"><span class="bar-lbl">'+b.lbl+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;">'+fmt(b.val,0)+' '+b.unit+'</div></div></div>';
   });
-  const __g11=bh;document.getElementById('bars').innerHTML=(typeof __g11==='number'?(isFinite(__g11)?__g11:'—'):String(__g11).replace(/Infinity|NaN/g,'—'));
-  const __g12='<p><strong>用地面积：</strong>'+area+' 公顷 ('+(area*0.01).toFixed(3)+' km²)</p>'+
+  document.getElementById('bars').innerHTML=bh;
+  var detail='<p><strong>用地面积：</strong>'+area+' 公顷 ('+(area*0.01).toFixed(3)+' km²)</p>'+
     '<p><strong>目标人均用地：</strong>'+perCap+' m²/人</p>'+
     '<p><strong>居住用地占比：</strong>'+(resRatio*100).toFixed(0)+'%（'+resArea.toFixed(1)+' 公顷）</p>'+
     '<p><strong>目标净密度：</strong>'+netDensity+' 人/公顷</p>'+
     '<p><strong>按人均用地容量：</strong>'+area+'×10000 ÷ '+perCap+' = '+fmt(capByArea,0)+' 人</p>'+
     '<p><strong>按净密度容量：</strong>'+resArea.toFixed(1)+'×'+netDensity+' = '+fmt(capByNet,0)+' 人</p>'+
     '<p><strong>适宜人口容量：</strong>取较小值 = '+fmt(capFinal,0)+' 人</p>'+
-    '<p><strong>实际人均用地：</strong>'+fmt(actualPerCap,1)+' m²/人</p>';document.getElementById('result').innerHTML=(typeof __g12==='number'?(isFinite(__g12)?__g12:'—'):String(__g12).replace(/Infinity|NaN/g,'—'));
+    '<p><strong>实际人均用地：</strong>'+fmt(actualPerCap,1)+' m²/人</p>';
+  if(en){
+    detail='<p><strong>Land area:</strong>'+area+' ha ('+(area*0.01).toFixed(3)+' km²)</p>'+
+      '<p><strong>Target land per person:</strong>'+perCap+' m²/person</p>'+
+      '<p><strong>Residential land share:</strong>'+(resRatio*100).toFixed(0)+'% ('+resArea.toFixed(1)+' ha)</p>'+
+      '<p><strong>Target net density:</strong>'+netDensity+' persons/ha</p>'+
+      '<p><strong>Capacity by land per person:</strong>'+area+'×10000 ÷ '+perCap+' = '+fmt(capByArea,0)+' persons</p>'+
+      '<p><strong>Capacity by net density:</strong>'+resArea.toFixed(1)+'×'+netDensity+' = '+fmt(capByNet,0)+' persons</p>'+
+      '<p><strong>Suitable population capacity:</strong>smaller value = '+fmt(capFinal,0)+' persons</p>'+
+      '<p><strong>Actual land per person:</strong>'+fmt(actualPerCap,1)+' m²/person</p>';
+  }
+  document.getElementById('result').innerHTML=detail;
   window._lastResult={type:'人口容量',capByArea:capByArea,capByNet:capByNet,capFinal:capFinal,actualPerCap:actualPerCap};
 }
 function copyResult(){
   if(!window._lastResult)return;
   var r=window._lastResult;
+  if(PAGE_EN){
+    if(r.type==='人口密度')ToolBox.copyText('Population density result:\nGross density: '+fmt(r.gross,0)+' persons/ha\nNet density: '+(r.complete?fmt(r.net,0)+' persons/ha':'incomplete (residential land area missing)')+'\nLand per person: '+fmt(r.perCap,1)+' m²\nCheck: '+(r.complete?(r.ok?'meets planning standard':'above standard'):'incomplete (residential land area missing)'));
+    else ToolBox.copyText('Population capacity result:\nBy land per person: '+fmt(r.capByArea,0)+' persons\nBy net density: '+fmt(r.capByNet,0)+' persons\nSuitable capacity: '+fmt(r.capFinal,0)+' persons\nActual land per person: '+fmt(r.actualPerCap,1)+' m²');
+    return;
+  }
   if(r.type==='人口密度'){
-    ToolBox.copyText('人口密度计算结果：\n人口毛密度: '+fmt(r.gross,0)+' 人/ha\n人口净密度: '+(r.net>0?fmt(r.net,0):'--')+' 人/ha\n人均用地: '+fmt(r.perCap,1)+' m²\n校核: '+(r.ok?'符合':'超标'));
+    ToolBox.copyText('人口密度计算结果：\n人口毛密度: '+fmt(r.gross,0)+' 人/ha\n人口净密度: '+(r.complete?fmt(r.net,0)+' 人/ha':'未完成（缺少居住用地面积）')+'\n人均用地: '+fmt(r.perCap,1)+' m²\n校核: '+(r.complete?(r.ok?'符合':'超标'):'未完成校核（缺少居住用地面积）'));
   }else{
     ToolBox.copyText('人口容量计算结果：\n按人均用地容量: '+fmt(r.capByArea,0)+' 人\n按净密度容量: '+fmt(r.capByNet,0)+' 人\n适宜容量: '+fmt(r.capFinal,0)+' 人\n实际人均用地: '+fmt(r.actualPerCap,1)+' m²');
   }
