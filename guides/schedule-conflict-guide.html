@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://chenguangwu.github.io/guides/schedule-conflict-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"课程表冲突检测 使用指南","description":"录入课程安排，自动检测同一时间段的教师冲突与教室冲突，输出冲突清单与可视化课表，辅助排课。典型场景包括：教室资源优化：通过教室冲突提示，发现同一教室被重复占用，及时调整或申请扩容，避免上课「撞车」；教师工作量核查：教师冲突往往意味着排课对人手估算不足，提示需增派教师或错峰排课。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://chenguangwu.github.io/guides/schedule-conflict-guide.html"},"image":"https://chenguangwu.github.io/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://chenguangwu.github.io/logo-512.png"}},"inLanguage":"zh-CN"}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "课程表冲突检测 使用指南", "item": "https://chenguangwu.github.io/guides/schedule-conflict-guide.html"}]}</script>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "冲突判定依据是什么？", "acceptedAnswer": {"@type": "Answer", "text": "两门课若「星期相同」且节次区间交叉（a.start≤b.end 且 b.start≤a.end，节次为离散整节、含端点）即判定时间重叠；重叠基础上再比教师/教室是否相同，分别记教师冲突与教室冲突。工具只做时间+资源冲突检测，不涉及课程合理性。"}}, {"@type": "Question", "name": "能检测跨周或单双周冲突吗？", "acceptedAnswer": {"@type": "Answer", "text": "当前按固定星期+节次比对，未区分单双周/隔周课；若课程含单双周安排，需把冲突周次分别列出后再比对，或先在输入中标注周次以免漏检。工具结果仅作排课初检参考。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "冲突判定依据是什么？", "acceptedAnswer": {"@type": "Answer", "text": "先看「星期相同」且节次区间交叉（a.start≤b.end 且 b.start≤a.end），再求两课周次交集；只有存在共同周次且时间重叠，才继续比较教师/教室/班级。工具只做时间+资源冲突检测，不涉及课程合理性。"}}, {"@type": "Question", "name": "能检测跨周或单双周冲突吗？", "acceptedAnswer": {"@type": "Answer", "text": "能。输入可选填班级、起始周、结束周与单双周（全/单/双）；工具先求两课周次交集（起止周取交叠，再按单双周筛选），只有存在共同周次且星期、节次重叠时才算冲突。未填周次视为全周 1–30，未填班级则不检测班级维度。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -75,12 +75,11 @@ li{margin:8px 0;}
 <h2>功能说明</h2>
 <p>录入课程安排，自动检测同一时间段的教师冲突与教室冲突，输出冲突清单与可视化课表，辅助排课。</p>
 <h2>典型使用场景</h2>
-<ul><li>排课前预检：把拟排课程（星期、节次、教师、教室）粘贴进工具，自动两两比对时间重叠，标出教师冲突（同一老师同时段两门课）与教室冲突（同一教室同时段两门课）。</li><li>教室资源优化：通过教室冲突提示，发现同一教室被重复占用，及时调整或申请扩容，避免上课「撞车」。</li><li>教师工作量核查：教师冲突往往意味着排课对人手估算不足，提示需增派教师或错峰排课。</li></ul>
+<ul><li>排课前预检：每行录入「课程,教师,教室,星期,起止节次[,班级[,起始周[,结束周[,单双周]]]]」，先按星期+节次+周次判断是否真的同时发生，再检测同一教师、同一教室、同一班级的重复占用；单双周或起止周不同的课程不会误报。</li><li>教室资源优化：通过教室冲突提示，发现同一教室被重复占用，及时调整或申请扩容，避免上课「撞车」。</li><li>教师工作量核查：教师冲突往往意味着排课对人手估算不足，提示需增派教师或错峰排课。</li><li>冲突指标不稀释：输出课程总数、冲突课程数、班级/教师/教室冲突数与“占用时段冲突比例”（冲突时段 ÷ 实际占用时段），不再用 7×最大节次作分母，稀疏课表不会被大量空时段拉低。</li></ul>
 <h2>算例参考</h2>
-<ul><li><strong>算例：3 门课同占周一第1-2节</strong>：课程A 周一1-2节 教师张三 教室101；课程B 周一1-2节 教师张三 教室102；课程C 周一1-2节 教师李四 教室101。
-A 与 B 时间重叠且同教师 → 教师冲突 1 起、教室不同无教室冲突；
-A 与 C 时间重叠且同教室101 → 教室冲突 1 起、教师不同无教师冲突；
-合计：课程3门、教师冲突1、教室冲突1。</li></ul>
+<ul><li><strong>算例：同班两课周次不重叠 vs 重叠</strong>：课程A 周一1-2节、班级一班、第1-8周；课程B 同一时间、班级一班、第9-16周 → 周次无交集，不报班级冲突。
+若把 B 改为第5-12周，则共同周次为第5-8周，报 1 起班级冲突。
+若 A、B 教师相同但分别为单周/双周，且周次范围相同，也没有共同周次，不报教师冲突。</li></ul>
 <h2>注意事项</h2>
 <p>本工具纯前端运行，输入内容不上传服务器；结果为按上述口径得到的<strong>理论估算值</strong>。实际应用受设备参数、测量条件与当地规范影响，请以设备铭牌、检测报告与现行标准为准，重大决策建议咨询专业人士。</p>
 <div class="related">
@@ -91,8 +90,8 @@ A 与 C 时间重叠且同教室101 → 教室冲突 1 起、教师不同无教�
 <a class="tool-chip" href="https://chenguangwu.github.io/tools/edu2/exam-countdown.html">考试倒计时</a>
 </div>
 <dl class="faq">
-<dt>冲突判定依据是什么？</dt><dd>两门课若「星期相同」且节次区间交叉（a.start≤b.end 且 b.start≤a.end，节次为离散整节、含端点）即判定时间重叠；重叠基础上再比教师/教室是否相同，分别记教师冲突与教室冲突。工具只做时间+资源冲突检测，不涉及课程合理性。</dd>
-<dt>能检测跨周或单双周冲突吗？</dt><dd>当前按固定星期+节次比对，未区分单双周/隔周课；若课程含单双周安排，需把冲突周次分别列出后再比对，或先在输入中标注周次以免漏检。工具结果仅作排课初检参考。</dd>
+<dt>冲突判定依据是什么？</dt><dd>先看「星期相同」且节次区间交叉（a.start≤b.end 且 b.start≤a.end），再求两课周次交集；只有存在共同周次且时间重叠，才继续比较教师/教室/班级。工具只做时间+资源冲突检测，不涉及课程合理性。</dd>
+<dt>能检测跨周或单双周冲突吗？</dt><dd>能。输入可选填班级、起始周、结束周与单双周（全/单/双）；工具先求两课周次交集（起止周取交叠，再按单双周筛选），只有存在共同周次且星期、节次重叠时才算冲突。未填周次视为全周 1–30，未填班级则不检测班级维度。</dd>
 </dl>
 <div class="related"><h3>相关工具</h3><a class="tool-chip" href="/tools/edu2/schedule-conflict.html">课程表冲突检测</a></div>
 <div class="back"><a href="https://chenguangwu.github.io/tools/edu2/schedule-conflict.html">→ 打开课程表冲突检测工具</a></div>

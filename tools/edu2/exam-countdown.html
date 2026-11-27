@@ -94,7 +94,15 @@
       "name": "法定节假日数据准确吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "本工具内置常见法定节假日（如国庆 10-01~10-07、春节等）用于扣除，但每年具体调休安排以国务院当年公告为准，且不会自动顺延补班日；重要考试请以学校/考试院校历为准，工具结果仅作规划参考。"
+        "text": "仅内置 2026 年主要节假日近似表用于扣减，不含调休补班；每年具体安排以国务院当年公告为准。未内置年份不扣减并在结果中提示，重要考试请以学校/考试院校历为准。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么快捷考试按钮会变少？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "快捷入口按“日期 ≥ 今天”动态渲染，过期项自动隐藏；若一个都不剩，页面会提示自行填写考试名称与日期。这样不会把已经过去的考试日期硬填进输入框，避免倒计时出现负天数。"
       }
     }
   ]
@@ -153,13 +161,12 @@
 
     <div class="checkbox-row">
       <label><input type="checkbox" id="countWeekend" checked> 周末计入可复习天数</label>
-      <label><input type="checkbox" id="countHoliday" checked> 含法定节假日（按调休）</label>
+      <label><input type="checkbox" id="countHoliday" checked> 从可复习天数中扣除法定节假日（仅内置 2026 年近似表，不含调休补班）</label>
     </div>
 
     <div class="toolbar">
       <div id="exam_countdownPresets"></div><button type="button" class="btn primary" onclick="calc()">计算倒计时</button><button class="btn" type="button" onclick="__exam_countdownExport()">导出明细 CSV</button>
-      <button type="button" class="btn" onclick="setQuick('gaokao')">2026高考</button>
-      <button type="button" class="btn" onclick="setQuick('kaoyan')">2026考研</button>
+      <span id="quickExamBtns"></span>
     </div>
 
     <div class="result-box" id="result" style="display:none;"></div>
@@ -206,8 +213,9 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>备考天数规划：输入考试日期，工具算出距今天数，并按是否计周末、是否扣减法定节假日分别给出<a class="term-link" href="/tools/life/workday-calculator.html">工作日</a>与周末天数，便于安排复习节奏。</li>
-<li>节假日调休处理：勾选「扣除法定节假日」后，国庆/春节等长假会从工作日中剔除并单独统计，避免把假期误当复习日。</li>
+<li>节假日口径：勾选「扣除法定节假日」后，仅按内置 2026 年主要节假日近似表从可复习天数中扣除，不含调休补班；若同时计周末，落在周末的节假日不会重复计入可复习天数。未内置年份不扣减，并在结果中提示。</li>
 <li>多考试并行管理：为不同考试分别建<a class="term-link" href="/guides/countdown-timer-guide.html">倒计时</a>，对比各自剩余工作日，优先保障临近且工作日紧张的那场。</li>
+<li>快捷入口只保留未来考试：内置快捷按钮按当前日期过滤，已过期日期不再显示，也不会把过期日期硬填进输入框；需要时自行填写下一次已确认的考试日期。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：今天 2026-09-10，考试 2026-10-01</div><div class="dd-ex-body">距考试总天数 = ceil((10-01 − 09-10)) = 21 天；
 其中按周一至周五计工作日 ≈ 15 天、周末 6 天（未扣法定节假日）；
@@ -216,7 +224,8 @@
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>倒计时为什么用 ceil 而不是四舍五入？</dt><dd>剩余天数向上取整（不足一天按一天计）是为了不低估备考时间——哪怕只差几小时也算「还有一天」，提醒考生当天仍要复习；这是保守且安全的取整策略。</dd>
-<dt>法定节假日数据准确吗？</dt><dd>本工具内置常见法定节假日（如国庆 10-01~10-07、春节等）用于扣除，但每年具体调休安排以国务院当年公告为准，且不会自动顺延补班日；重要考试请以学校/考试院校历为准，工具结果仅作规划参考。</dd>
+<dt>法定节假日数据准确吗？</dt><dd>仅内置 2026 年主要节假日近似表用于扣减，不含调休补班；每年具体安排以国务院当年公告为准。未内置年份不扣减并在结果中提示，重要考试请以学校/考试院校历为准。</dd>
+<dt>为什么快捷考试按钮会变少？</dt><dd>快捷入口按“日期 ≥ 今天”动态渲染，过期项自动隐藏；若一个都不剩，页面会提示自行填写考试名称与日期。这样不会把已经过去的考试日期硬填进输入框，避免倒计时出现负天数。</dd>
 </dl>
 </div>
 </section>
@@ -269,6 +278,18 @@ var HOLIDAYS = {
   '2026-10-01':'国庆','2026-10-02':'国庆','2026-10-03':'国庆','2026-10-04':'国庆','2026-10-05':'国庆','2026-10-06':'国庆','2026-10-07':'国庆'
 };
 
+var QUICK_EXAMS = [
+  {id:'gaokao', name:'2026年高考', date:'2026-06-07', source:'2026 年已公布日程'},
+  {id:'kaoyan', name:'2026年考研', date:'2026-12-19', source:'2026 年已公布日程'}
+];
+function renderQuickExams(){
+  var box=document.getElementById('quickExamBtns'); if(!box) return;
+  var today=new Date(); today.setHours(0,0,0,0);
+  var valid=QUICK_EXAMS.filter(function(x){var d=new Date(x.date+'T00:00:00'); return !isNaN(d.getTime()) && d>=today;});
+  box.innerHTML='';
+  if(!valid.length){ var __qe=(typeof TBKit!=='undefined'&&TBKit.util.isEn()); box.innerHTML='<span style="font-size:12px;color:var(--text-muted);">'+(__qe?'No built-in unexpired confirmed exam date; enter the exam name and date manually.':'未内置尚未过期的已确认考试日期，请自行填写考试名称与日期。')+'</span>'; return; }
+  valid.forEach(function(x){var b=document.createElement('button');b.type='button';b.className='btn';b.textContent=x.name;b.title=x.source;b.onclick=function(){setQuick(x.id);};box.appendChild(b);});
+}
 function fmtDate(d){
   var y = d.getFullYear();
   var m = ('0'+(d.getMonth()+1)).slice(-2);
@@ -279,13 +300,12 @@ function fmtDate(d){
 function setQuick(type){
   var nameEl = document.getElementById('examName');
   var dateEl = document.getElementById('examDate');
-  if(type==='gaokao'){
-    nameEl.value = '2026年高考';
-    dateEl.value = '2026-06-07';
-  } else if(type==='kaoyan'){
-    nameEl.value = '2026年考研';
-    dateEl.value = '2026-12-19';
-  }
+  var q=QUICK_EXAMS.filter(function(x){return x.id===type;})[0];
+  if(!q){ ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Choose an exam date manually.':'请自行填写考试日期。','info'); return; }
+  var qd=new Date(q.date+'T00:00:00'), today=new Date(); today.setHours(0,0,0,0);
+  if(isNaN(qd.getTime())||qd<today){ ToolBox.showToast((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'That quick date has passed; enter the next confirmed exam date manually.':'该快捷考试日期已过期，请自行填写下一次已确认的考试日期。','warning'); return; }
+  nameEl.value = q.name;
+  dateEl.value = q.date;
   calc();
 }
 
@@ -315,7 +335,7 @@ function calc(){
   var coveredYears = {}, missingYears = {};
   var holidayYears = new Set(Object.keys(HOLIDAYS).map(function(k){return k.slice(0,4);}));
 
-  var workdays = 0, weekends = 0, holidays = 0;
+  var workdays = 0, weekends = 0, holidays = 0, holidayWeekends = 0;
   if(totalDays > 0){
     var cur = new Date(today);
     for(var i=0;i<totalDays;i++){
@@ -327,7 +347,7 @@ function calc(){
       var isHoliday = countHoliday && HOLIDAYS[ds];
       if(wd === 0 || wd === 6){
         weekends++;
-        if(isHoliday) holidays++;
+        if(isHoliday){ holidays++; holidayWeekends++; }
       } else if(isHoliday){
         holidays++;
       } else {
@@ -337,59 +357,61 @@ function calc(){
     if(workdays < 0) workdays = 0;
   }
   var studyDays = workdays + (countWeekend ? weekends : 0);
+  if(countHoliday && countWeekend) studyDays -= holidayWeekends;
+  var deductedHolidays = holidays - (countWeekend ? 0 : holidayWeekends);
 
   var status, statusTag;
   if(totalDays > 0){
-    status = '倒计时中';
+    status = __en?'Counting down':'倒计时中';
     statusTag = 'grade-good';
   } else if(totalDays === 0){
-    status = '今天考试';
+    status = __en?'Exam today':'今天考试';
     statusTag = 'grade-pass';
   } else {
-    status = '已过 '+Math.abs(totalDays)+' 天';
+    status = __en?('Passed '+Math.abs(totalDays)+' days ago'):('已过 '+Math.abs(totalDays)+' 天');
     statusTag = 'grade-fail';
   }
 
-  var weekLabel = ['日','一','二','三','四','五','六'][examDate.getDay()];
+  var weekLabel = __en?['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][examDate.getDay()]:['日','一','二','三','四','五','六'][examDate.getDay()];
 
   var html = '';
   html += '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">'+ToolBox.escHtml(name)+'</div><div class="lbl">考试名称</div></div>';
-  html += '<div class="stat-card"><div class="val">'+dateStr+'</div><div class="lbl">考试日期（周'+weekLabel+'）</div></div>';
-  html += '<div class="stat-card"><div class="val" style="font-size:32px;">'+(totalDays>0?totalDays:(totalDays===0?'今天':totalDays))+'</div><div class="lbl">剩余天数</div></div>';
-  html += '<div class="stat-card"><div class="val"><span class="grade-tag '+statusTag+'">'+status+'</span></div><div class="lbl">状态</div></div>';
+  html += '<div class="stat-card"><div class="val">'+ToolBox.escHtml(name)+'</div><div class="lbl">'+(__en?'Exam':'考试名称')+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+dateStr+'</div><div class="lbl">'+(__en?('Exam date ('+weekLabel+')'):('考试日期（周'+weekLabel+'）'))+'</div></div>';
+  html += '<div class="stat-card"><div class="val" style="font-size:32px;">'+(totalDays>0?totalDays:(totalDays===0?(__en?'Today':'今天'):totalDays))+'</div><div class="lbl">'+(__en?'Days left':'剩余天数')+'</div></div>';
+  html += '<div class="stat-card"><div class="val"><span class="grade-tag '+statusTag+'">'+status+'</span></div><div class="lbl">'+(__en?'Status':'状态')+'</div></div>';
   html += '</div>';
 
   if(totalDays > 0){
-    html += '<h3 style="margin-top:8px;">时间分布</h3>';
+    html += '<h3 style="margin-top:8px;">'+(__en?'Time distribution':'时间分布')+'</h3>';
     html += '<div class="data-grid">';
-    html += '<div class="data-card"><div class="num">'+workdays+'</div><div class="label">工作日（天）</div></div>';
+    html += '<div class="data-card"><div class="num">'+workdays+'</div><div class="label">'+(__en?'Workdays (days)':'工作日（天）')+'</div></div>';
     html += '<div class="data-card"><div class="num">'+studyDays+'</div><div class="label">'+(__en?(countWeekend?'Study days (incl. weekends)':'Study days (weekdays only)'):(countWeekend?'可复习天数（含周末）':'可复习天数（仅工作日）'))+'</div></div>';
     if(countWeekend){
-      html += '<div class="data-card"><div class="num">'+weekends+'</div><div class="label">周末（天）</div></div>';
+      html += '<div class="data-card"><div class="num">'+weekends+'</div><div class="label">'+(__en?'Weekends (days)':'周末（天）')+'</div></div>';
     } else {
       html += '<div class="data-card"><div class="num">—</div><div class="label">'+(__en?'Weekend not counted separately':'周末未单独统计')+'</div></div>';
     }
     if(countHoliday){
-      html += '<div class="data-card"><div class="num">'+holidays+'</div><div class="label">含节假日（天）</div></div>';
+      html += '<div class="data-card"><div class="num">'+deductedHolidays+'</div><div class="label">'+(__en?'Holidays deducted (days)':'扣除的节假日（天）')+'</div></div>';
     }
-    html += '<div class="data-card"><div class="num">'+Math.floor(totalDays/7)+'</div><div class="label">完整周数</div></div>';
-    html += '<div class="data-card"><div class="num">'+(totalDays%7)+'</div><div class="label">额外天数</div></div>';
-    html += '<div class="data-card"><div class="num">'+Math.ceil(totalDays*24)+'</div><div class="label">剩余小时</div></div>';
+    html += '<div class="data-card"><div class="num">'+Math.floor(totalDays/7)+'</div><div class="label">'+(__en?'Full weeks':'完整周数')+'</div></div>';
+    html += '<div class="data-card"><div class="num">'+(totalDays%7)+'</div><div class="label">'+(__en?'Extra days':'额外天数')+'</div></div>';
+    html += '<div class="data-card"><div class="num">'+Math.ceil(totalDays*24)+'</div><div class="label">'+(__en?'Hours left':'剩余小时')+'</div></div>';
     html += '</div>';
 
     // 备考建议
     var advice;
     if(totalDays > 90){
-      advice = '基础巩固期：建议系统完成 2-3 轮复习，每周安排 1 次模拟测试，建立完整错题体系。可分配约 '+(totalDays/3).toFixed(0)+' 天/轮。';
+      advice = __en?('Foundation phase: plan 2–3 full review rounds, one mock test per week, and build a complete wrong-answer system; about '+(totalDays/3).toFixed(0)+' days per round.'):('基础巩固期：建议系统完成 2-3 轮复习，每周安排 1 次模拟测试，建立完整错题体系。可分配约 '+(totalDays/3).toFixed(0)+' 天/轮。');
     } else if(totalDays > 30){
-      advice = '强化提升期：重点突破薄弱专题，每周限时训练 2-3 套真题，强化高频考点记忆与解题速度。';
+      advice = __en?'Intensive phase: target weak topics, do 2–3 timed past papers each week, and drill high-frequency points and speed.':'强化提升期：重点突破薄弱专题，每周限时训练 2-3 套真题，强化高频考点记忆与解题速度。';
     } else if(totalDays > 10){
-      advice = '专项冲刺期：每日限时做题保持手感，回归错题本查漏补缺，模拟实战演练调整答题节奏。';
+      advice = __en?'Sprint phase: do timed questions daily, return to the wrong-answer book, and rehearse the real exam rhythm.':'专项冲刺期：每日限时做题保持手感，回归错题本查漏补缺，模拟实战演练调整答题节奏。';
     } else if(totalDays > 3){
-      advice = '冲刺调整期：回归基础与课本，复习错题，调整作息至与考试同步，保证每日 7-8 小时睡眠。';
+      advice = __en?'Final taper: return to basics and textbooks, review wrong answers, shift your sleep schedule to match the exam, and keep 7–8 hours nightly.':'冲刺调整期：回归基础与课本，复习错题，调整作息至与考试同步，保证每日 7-8 小时睡眠。';
     } else {
-      advice = '考前调整期：放松心态，浏览要点笔记，检查考试用品，保证充足休息，以最佳状态应考。';
+      advice = __en?'Exam-eve mode: relax, skim key notes, check your exam kit, rest fully, and sit the exam in your best state.':'考前调整期：放松心态，浏览要点笔记，检查考试用品，保证充足休息，以最佳状态应考。';
     }
     html += '<div class="tip-box tip-success" style="margin-top:12px;">'+advice+'</div>';
 
@@ -397,15 +419,18 @@ function calc(){
     html += '<h3 style="margin-top:16px;">'+(__en?'Time remaining':'时间余量')+'</h3>';
     var weeks=Math.floor(totalDays/7), remDays=totalDays%7;
     html += '<p style="font-size:14px;">'+(__en?('About '+weeks+' weeks and '+remDays+' days left.'):('剩余约 '+weeks+' 周 '+remDays+' 天。'))+'</p>';
-    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(__en?('Days left: '+totalDays+'; study days: '+studyDays+(countWeekend?' (incl. weekends)':' (weekdays only)')+(countHoliday?'; holidays: '+holidays:'')):('距考试还有 '+totalDays+' 天，可复习 '+studyDays+' 天'+(countWeekend?'（含周末）':'（仅工作日）')+(countHoliday?'、含 '+holidays+' 个节假日':'')))+'。</p>';
+    html += '<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(__en?('Days left: '+totalDays+'; study days: '+studyDays+(countWeekend?' (incl. weekends)':' (weekdays only)')+(countHoliday?'; holidays: '+deductedHolidays:'')):('距考试还有 '+totalDays+' 天，可复习 '+studyDays+' 天'+(countWeekend?'（含周末）':'（仅工作日）')+(countHoliday?'、含 '+deductedHolidays+' 个节假日':'')))+'。</p>';
+    if(countHoliday){
+      html += '<p style="font-size:12px;color:var(--text-muted);">'+(__en?'Holiday data: built-in 2026 major-holiday approximation only; adjusted make-up workdays are not included, and years without a built-in table are not deducted.':'节假日口径：仅内置 2026 年主要节假日近似表，不含调休补班；未内置年份不扣减。')+'</p>';
+    }
     if(countHoliday && Object.keys(missingYears).length){
       var covered = Object.keys(coveredYears).join(', '), missing = Object.keys(missingYears).join(', ');
       html += '<p style="font-size:12px;color:var(--danger);">'+(__en?('No holiday data for '+missing+'; holidays in those years were not deducted.'+(covered?' Built-in estimates were applied for '+covered+'.':'')):('未内置 '+missing+' 年节假日表，这些年份未扣减节假日。'+(covered?'已按内置估算表处理 '+covered+' 年。':'')))+'</p>';
     }
   } else if(totalDays === 0){
-    html += '<div class="tip-box tip-warn" style="margin-top:12px;">今天就是考试日！请提前到达考场，带齐证件与文具，沉着应考。</div>';
+    html += '<div class="tip-box tip-warn" style="margin-top:12px;">'+(__en?'Exam day is today. Arrive early with your ID and stationery, and stay calm.':'今天就是考试日！请提前到达考场，带齐证件与文具，沉着应考。')+'</div>';
   } else {
-    html += '<div class="tip-box tip-info" style="margin-top:12px;">该考试已于 '+dateStr+' 结束，已过去 '+Math.abs(totalDays)+' 天。</div>';
+    html += '<div class="tip-box tip-info" style="margin-top:12px;">'+(__en?('This exam ended on '+dateStr+', '+Math.abs(totalDays)+' days ago.'):('该考试已于 '+dateStr+' 结束，已过去 '+Math.abs(totalDays)+' 天。'))+'</div>';
   }
 
   var el = document.getElementById('result');
@@ -420,6 +445,7 @@ function calc(){
   var next = new Date(now.getFullYear(), now.getMonth(), now.getDate()+30);
   document.getElementById('examDate').value = fmtDate(next);
 })();
+renderQuickExams();
 calc();
 </script>
 

@@ -171,7 +171,8 @@
     <h3 style="margin-top:16px;">成绩录入</h3>
     <div class="tip-box tip-info" style="margin-top:8px;">每行一条：姓名,分数（也可只输入分数，自动编号）</div>
     <div style="margin:8px 0;">
-      <textarea id="scoreInput" style="min-height:160px;" placeholder="姓名,分数&#10;例如：&#10;张三,92&#10;李四,85&#10;王五,78&#10;或直接输入分数：&#10;92&#10;85&#10;78" aria-label="成绩录入"></textarea>
+      <textarea id="scoreInput" style="min-height:160px;" placeholder="姓名,分数&#10;例如：&#10;张三,92&#10;李四,85&#10;王五,78&#10;或直接输入分数：&#10;92&#10;85&#10;78&#10;缺考单独写：&#10;周九,缺考" aria-label="成绩录入"></textarea>
+      <div class="tip-box tip-info" style="margin-top:8px;">每行支持「姓名,分数」「姓名 分数」「纯分数序列」；分数必须是纯数字（0 到满分），「90分」「缺考」不会自动截断或丢弃。缺考请写「姓名,缺考」，单独计数且不计入均值/及格率/排名分母；异常行会在结果区列出行号与原因。</div>
     </div>
 
     <div class="toolbar">
@@ -218,11 +219,16 @@
 <li>班级/年级成绩批量统计：粘贴全班分数（逗号或换行分隔），工具一次性给出人数、均值、<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a>、最高/最低分与及格率、优秀率，免去逐人核算。</li>
 <li>分段分布与教学诊断：按满分比例划分 90/80/70/60 各段人数，快速定位薄弱分数段，辅助讲评与补差。</li>
 <li>不同满分制兼容：满分非 100（如 120/150）时，按及格线/优秀线<a class="term-link" href="/tools/life/percentage-calculator.html">百分比</a>自动换算分数线，避免手工折算出错。</li>
+<li>异常行与缺考分开处理：每行按「姓名,分数」「姓名 分数」或纯分数解析，分数必须是 0–满分纯数字；「90分」「缺考」不会被截断成 90 或静默丢弃。缺考写「姓名,缺考」（英文态可写 absent），单独计数且不计入均值/及格率/排名分母；非法行列出行号、原文与原因。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：8 人成绩 88/92/76/65/95/58/83/70，满分100、及格60%、优秀85%</div><div class="dd-ex-body">人数 n=8，总和=627，均值=78.4，标准差≈12.48，最高95/最低58；
 及格线=100×60%=60 → 及格 7 人（58 不及格），及格率 87.5%；
 优秀线=100×85%=85 → 优秀 3 人（88/92/95），优秀率 37.5%；
 分数段：90-100% 2 人、80-89% 2 人、70-79% 2 人、60-69% 1 人、60%以下 1 人。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：混合异常行与缺考</div><div class="dd-ex-body">输入：张三,92；李四,90分；王五,缺考；赵六,120（满分100）。
+有效成绩仅张三 92 → 参考人数 1、均值 92、及格率 100%；
+缺考 1 人（王五）单独提示，不计入分母；
+第2行李四“90分”、第4行赵六“120 超出 0–100”分别列为排除行并给出原因。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>标准差代表什么？</dt><dd>标准差反映成绩的离散程度（此处为总体标准差 σ=√(Σ(x−均值)²/n)）；值越大说明学生成绩差距越大、分化越明显，越小说明整体越均衡，是诊断班级两极分化的重要统计量。</dd>
@@ -285,68 +291,82 @@ function clearAll(){
 function parseScores(text){
   var lines = text.split('\n');
   var list = [];
+  var errors = [];
+  var absent = [];
   var autoIdx = 1;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  function err(lineNo, raw, zh, enText){ errors.push({line:lineNo, raw:raw, msg:en?enText:zh}); }
   for(var i=0;i<lines.length;i++){
     var line = lines[i].trim();
     if(!line) continue;
     var p = line.split(/[,，\t]+|\s+/).filter(function(x){return x!=='';});
     if(!p.length) continue;
-    // 整行都是数字：按「纯分数序列」拆成多名学生（92,85,78,88）
-    var allNum = p.every(function(x){ return /^-?\d+(\.\d+)?$/.test(x); });
+    var allNum = p.every(function(x){ return /^\d+(?:\.\d+)?$/.test(x); });
     if(allNum){
-      for(var k=0;k<p.length;k++){
-        list.push({name:'学生'+autoIdx, score:parseFloat(p[k])});
-        autoIdx++;
-      }
+      for(var k=0;k<p.length;k++){ list.push({name:(en?'Student ':'学生')+autoIdx, score:Number(p[k]), line:i+1, raw:line}); autoIdx++; }
       continue;
     }
-    // 交替的「姓名 分数」对（张三 92 李四 85）
-    var pairMode = p.length % 2 === 0;
-    if(pairMode){
-      for(var k2=1;k2<p.length;k2+=2){
-        if(!/^-?\d+(\.\d+)?$/.test(p[k2])){ pairMode=false; break; }
-      }
+    if(p.length===2 && (p[1]==='缺考'||p[1].toLowerCase()==='absent')){
+      absent.push({name:p[0], line:i+1, raw:line}); continue;
     }
-    if(pairMode){
-      for(var k3=0;k3<p.length;k3+=2){
-        list.push({name:p[k3], score:parseFloat(p[k3+1])});
+    if(p.length%2===0){
+      var pairsOk=true;
+      for(var k2=0;k2<p.length;k2+=2){
+        var nm=p[k2], sc=p[k2+1];
+        if(!nm){ err(i+1,line,'姓名为空','empty name'); pairsOk=false; break; }
+        if(sc==='缺考'||sc.toLowerCase()==='absent'){ absent.push({name:nm,line:i+1,raw:line}); continue; }
+        if(!/^\d+(?:\.\d+)?$/.test(sc)){ err(i+1,line,'“'+nm+' '+sc+'”的分数不是纯数字（如 90分、缺考需单独成对）','score for “'+nm+' '+sc+'” is not a plain number (e.g. 90pts; absent must be its own pair)'); pairsOk=false; break; }
+        list.push({name:nm, score:Number(sc), line:i+1, raw:line});
       }
+      if(pairsOk) continue;
       continue;
     }
-    var name = p[0];
-    var score = parseFloat(p.length>=2 ? p[1] : p[0]);
-    if(!isFinite(score)) continue;
-    list.push({name:name, score:score});
+    err(i+1,line,'无法识别的行，请用「姓名,分数」或纯分数，缺考用「姓名,缺考」','unrecognized line; use name,score, plain scores, or name,absent');
   }
-  return list;
+  return {list:list, errors:errors, absent:absent};
 }
 
 var __exam_analysis_error='';
 function calc(){
   __exam_analysis_error='';
+  var en = (typeof TBKit!=='undefined'&&TBKit.util.isEn());
   var text = document.getElementById('scoreInput').value;
-  var list = parseScores(text);
-  if(list.length===0){
-    __exam_analysis_error=i18nText('toast.msg826');
-    window.__EXAM_METRICS=null;
-    ToolBox.showToast(__exam_analysis_error,'error');
-    document.getElementById('result').style.display='none';
-    return;
-  }
+  var parsed = parseScores(text);
+  var list = parsed.list, errors = parsed.errors, absent = parsed.absent;
   var full = parseFloat(document.getElementById('fullScore').value);
   var passPct = parseFloat(document.getElementById('passLine').value);
   var excelPct = parseFloat(document.getElementById('excellentLine').value);
   var __err = '';
-  if(!isFinite(full) || full <= 0) __err = '满分必须大于 0。';
-  else if(!isFinite(passPct) || passPct < 0 || passPct > 100) __err = '及格线须在 0–100% 之间（可填 0）。';
-  else if(!isFinite(excelPct) || excelPct < 0 || excelPct > 100) __err = '优秀线须在 0–100% 之间。';
-  else if(excelPct < passPct) __err = '优秀线不应低于及格线。';
+  if(!isFinite(full) || full <= 0) __err = en?'Full score must be greater than 0.':'满分必须大于 0。';
+  else if(!isFinite(passPct) || passPct < 0 || passPct > 100) __err = en?'Pass line must be 0–100% (0 allowed).':'及格线须在 0–100% 之间（可填 0）。';
+  else if(!isFinite(excelPct) || excelPct < 0 || excelPct > 100) __err = en?'Excellent line must be 0–100%.':'优秀线须在 0–100% 之间。';
+  else if(excelPct < passPct) __err = en?'Excellent line should not be below the pass line.':'优秀线不应低于及格线。';
   if(__err){
-    __exam_analysis_error=__err;
-    window.__EXAM_METRICS=null;
-    ToolBox.showToast(__err,'error');
-    document.getElementById('result').style.display='none';
-    return;
+    __exam_analysis_error=__err;window.__EXAM_METRICS=null;ToolBox.showToast(__err,'error');document.getElementById('result').style.display='none';return;
+  }
+  // 按满分校验每条有效成绩；越界行转为明确错误，不参与统计。
+  if(isFinite(full)&&full>0){
+    var rangeErrors=[], kept=[];
+    list.forEach(function(x){
+      if(!isFinite(x.score)||x.score<0||x.score>full) rangeErrors.push({line:x.line, raw:x.raw, msg:en?'Score '+x.score+' is outside 0–'+full:'分数 '+x.score+' 超出 0–'+full});
+      else kept.push(x);
+    });
+    list=kept; errors=errors.concat(rangeErrors);
+  }
+  if(list.length===0){
+    if(!errors.length && !absent.length){
+      __exam_analysis_error=en?'Enter at least one score.':'请至少输入一条成绩。';
+      window.__EXAM_METRICS=null;ToolBox.showToast(__exam_analysis_error,'error');
+      document.getElementById('result').style.display='none';return;
+    }
+    __exam_analysis_error=errors.length?(en?'No valid scores; fix the listed lines.':'没有有效成绩，请按提示修正。'):(en?'No valid scores; only absences were entered.':'没有有效成绩，仅填写了缺考。');
+    window.__EXAM_METRICS=null;ToolBox.showToast(__exam_analysis_error,'error');
+    var er=document.getElementById('result');
+    var eh='<div class="tip-box tip-error"><strong>'+(en?'Invalid rows:':'以下行无法计入：')+'</strong><ul style="margin:6px 0 0 18px;">';
+    errors.forEach(function(x){eh+='<li>'+(en?'Line ':'第 ')+x.line+(en?' — ':' 行 — ')+ToolBox.escHtml(x.raw)+'：'+ToolBox.escHtml(x.msg)+'</li>';});
+    eh+='</ul>';
+    if(absent.length) eh+='<p>'+(en?('Absent: '+absent.length+' (not counted because no valid scores exist).'):('缺考 '+absent.length+' 人（因无有效成绩，未计入统计）。'))+'</p>';
+    eh+='</div>';er.innerHTML=eh;er.style.display='block';return;
   }
   var passScore = full * passPct / 100;
   var excelScore = full * excelPct / 100;
@@ -370,7 +390,7 @@ function calc(){
     {label:'80-89%', min:full*0.8, max:full*0.9, count:0},
     {label:'70-79%', min:full*0.7, max:full*0.8, count:0},
     {label:'60-69%', min:full*0.6, max:full*0.7, count:0},
-    {label:'60%以下', min:0, max:full*0.6, count:0}
+    {label:(en?'Below 60%':'60%以下'), min:0, max:full*0.6, count:0}
   ];
   var overFull = 0, negativeCnt = 0;
   list.forEach(function(s){
@@ -395,17 +415,26 @@ function calc(){
   var goodScore = Math.max(full*0.75, passScore);
   var meanGrade = mean >= excelScore ? {tag:'grade-excellent',text:'优秀'} : mean >= goodScore ? {tag:'grade-good',text:'良好'} : mean >= passScore ? {tag:'grade-pass',text:'及格'} : {tag:'grade-fail',text:'不及格'};
 
+  var L = en?{n:'Tested',mean:'Mean',max:'Highest',min:'Lowest',std:'Std. dev.',pass:'Pass rate',excel:'Excellent rate',level:'Overall level',dist:'Score distribution',rank:'Ranking',th:['Rank','Name','Score','Grade','Vs mean'],less:'Below 60%',person:' people'}:{n:'参考人数',mean:'平均分',max:'最高分',min:'最低分',std:'标准差',pass:'及格率',excel:'优秀率',level:'整体水平',dist:'分数段分布',rank:'成绩排名',th:['排名','姓名','分数','等级','与均分差'],less:'60%以下',person:' 人'};
   var html = '';
   html += '<div class="stat-grid">';
-  html += '<div class="stat-card"><div class="val">'+n+'</div><div class="lbl">参考人数</div></div>';
-  html += '<div class="stat-card"><div class="val">'+mean.toFixed(1)+'</div><div class="lbl">平均分</div></div>';
-  html += '<div class="stat-card"><div class="val">'+max+'</div><div class="lbl">最高分</div></div>';
-  html += '<div class="stat-card"><div class="val">'+min+'</div><div class="lbl">最低分</div></div>';
-  html += '<div class="stat-card"><div class="val">'+std.toFixed(2)+'</div><div class="lbl">标准差</div></div>';
-  html += '<div class="stat-card"><div class="val">'+passRate.toFixed(1)+'%</div><div class="lbl">及格率</div></div>';
-  html += '<div class="stat-card"><div class="val">'+excelRate.toFixed(1)+'%</div><div class="lbl">优秀率</div></div>';
-  html += '<div class="stat-card"><div class="val"><span class="grade-tag '+meanGrade.tag+'">'+meanGrade.text+'</span></div><div class="lbl">整体水平</div></div>';
+  html += '<div class="stat-card"><div class="val">'+n+'</div><div class="lbl">'+L.n+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+mean.toFixed(1)+'</div><div class="lbl">'+L.mean+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+max+'</div><div class="lbl">'+L.max+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+min+'</div><div class="lbl">'+L.min+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+std.toFixed(2)+'</div><div class="lbl">'+L.std+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+passRate.toFixed(1)+'%</div><div class="lbl">'+L.pass+'</div></div>';
+  html += '<div class="stat-card"><div class="val">'+excelRate.toFixed(1)+'%</div><div class="lbl">'+L.excel+'</div></div>';
+  html += '<div class="stat-card"><div class="val"><span class="grade-tag '+meanGrade.tag+'">'+(en?({优秀:'Excellent',良好:'Good',及格:'Pass',不及格:'Fail'}[meanGrade.text]||meanGrade.text):meanGrade.text)+'</span></div><div class="lbl">'+L.level+'</div></div>';
   html += '</div>';
+  if(absent.length){
+    html += '<p>'+(en?('Absent: '+absent.length+' — listed separately and excluded from the mean, pass rate and ranking denominator.'):('缺考 '+absent.length+' 人：已单独记录，不计入平均分、及格率与排名的分母。'))+'</p>';
+  }
+  if(errors.length){
+    html += '<div class="tip-box tip-error"><strong>'+(en?'Rows excluded:':'以下行已排除，未静默丢弃：')+'</strong><ul style="margin:6px 0 0 18px;">';
+    errors.forEach(function(x){html+='<li>'+(en?'Line ':'第 ')+x.line+(en?' — ':' 行 — ')+ToolBox.escHtml(x.raw)+'：'+ToolBox.escHtml(x.msg)+'</li>';});
+    html += '</ul></div>';
+  }
   if(overFull > 0){
     html += '<p style="color:var(--warning);">⚠️ 有 '+overFull+' 个分数超过满分 '+full+'，已计入最高分段，请核对原始数据。</p>';
   }
@@ -414,19 +443,19 @@ function calc(){
   }
   window.__EXAM_METRICS = {mean: mean, passRate: passRate};
 
-  html += '<h3 style="margin-top:8px;">分数段分布</h3>';
+  html += '<h3 style="margin-top:8px;">'+L.dist+'</h3>';
   var maxBand = Math.max.apply(null, bands.map(function(b){return b.count;})) || 1;
   bands.forEach(function(b){
     var pct = b.count / maxBand * 100;
     var rate = (b.count/n*100).toFixed(1);
-    html += '<div class="bar-row"><div class="bar-lbl" style="width:80px;text-align:left;">'+b.label+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+pct.toFixed(1)+'%">'+b.count+' 人 ('+rate+'%)</div></div></div>';
+    html += '<div class="bar-row"><div class="bar-lbl" style="width:80px;text-align:left;">'+b.label+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+pct.toFixed(1)+'%">'+b.count+L.person+' ('+rate+'%)</div></div></div>';
   });
 
-  html += '<h3 style="margin-top:16px;">成绩排名</h3>';
-  html += '<table><thead><tr><th>排名</th><th>姓名</th><th>分数</th><th>等级</th><th>与均分差</th></tr></thead><tbody>';
+  html += '<h3 style="margin-top:16px;">'+L.rank+'</h3>';
+  html += '<table><thead><tr><th>'+L.th[0]+'</th><th>'+L.th[1]+'</th><th>'+L.th[2]+'</th><th>'+L.th[3]+'</th><th>'+L.th[4]+'</th></tr></thead><tbody>';
   ranked.forEach(function(s){
     var grade = s.score >= excelScore ? 'grade-excellent' : s.score >= goodScore ? 'grade-good' : s.score >= passScore ? 'grade-pass' : 'grade-fail';
-    var gradeText = s.score >= excelScore ? '优秀' : s.score >= goodScore ? '良好' : s.score >= passScore ? '及格' : '不及格';
+    var gradeText = s.score >= excelScore ? (en?'Excellent':'优秀') : s.score >= goodScore ? (en?'Good':'良好') : s.score >= passScore ? (en?'Pass':'及格') : (en?'Fail':'不及格');
     var diff = s.score - mean;
     var diffStr = diff >= 0 ? '+'+diff.toFixed(1) : diff.toFixed(1);
     html += '<tr><td>'+s.rank+'</td><td>'+ToolBox.escHtml(s.name)+'</td><td>'+s.score+'</td><td><span class="grade-tag '+grade+'">'+gradeText+'</span></td><td style="color:'+(diff>=0?'var(--success)':'var(--danger)')+'">'+diffStr+'</td></tr>';
