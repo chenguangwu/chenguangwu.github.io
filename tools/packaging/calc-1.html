@@ -93,10 +93,18 @@
     },
     {
       "@type": "Question",
-      "name": "利用率只有六成多，是不是浪费？",
+      "name": "包络体积占比只有六成多，是不是浪费？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "外箱必须包住缓冲加纸板，这批损耗是结构性必然。优化方向是选更薄的合规缓冲、或换更合理的产品排布（如立放改平放）提高内净体积占比，而不是无脑缩小箱子导致装不下或压坏。"
+        "text": "该占比的分母含纸板与缓冲，是结构性占用；优化方向是选更薄的合规缓冲或更合理的产品排布，而不是无脑缩小箱子导致装不下或压坏。若要评估产品真实装填程度，请填写实际产品体积与箱内可用体积。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "包络体积占比和装载体积利用率有什么区别？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "包络体积占比 = 产品外接尺寸乘积 ÷ 外箱外体积，分母含纸板与缓冲，适合比较外箱放大程度；装载体积利用率 = 产品实际体积 ÷ 箱内可用体积，适合评估真实装填程度。非长方体产品的外接盒乘积不等于实际体积，需另填实测体积。"
       }
     }
   ]
@@ -126,9 +134,9 @@
     <h2 data-zh="📦 纸箱外箱尺寸计算">Shipping Carton Dimensions Calculator</h2>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">外箱尺寸 = Math.ceil(产品内尺寸 + 2×(缓冲厚度 + 纸板厚度))，长宽高三向同式各加 2×(缓冲+纸板) 并向上取整；空间利用率 = 产品净体积(内长×内宽×内高÷1e9) ÷ 外箱体积(外长×外宽×外高÷1e9) × 100%（外体积为 0 时记 0）。校验：内尺寸、缓冲厚度、纸板厚度任一为负即提示「请输入有效非负数」（0 允许）。判据：利用率越高包装空间越紧凑，缓冲/纸板越厚外箱放大越多。</div>
+      <div class="formula-eq">外箱尺寸 = Math.ceil(产品内尺寸 + 2×(缓冲厚度 + 纸板厚度))，长宽高三向同式各加 2×(缓冲+纸板) 并向上取整。<br>产品外接包络体积 = 内长×内宽×内高 ÷ 1e9（非长方体按外接盒计，不等于实际产品体积）。<br>外箱外体积 = 外长×外宽×外高 ÷ 1e9。<br>包络体积占比 = 产品外接包络体积 ÷ 外箱外体积 × 100%（分母含纸板与缓冲，不能直接当箱内装载率）。<br>可选装载利用率：产品实际体积 ÷ 箱内可用体积 × 100%；箱内可用体积留空时按 (内长+2×缓冲)×(内宽+2×缓冲)×(内高+2×缓冲) 估算，不含纸板。<br>校验：产品内长/宽/高须 >0；缓冲厚度、纸板厚度须 ≥0；可选体积填写时须 >0。</div>
     </div>
-    <p style='font-size:13px;color:var(--text-muted);margin-bottom:16px;' data-zh="根据产品内尺寸、缓冲材料厚度和纸板厚度，计算纸箱外箱尺寸、体积与空间利用率。">Compute outer carton dimensions for packaging.</p>
+    <p style='font-size:13px;color:var(--text-muted);margin-bottom:16px;' data-zh="根据产品内尺寸、缓冲材料厚度和纸板厚度，计算纸箱外箱尺寸、包络体积占比与可选装载利用率。">Compute outer carton dimensions for packaging.</p>
     <div class='input-row'>
       <div><label for='inL'>产品内长（mm）</label><input type='number' id='inL' value='300' min='0' step='1'></div>
       <div><label for='inW'>产品内宽（mm）</label><input type='number' id='inW' value='200' min='0' step='1'></div>
@@ -137,6 +145,10 @@
     <div class='input-row'>
       <div><label for='pad'>每边缓冲厚度（mm）</label><input type='number' id='pad' value='10' min='0' step='1'></div>
       <div><label for='board'>纸板厚度（mm）</label><input type='number' id='board' value='5' min='0' step='0.5'></div>
+    </div>
+    <div class='input-row'>
+      <div><label for='actualVol'>产品实际体积（L，可选）</label><input type='number' id='actualVol' min='0' step='0.1' placeholder='非长方体请填实测体积'></div>
+      <div><label for='usableVol'>箱内可用体积（L，可选）</label><input type='number' id='usableVol' min='0' step='0.1' placeholder='留空按内腔尺寸估算'></div>
     </div>
     <div class='toolbar'>
       <button class='btn primary' onclick='calculate()'>计算</button>
@@ -151,7 +163,7 @@
 <button type="button" class="btn" onclick="applyCartonPreset('appliance')">🧊 家电整机</button>
     </div>
     <div id="ctChart"></div>
-    <div class='info-box' style='margin-top:12px;'>外箱尺寸 = 产品内尺寸 + 2×(缓冲厚度 + 纸板厚度)。结果向上取整到毫米，便于实际选材。</div>
+    <div class='info-box' style='margin-top:12px;'>外箱尺寸 = 产品内尺寸 + 2×(缓冲厚度 + 纸板厚度)，向上取整到毫米。包络体积占比 = 产品外接包络 ÷ 外箱外体积；装载利用率 = 产品实际体积 ÷ 箱内可用体积（可选）。</div>
     <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
       <button type="button" class="btn" data-zh="⬇️ 导出纸箱尺寸计算结果 CSV" onclick="__cartonExport()">⬇️ Export Carton Size Results CSV</button>
       <span style="font-size:12px;color:var(--text-muted);" data-zh="参数与外箱尺寸结果可导出为 CSV 备案">Parameters and carton dimensions can be exported as CSV for record</span>
@@ -226,34 +238,67 @@
     return isFinite(v) ? v : NaN;
   }
   function mark(id,bad){const el=ToolBox.$(id);if(el&&el.classList)el.classList.toggle('input-error',!!bad);}
+  var __carton_valid=false;
+  function __pkgEn(){return /^en/i.test(document.documentElement.lang||'');}
   function calculate(){
+    __carton_valid=false;
     const inL = get('inL'), inW = get('inW'), inH = get('inH');
     const pad = get('pad'), board = get('board');
+    const actualVol = get('actualVol'), usableVol = get('usableVol');
+    const actualRaw = String(ToolBox.$('actualVol').value == null ? '' : ToolBox.$('actualVol').value).trim();
+    const usableRaw = String(ToolBox.$('usableVol').value == null ? '' : ToolBox.$('usableVol').value).trim();
     const el = ToolBox.$('result');
     const badL = !(isFinite(inL) && inL > 0), badW = !(isFinite(inW) && inW > 0), badH = !(isFinite(inH) && inH > 0);
     const badPad = !(isFinite(pad) && pad >= 0), badBoard = !(isFinite(board) && board >= 0);
-    mark('inL',badL);mark('inW',badW);mark('inH',badH);mark('pad',badPad);mark('board',badBoard);
-    if(badL || badW || badH || badPad || badBoard){
-      el.innerHTML='<p style="color:var(--danger)">⚠ 请输入有效数值：产品内长、内宽、内高须为正数，缓冲厚度与纸板厚度须为非负数。</p>';
+    const badActual = actualRaw !== '' && !(isFinite(actualVol) && actualVol > 0);
+    const badUsable = usableRaw !== '' && !(isFinite(usableVol) && usableVol > 0);
+    mark('inL',badL);mark('inW',badW);mark('inH',badH);mark('pad',badPad);mark('board',badBoard);mark('actualVol',badActual);mark('usableVol',badUsable);
+    if(badL || badW || badH || badPad || badBoard || badActual || badUsable){
+      el.innerHTML='<p style="color:var(--danger)">'+ (__pkgEn() ? '⚠ Enter valid values: product inner length, width and height must be positive; cushioning and board thickness must be non-negative; optional volumes must be positive.' : '⚠ 请输入有效数值：产品内长、内宽、内高须为正数，缓冲厚度与纸板厚度须为非负数；可选体积填写时须为正数。') +'</p>';
       const tb=document.getElementById('cartonTable');if(tb)tb.innerHTML='';
       return;
     }
+
     const add = 2 * (pad + board);
     const outL = Math.ceil(inL + add);
     const outW = Math.ceil(inW + add);
     const outH = Math.ceil(inH + add);
-    const innerVol = inL * inW * inH / 1000000000;
+    const envelopeVol = inL * inW * inH / 1000000000;
     const outerVol = outL * outW * outH / 1000000000;
-    const util = outerVol > 0 ? (innerVol / outerVol * 100) : 0;
-    const __h1='<p>外箱尺寸（长×宽×高）：<strong>' + outL + ' × ' + outW + ' × ' + outH + '</strong> mm</p>' +
-      '<p>外箱体积：<strong>' + ToolBox.formatNumber(outerVol, 4) + '</strong> m³</p>' +
-      '<p>产品净体积：<strong>' + ToolBox.formatNumber(innerVol, 4) + '</strong> m³</p>' +
-      '<p>空间利用率：<strong>' + ToolBox.formatNumber(util, 1) + '</strong> %</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}el.innerHTML=__h1;
+    const envelopePct = outerVol > 0 ? (envelopeVol / outerVol * 100) : 0;
+
+    const cavityVolL = (inL + 2 * pad) * (inW + 2 * pad) * (inH + 2 * pad) / 1000000;
+    const usableIsInput = isFinite(usableVol) && usableVol > 0;
+    const usableL = usableIsInput ? usableVol : cavityVolL;
+    const hasActual = isFinite(actualVol) && actualVol > 0;
+    const loadPct = hasActual ? (actualVol / usableL * 100) : null;
+
+    const en = __pkgEn();
+    let html = '<p>' + (en ? 'Outer size (L × W × H): ' : '外箱尺寸（长×宽×高）：') + '<strong>' + outL + ' × ' + outW + ' × ' + outH + '</strong> mm</p>' +
+      '<p>' + (en ? 'Outer carton volume: ' : '外箱外体积：') + '<strong>' + ToolBox.formatNumber(outerVol, 4) + '</strong> m³</p>' +
+      '<p>' + (en ? 'Product envelope volume: ' : '产品外接包络体积：') + '<strong>' + ToolBox.formatNumber(envelopeVol, 4) + '</strong> m³' + (en ? ' (inner L × W × H; non-cuboid products use their bounding box)' : '（内长×内宽×内高，非长方体按外接盒计）') + '</p>' +
+      '<p>' + (en ? 'Envelope volume share: ' : '包络体积占比：') + '<strong>' + ToolBox.formatNumber(envelopePct, 1) + '</strong> %' + (en ? ' (product envelope ÷ outer carton volume, including board and cushioning)' : '（产品外接包络 ÷ 外箱外体积，含纸板与缓冲）') + '</p>';
+    if(hasActual){
+      html += '<p>' + (en ? 'Actual product volume: ' : '产品实际体积：') + '<strong>' + ToolBox.formatNumber(actualVol, 3) + '</strong> L</p>';
+      html += '<p>' + (usableIsInput ? (en ? 'Usable inner volume (entered): ' : '箱内可用体积（输入）：') : (en ? 'Usable inner volume (estimated from cavity): ' : '箱内可用体积（按内腔尺寸估算）：')) + '<strong>' + ToolBox.formatNumber(usableL, 3) + '</strong> L</p>';
+      html += '<p>' + (en ? 'Loading volume utilization: ' : '装载体积利用率：') + '<strong>' + ToolBox.formatNumber(loadPct, 1) + '</strong> %' + (en ? ' (actual product volume ÷ usable inner volume)' : '（产品实际体积 ÷ 箱内可用体积）') + '</p>';
+      if(loadPct > 100){
+        html += '<div class="tip-box tip-warn">' + (en ? 'Loading utilization exceeds 100%: the actual product volume is larger than the usable inner volume. Check the product volume or usable space.' : '装载体积利用率超过 100%：产品实际体积大于箱内可用体积，请核对产品体积或箱内可用空间。') + '</div>';
+      }
+    } else {
+      html += '<p style="font-size:13px;color:var(--text-muted);">' + (en ? 'Enter the actual product volume to also compute loading utilization (leave the denominator blank to estimate from the cavity).' : '填写“产品实际体积”后，可另算装载体积利用率（分母留空则按内腔尺寸估算）。') + '</p>';
+    }
+    if(envelopePct > 100){
+      html += '<div class="tip-box tip-warn">' + (en ? 'Envelope volume share exceeds 100%: the carton is smaller than the product bounding box. Check inner dimensions and allowances.' : '包络体积占比超过 100%：外箱尺寸小于产品外接包络，请检查内尺寸与加放量。') + '</div>';
+    }
+    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){el.innerHTML='<p style="color:var(--danger)">'+ (en ? '⚠ Result contains an invalid value. Check that inputs are valid positive numbers.' : '⚠ 计算结果含无效值，请检查输入是否为有效正数。') +'</p>';return;}el.innerHTML=__h1;
+    __carton_valid=true;
     save();
   }
   function copyResult(){
+    if(!__carton_valid) return;
     const text = ToolBox.$('result').innerText.replace(/\s+/g, ' ').trim();
-    if(text && text.indexOf('请输入') === -1) ToolBox.copyText(text, i18nText('tool.copy_ok'));
+    if(text) ToolBox.copyText(text, i18nText('tool.copy_ok'));
   }
   function save(){
     try{
@@ -262,14 +307,16 @@
         inW: ToolBox.$('inW').value,
         inH: ToolBox.$('inH').value,
         pad: ToolBox.$('pad').value,
-        board: ToolBox.$('board').value
+        board: ToolBox.$('board').value,
+        actualVol: ToolBox.$('actualVol').value,
+        usableVol: ToolBox.$('usableVol').value
       }));
     }catch(e){}
   }
   function load(){
     try{
       const data = JSON.parse(localStorage.getItem(KEY) || '{}');
-      ['inL','inW','inH','pad','board'].forEach(function(id){
+      ['inL','inW','inH','pad','board','actualVol','usableVol'].forEach(function(id){
         if(data[id] !== undefined) ToolBox.$(id).value = data[id];
       });
     }catch(e){}
@@ -277,7 +324,7 @@
   document.addEventListener('DOMContentLoaded', function(){
     load();
     calculate();
-    ['inL','inW','inH','pad','board'].forEach(function(id){
+    ['inL','inW','inH','pad','board','actualVol','usableVol'].forEach(function(id){
       ToolBox.$(id).addEventListener('input', ToolBox.debounce(calculate, 300));
     });
   });
@@ -288,36 +335,53 @@
 <script>
 function __cartonExport(){
   if(typeof TBKit==='undefined') return;
+  var en=/^en/i.test(document.documentElement.lang||'');
   try{
     var inL=parseFloat(ToolBox.$('inL').value);
     var inW=parseFloat(ToolBox.$('inW').value);
     var inH=parseFloat(ToolBox.$('inH').value);
     var pad=parseFloat(ToolBox.$('pad').value);
     var board=parseFloat(ToolBox.$('board').value);
+    var actualRaw=String(ToolBox.$('actualVol').value||'').trim();
+    var usableRaw=String(ToolBox.$('usableVol').value||'').trim();
+    var actualVol=actualRaw?parseFloat(actualRaw):NaN;
+    var usableVol=usableRaw?parseFloat(usableRaw):NaN;
     if(!isFinite(inL)||inL<=0||!isFinite(inW)||inW<=0||!isFinite(inH)||inH<=0||!isFinite(pad)||pad<0||!isFinite(board)||board<0) return;
+    if(actualRaw&&!(isFinite(actualVol)&&actualVol>0)) return;
+    if(usableRaw&&!(isFinite(usableVol)&&usableVol>0)) return;
     var add=2*(pad+board);
     var outL=Math.ceil(inL+add);
     var outW=Math.ceil(inW+add);
     var outH=Math.ceil(inH+add);
-    var innerVol=inL*inW*inH/1000000000;
+    var envelopeVol=inL*inW*inH/1000000000;
     var outerVol=outL*outW*outH/1000000000;
-    var util=outerVol>0?(innerVol/outerVol*100):0;
+    var envelopePct=outerVol>0?(envelopeVol/outerVol*100):0;
+    var cavityVolL=(inL+2*pad)*(inW+2*pad)*(inH+2*pad)/1000000;
+    var usableIsInput=isFinite(usableVol)&&usableVol>0;
+    var usableL=usableIsInput?usableVol:cavityVolL;
+    var hasActual=isFinite(actualVol)&&actualVol>0;
+    var loadPct=hasActual?(actualVol/usableL*100):null;
     var rows=[
-      ['产品内长 (mm)', ToolBox.formatNumber(inL,1)],
-      ['产品内宽 (mm)', ToolBox.formatNumber(inW,1)],
-      ['产品内高 (mm)', ToolBox.formatNumber(inH,1)],
-      ['每边缓冲厚度 (mm)', ToolBox.formatNumber(pad,1)],
-      ['纸板厚度 (mm)', ToolBox.formatNumber(board,2)],
-      ['外箱长 (mm)', String(outL)],
-      ['外箱宽 (mm)', String(outW)],
-      ['外箱高 (mm)', String(outH)],
-      ['外箱体积 (m³)', ToolBox.formatNumber(outerVol,4)],
-      ['产品净体积 (m³)', ToolBox.formatNumber(innerVol,4)],
-      ['空间利用率 (%)', ToolBox.formatNumber(util,1)]
+      [en?'Product inner length (mm)':'产品内长 (mm)', ToolBox.formatNumber(inL,1)],
+      [en?'Product inner width (mm)':'产品内宽 (mm)', ToolBox.formatNumber(inW,1)],
+      [en?'Product inner height (mm)':'产品内高 (mm)', ToolBox.formatNumber(inH,1)],
+      [en?'Cushioning per side (mm)':'每边缓冲厚度 (mm)', ToolBox.formatNumber(pad,1)],
+      [en?'Board caliper (mm)':'纸板厚度 (mm)', ToolBox.formatNumber(board,2)],
+      [en?'Outer length (mm)':'外箱长 (mm)', String(outL)],
+      [en?'Outer width (mm)':'外箱宽 (mm)', String(outW)],
+      [en?'Outer height (mm)':'外箱高 (mm)', String(outH)],
+      [en?'Outer carton volume (m³)':'外箱外体积 (m³)', ToolBox.formatNumber(outerVol,4)],
+      [en?'Product envelope volume (m³)':'产品外接包络体积 (m³)', ToolBox.formatNumber(envelopeVol,4)],
+      [en?'Envelope volume share (%)':'包络体积占比 (%)', ToolBox.formatNumber(envelopePct,1)]
     ];
+    if(hasActual){
+      rows.push([en?'Actual product volume (L)':'产品实际体积 (L)', ToolBox.formatNumber(actualVol,3)]);
+      rows.push([en?(usableIsInput?'Usable inner volume, entered (L)':'Usable inner volume, estimated from cavity (L)'):(usableIsInput?'箱内可用体积（输入） (L)':'箱内可用体积（按内腔估算） (L)'), ToolBox.formatNumber(usableL,3)]);
+      rows.push([en?'Loading volume utilization (%)':'装载体积利用率 (%)', ToolBox.formatNumber(loadPct,1)]);
+    }
     var tb=document.getElementById('cartonTable');
     if(!tb) return;
-    var html='<thead><tr><th>项目</th><th>数值</th></tr></thead><tbody>';
+    var html='<thead><tr><th>'+(en?'Item':'项目')+'</th><th>'+(en?'Value':'数值')+'</th></tr></thead><tbody>';
     for(var i=0;i<rows.length;i++){ html+='<tr><td>'+rows[i][0]+'</td><td>'+rows[i][1]+'</td></tr>'; }
     html+='</tbody>';
     tb.innerHTML=html;
@@ -333,7 +397,7 @@ function applyCartonPreset(kind){
         : kind==='appliance' ? {inL:'600',inW:'500',inH:'400',pad:'20',board:'7'} : null;
   if(!p) return;
   var set=function(id,v){var el=document.getElementById(id);if(el)el.value=v;};
-  ['inL','inW','inH','pad','board'].forEach(function(id){set(id,p[id]);});
+  ['inL','inW','inH','pad','board'].forEach(function(id){set(id,p[id]);});set('actualVol','');set('usableVol','');
   if(typeof window.calculate==='function') window.calculate();
 }
 </script>
@@ -362,13 +426,14 @@ function applyCartonPreset(kind){
 <ul class="dd-list">
 <li>电商发货纸箱选型：根据产品长宽高，加上每边缓冲泡棉厚度与纸板厚度，反推需要多大外箱，避免买来的箱子装不下或空隙太大、运输晃动。</li>
 <li>多件组合装规划：一个箱子装多个产品时，先算单个产品占位再加缓冲厚度，验证外箱体积是否匹配快递抛重/体积限制。</li>
-<li>空间利用率优化：调整缓冲厚度与纸板厚度，在保护性与体积/运费之间取舍，用利用率量化「材料浪费」比例。</li>
+<li>包络体积占比优化：调整缓冲厚度与纸板厚度，在保护性与体积/运费之间取舍，用产品外接包络 ÷ 外箱外体积量化材料与空隙占比。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（产品 400×300×200 mm，每边缓冲 15 mm，纸板 6 mm）</div><div class="dd-ex-body">单边叠加量 = 2×(缓冲 + 纸板) = 2×(15 + 6) = 42 mm。外箱长 = ⌈400 + 42⌉ = 442 mm、宽 ⌈300 + 42⌉ = 342 mm、高 ⌈200 + 42⌉ = 242 mm（工具对每项向上取整到毫米，便于实际裁板）。内净体积 = 400×300×200 ÷ 1e9 = 0.024 m³；外箱体积 = 442×342×242 ÷ 1e9 ≈ 0.0366 m³；空间利用率 = 0.024 ÷ 0.0366 × 100% ≈ 65.6%。工具按「外箱 = 内尺寸 + 2×(缓冲 + 纸板)」叠加，再算内外体积与利用率。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（产品 400×300×200 mm，每边缓冲 15 mm，纸板 6 mm）</div><div class="dd-ex-body">单边叠加量 = 2×(缓冲 + 纸板) = 2×(15 + 6) = 42 mm。外箱长 = ⌈400 + 42⌉ = 442 mm、宽 ⌈300 + 42⌉ = 342 mm、高 ⌈200 + 42⌉ = 242 mm（工具对每项向上取整到毫米，便于实际裁板）。产品外接包络体积 = 400×300×200 ÷ 1e9 = 0.024 m³；外箱外体积 = 442×342×242 ÷ 1e9 ≈ 0.0366 m³；包络体积占比 = 0.024 ÷ 0.0366 × 100% ≈ 65.6%（分母含纸板与缓冲）。若产品实际体积 20 L，箱内可用体积按内腔估算 = (400+2×15)×(300+2×15)×(200+2×15) ÷ 1e6 = 430×330×230 ÷ 1e6 ≈ 32.64 L，装载体积利用率 = 20 ÷ 32.64 × 100% ≈ 61.3%。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>缓冲厚度和纸板厚度怎么定？</dt><dd>缓冲由内装物易碎度与跌落高度决定（参考缓冲材料系数），纸板厚度由纸箱强度等级（单/双/三瓦楞）决定；二者都填实际值，工具只做几何叠加，不替你选材料。</dd>
-<dt>利用率只有六成多，是不是浪费？</dt><dd>外箱必须包住缓冲加纸板，这批损耗是结构性必然。优化方向是选更薄的合规缓冲、或换更合理的产品排布（如立放改平放）提高内净体积占比，而不是无脑缩小箱子导致装不下或压坏。</dd>
+<dt>包络体积占比只有六成多，是不是浪费？</dt><dd>该占比的分母含纸板与缓冲，是结构性占用；优化方向是选更薄的合规缓冲或更合理的产品排布，而不是无脑缩小箱子导致装不下或压坏。若要评估产品真实装填程度，请填写实际产品体积与箱内可用体积。</dd>
+<dt>包络体积占比和装载体积利用率有什么区别？</dt><dd>包络体积占比 = 产品外接尺寸乘积 ÷ 外箱外体积，分母含纸板与缓冲，适合比较外箱放大程度；装载体积利用率 = 产品实际体积 ÷ 箱内可用体积，适合评估真实装填程度。非长方体产品的外接盒乘积不等于实际体积，需另填实测体积。</dd>
 </dl>
 </div>
 </section>

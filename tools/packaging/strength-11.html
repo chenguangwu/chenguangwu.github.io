@@ -138,9 +138,8 @@
       <p class="formula-desc">McKee 公式把边压强度 ECT 与纸板厚度换算成整箱抗压强度；箱周长按 1000 mm 取值，结果用于楞型选型与堆码层数校核。</p>
     </div>
     <div class="input-row">
-      <div><label for="v0">边压强度 ECT (kN/m)</label><input type="number" id="v0" value="6" step="any" oninput="calc()" enterkeyhint="done" aria-label="楞型" placeholder="如 6"></div>
-      <div style="display:flex;align-items:flex-end;justify-content:center;padding-bottom:8px;"><button class="btn" type="button" onclick="swapValues()" title="互换 A/B" aria-label="互换 A/B" style="padding:10px 12px;">⇄</button></div>
-      <div><label for="v1">纸板厚度 (mm)</label><input type="number" id="v1" value="2.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="强度" placeholder="如 2.5"></div>
+      <div><label for="v0">边压强度 ECT (kN/m)</label><input type="number" id="v0" value="6" step="any" oninput="calc()" enterkeyhint="done" aria-label="边压强度 ECT (kN/m)" placeholder="如 6"></div>
+      <div><label for="v1">纸板厚度 (mm)</label><input type="number" id="v1" value="2.5" step="any" oninput="calc()" enterkeyhint="done" aria-label="纸板厚度 (mm)" placeholder="如 2.5"></div>
     </div>
     <div class="toolbar">
       <div id="strength_11Presets"></div><button class="btn primary" type="button" onclick="calc()">🧮 计算</button><button class="btn" type="button" onclick="__strength_11Export()">导出明细 CSV</button>
@@ -330,13 +329,6 @@ function resetAll(){
   calc();
   ToolBox.showToast(i18nText(), 'info');
 }
-function swapValues(){
-  var a=document.getElementById('v0').value;
-  var b=document.getElementById('v1').value;
-  document.getElementById('v0').value=b;
-  document.getElementById('v1').value=a;
-  calc();
-}
 function historyKey(){
   try{return 'tb_history_'+location.pathname;}catch(e){return 'tb_history_'+(document.title||'calc');}
 }
@@ -391,21 +383,27 @@ document.addEventListener('DOMContentLoaded',function(){
 </script>
 <script>
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
+function __pkgEn(){return /^en/i.test(document.documentElement.lang||'');}
 function calc(){
+    var en=__pkgEn();
     var __ig=__tbInputGuard(['v0', 'v1'],["边压强度 ECT (kN/m)", "纸板厚度 (mm)"]);if(__ig){const __g6=__ig;ToolBox.setResult("res",(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—')));return;}
 var e0=document.getElementById('v0'),e1=document.getElementById('v1');
   var A=e0?parseFloat(e0.value):NaN,B=e1?parseFloat(e1.value):NaN;
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(A)||!isFinite(B)){box.innerHTML='<div class="info-box">请输入两个有效数值后再计算。</div>';return;}
+  if(!(isFinite(A) && A > 0) || !(isFinite(B) && B > 0)){
+    var tb=document.getElementById('strength_11Table');if(tb)tb.innerHTML='';
+    box.innerHTML='<div class="info-box" style="color:var(--danger);">'+(en?'Edge crush test (ECT) and board thickness must be positive; negative or zero values have no physical meaning. Correct the inputs and recalculate.':'边压强度 ECT 与纸板厚度须为正数；负值或 0 无物理意义，请修正后再计算。')+'</div>';
+    return;
+  }
   var items=[];
-  items.push([(5.87*A*Math.sqrt(B*1000)).toFixed(0), "抗压强度估算 BCT（N）"]);
-  items.push([(5.87*A*Math.sqrt(B*1000)/1000).toFixed(3), "抗压强度（kN）"]);
-  items.push([(A/B).toFixed(3), "ECT ÷ 厚度（kN/m·mm）"]);
-  items.push([(5.87*Math.sqrt(B*1000)).toFixed(1), "单位 ECT 承载力系数（N/(kN/m)）"]);
+  items.push([(5.87*A*Math.sqrt(B*1000)).toFixed(0), en?'Estimated BCT (N)':'抗压强度估算 BCT（N）']);
+  items.push([(5.87*A*Math.sqrt(B*1000)/1000).toFixed(3), en?'Compression strength (kN)':'抗压强度（kN）']);
+  items.push([(A/B).toFixed(3), en?'ECT ÷ thickness (kN/m·mm)':'ECT ÷ 厚度（kN/m·mm）']);
+  items.push([(5.87*Math.sqrt(B*1000)).toFixed(1), en?'BCT coefficient per unit ECT (N/(kN/m))':'单位 ECT 承载力系数（N/(kN/m)）']);
 
   var html='<div class="data-grid">'+items.map(function(it){return '<div class="data-card"><div class="num">'+it[0]+'</div><div class="label">'+it[1]+'</div></div>';}).join('')+'</div>';
-  html+='💡 BCT ≈ 5.87 × ECT × √(厚度 × 箱周长)，箱周长取 1000 mm；ECT/厚度 比越大刚性越好。';
+  html+=en?'💡 BCT ≈ 5.87 × ECT × √(thickness × box perimeter), with box perimeter fixed at 1000 mm; a higher ECT/thickness ratio means better rigidity.':'💡 BCT ≈ 5.87 × ECT × √(厚度 × 箱周长)，箱周长取 1000 mm；ECT/厚度 比越大刚性越好。';
   const __g8=html;box.innerHTML=(typeof __g8==='number'?(isFinite(__g8)?__g8:'—'):String(__g8).replace(/Infinity|NaN/g,'—'));
   if(typeof saveHistory==='function'){try{saveHistory(A,B);}catch(e){}}
 }
@@ -438,7 +436,7 @@ function __strength_11ResText(){
 }
 function __strength_11Score(t){
     var s=String(t||'');
-    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
+    if(/[❌]|⚠️|⚠|无效|未通过|不正确|失败|错误|须为正数|无物理意义|修正后|Invalid|Failed|must be|Please enter|请输入|Waiting/i.test(s)) return 0;
     return 1;
 }
 function __strength_11Time(t){
@@ -494,6 +492,7 @@ function __strength_11Extras(){
     if(keys.length>12) keys=keys.slice(0,12);
     var res=__strength_11ResText();
     if(!res) return;
+    if(__strength_11Score(res)===0) return;
     var en=TBKit.util.isEn();
     var rk=en?'Result':'结果';
     var now=Date.now();
@@ -517,6 +516,9 @@ function __strength_11Extras(){
 }
 function __strength_11Export(){
     if (typeof TBKit === 'undefined') return;
+    var e0=document.getElementById('v0'),e1=document.getElementById('v1');
+    var av=e0?parseFloat(e0.value):NaN,bv=e1?parseFloat(e1.value):NaN;
+    if(!(isFinite(av)&&av>0)||!(isFinite(bv)&&bv>0)) return;
     try{
         var box=document.querySelector('#strength_11Table');
         if(!box||!box.querySelector('tr')){
