@@ -51,7 +51,7 @@
 <!-- TOOLBOX-I18N-SCRIPT -->
 
 <meta name="title-en" content="Lumber Price Volatility Analyzer">
-<meta name="desc-en" content="Wood prices fluctuate with supply/demand and seasonality; use the mean and median to describe the center, std dev and CV to measure fluctuation, and latest…">
+<meta name="desc-en" content="Lumber prices move with supply, demand and season. Use mean and median for the center, standard deviation and CV for spread, and latest-price deviation from…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/woodwork/analysis-cost-price.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/woodwork/analysis-cost-price.html">
@@ -73,30 +73,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "波动系数 CV 和标准差有什么区别？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "标准差是绝对波动幅度，受价格量纲影响；CV 是相对波动（标准差/均值），便于不同价位序列横向比较。价格越高，同样标准差下 CV 越小，波动显得更平缓。"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "预警触发后一定不能采购吗？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "不一定。预警仅提示短期偏离超过阈值，应结合供需趋势、库存与资金综合判断；持续触发可能意味着价格中枢上移，反而应择机锁价。"
-      }
-    }
-  ]
-}
-</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"阈值显示为什么不是整数？","acceptedAnswer":{"@type":"Answer","text":"预警按输入的小数位数显示，并明确“偏离绝对值严格大于阈值才触发”。0.4% 不会四舍五入成 0%，等于阈值也不触发，避免边界误报。"}},{"@type":"Question","name":"采购总成本按哪个价算？","acceptedAnswer":{"@type":"Answer","text":"按序列最后一项作为最新价，乘以采购数量；数量必须是有限非负数，计价单位与报价日期仅用于标注和核对。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 <meta name="theme-color" content="#FF6B35">
 </head>
@@ -129,7 +106,7 @@
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
   <div class="formula-eq">样本标准差 s = √[Σ(xᵢ−x̄)²/(n−1)]；波动系数 CV = s / x̄ × 100%；最新价偏离 = (最新价 − 基准价) / 基准价 × 100%。</div>
-  <div class="formula-desc">木材价格随供需与季节波动，用均价与中位数刻画中枢，用标准差与 CV 衡量波动幅度，用最新价相对基准价的偏离识别短期异动；当 |偏离| 超过预警阈值即触发波动预警，辅助采购择时与库存管控。结果仅供参考。</div>
+  <div class="formula-desc">木材价格随供需与季节波动，用均价与中位数刻画中枢，用标准差与 CV 衡量波动幅度，用最新价相对基准价的偏离识别短期异动；只有 |偏离| 严格大于预警阈值才触发（等于阈值不触发）。所有样本须为同一树种、规格与计价单位，最后一项视为最新价；采购总成本按“单价 × 数量”单独估算，不能把单价涨跌直接当成总成本涨跌。结果仅供参考。</div>
 </div>
 
 <label for="data">价格/成本序列（元，逗号或换行分隔，最新在末）</label>
@@ -137,7 +114,13 @@
 <label for="ref">参考基准价（元）</label>
 <input id="ref" type="number" value="3000" oninput="calc()" placeholder="如 3000">
 <label for="warn">波动预警阈值（%）</label>
-<input id="warn" type="number" value="15" oninput="calc()" placeholder="如 15">
+<input id="warn" type="number" value="15" step="any" oninput="calc()" placeholder="如 2.5">
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+  <div><label for="qty">采购数量（可选）</label><input id="qty" type="number" value="" min="0" step="any" oninput="calc()" placeholder="如 12"></div>
+  <div><label for="unit">计价单位（可选）</label><input id="unit" type="text" value="" oninput="calc()" placeholder="如 m³ / 吨 / 张"></div>
+</div>
+<label for="quoteDate">报价日期（可选）</label>
+<input id="quoteDate" type="date" value="" oninput="calc()">
 <div class="toolbar"><div id="analysis_cost_pricePresets"></div><button type="button" class="btn primary" onclick="calc()">计算波动</button><button class="btn" type="button" onclick="__analysis_cost_priceExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="analysis_cost_priceTable"></div> <div id="analysis_cost_priceDiff"></div> <div id="analysis_cost_priceChart"></div> <div id="analysis_cost_priceHist"></div>
   </div>
@@ -164,15 +147,15 @@
 <h2>📚 深度解析：木材价格与成本波动分析</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>采购择时：跟踪价格序列的均价、<a class="term-link" href="/tools/science/median-calculator.html">中位数</a>与波动系数，判断当前价位相对中枢的高低。</li>
-<li>库存成本管控：用最新价相对基准价的偏离识别短期异动，触发预警时审慎补库或锁价。</li>
-<li>波动评估：以<a class="term-link" href="/tools/statistics/stddev-list.html">样本标准差</a>与 CV 量化木材价格的不确定性与风险水平。</li>
+<li>采购择时：跟踪价格序列的均价、<a class="term-link" href="/tools/science/median-calculator.html">中位数</a>、波动系数与最新价偏离，判断当前价位相对中枢的位置。</li>
+<li>采购总成本测算：输入采购数量、计价单位与报价日期，把单价换算为可核对的采购总成本。</li>
+<li>阈值精度核对：预警按输入小数位显示并比较，偏离严格大于阈值才触发，避免 0.4% 被显示成 0% 后误判。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例（5 期价格，基准 3000）</div><div class="dd-ex-body">价格序列（元/m³）：3200、3300、3100、3400、3500。均价 3300.00、中位数 3300.00、样本<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a> 132.29、波动系数 4.01%；最新价 3500.00，相对基准 3000 偏离 +16.67%，阈值 10% 时触发波动预警。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（5 期价格，基准 3000，阈值 15%）</div><div class="dd-ex-body">价格序列（元/m³）：3200、3300、3100、3400、3500。均价 3300.00、中位数 3300.00、<a class="term-link" href="/tools/statistics/stddev-list.html">样本标准差</a> 132.29、波动系数 4.01%；最新价 3500.00，相对基准 3000 偏离 +16.67%，严格大于 15% 才触发预警。若采购数量 10 m³，采购总成本 = 3500 × 10 = 35000.00 元；若阈值改为 0.4%、序列 100/100.3、基准 100，偏离 0.3% 显示 0.4% 且不触发。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>波动系数 CV 和标准差有什么区别？</dt><dd>标准差是绝对波动幅度，受价格量纲影响；CV 是相对波动（标准差/均值），便于不同价位序列横向比较。价格越高，同样标准差下 CV 越小，波动显得更平缓。</dd>
-<dt>预警触发后一定不能采购吗？</dt><dd>不一定。预警仅提示短期偏离超过阈值，应结合供需趋势、库存与资金综合判断；持续触发可能意味着价格中枢上移，反而应择机锁价。</dd>
+<dt>阈值显示为什么不是整数？</dt><dd>预警按输入的小数位数显示，并明确“偏离绝对值严格大于阈值才触发”。0.4% 不会四舍五入成 0%，等于阈值也不触发，避免边界误报。</dd>
+<dt>采购总成本按哪个价算？</dt><dd>按序列最后一项作为最新价，乘以采购数量；数量必须是有限非负数，计价单位与报价日期仅用于标注和核对。</dd>
 </dl>
 </div>
 </section>
@@ -282,9 +265,16 @@ const __tokens=document.getElementById("data").value.split(/[,\n\s]+/).filter(s=
   if(raw.some(v=>!isFinite(v)||v<0)){document.getElementById("res").innerHTML='<p style="color:var(--danger)">价格必须为 ≥ 0 的有限数值；负价没有经济意义。</p>';return;}
   const ref=parseFloat(document.getElementById("ref").value);
   const warn=parseFloat(document.getElementById("warn").value);
-  if(raw.length<2){document.getElementById("res").innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter at least two price groups</p>":"<p>请输入至少两组价格</p>");return;}
-  if(!isFinite(ref)||ref<=0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">参考基准价必须 > 0；基准价为 0 会让偏离率除零。</p>';return;}
-  if(!isFinite(warn)||warn<0){document.getElementById("res").innerHTML='<p style="color:var(--danger)">波动预警阈值必须 ≥ 0%。</p>';return;}
+  const qtyRaw=String(document.getElementById("qty").value||'').trim();
+  const qty=qtyRaw===''?NaN:+qtyRaw;
+  const unit=String(document.getElementById("unit").value||'').trim();
+  const quoteDate=String(document.getElementById("quoteDate").value||'').trim();
+  const en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  function fail(m,me){document.getElementById("res").innerHTML='<p style="color:var(--danger)">'+((en&&me)?me:m)+'</p>';}
+  if(raw.length<2)return fail('请输入至少两组价格。','Enter at least two price observations.');
+  if(!isFinite(ref)||ref<=0)return fail('参考基准价必须 > 0；基准价为 0 会让偏离率除零。','The reference price must be > 0; a zero reference divides by zero.');
+  if(!isFinite(warn)||warn<0)return fail('波动预警阈值必须 ≥ 0%。','The volatility alert threshold must be ≥ 0%.');
+  if(qtyRaw!==''&&(!isFinite(qty)||qty<0))return fail('采购数量须为 ≥ 0 的有限数值；留空则不估算总成本。','Purchase quantity must be a finite value ≥ 0; leave blank to skip total cost.');
   const n=raw.length,mean=raw.reduce((a,b)=>a+b,0)/n;
   const sorted=[...raw].sort((a,b)=>a-b);
   const med=n%2?sorted[Math.floor(n/2)]:(sorted[n/2-1]+sorted[n/2])/2;
@@ -293,6 +283,8 @@ const __tokens=document.getElementById("data").value.split(/[,\n\s]+/).filter(s=
   const latest=raw[raw.length-1];
   const dev=(latest-ref)/ref*100;
   const trig=Math.abs(dev)>warn;
+  const warnDec=(function(v){const t=String(v);return t.indexOf('.')>=0?Math.min(4,t.split('.')[1].length):0;})(document.getElementById("warn").value);
+  const warnText=warn.toFixed(warnDec);
   let h='<p>样本数 n：<strong>'+n+'</strong></p>';
   h+='<p>均价：<strong style="color:var(--primary);">'+mean.toFixed(2)+'</strong></p>';
   h+='<p>中位数：<strong>'+med.toFixed(2)+'</strong></p>';
@@ -300,8 +292,38 @@ const __tokens=document.getElementById("data").value.split(/[,\n\s]+/).filter(s=
   h+='<p>波动系数 CV：<strong>'+(cv===null?'不适用（均价为 0）':cv.toFixed(2)+'%')+'</strong></p>';
   h+='<p>最新价：<strong>'+latest.toFixed(2)+'</strong></p>';
   h+='<p>最新价相对基准偏离：<strong>'+(dev>=0?'+':'')+dev.toFixed(2)+'%</strong></p>';
-  h+='<p>波动预警（阈值 '+warn.toFixed(0)+'%）：<strong style="color:'+(trig?'var(--danger)':'var(--primary)')+'">'+(trig?'触发':'未触发')+'</strong></p>';
-  const __g4=h;document.getElementById("res").innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  h+='<p>波动预警（阈值 '+warnText+'%）：<strong style="color:'+(trig?'var(--danger)':'var(--primary)')+'">'+(trig?'触发':'未触发')+'</strong></p>';
+  h+='<p style="font-size:12px;color:var(--text-muted);">比较规则：|偏离| 严格大于阈值才触发，等于阈值不触发。所有样本按同一规格、同一计价单位比较，最后一项视为最新价。</p>';
+  if(quoteDate)h+='<p>报价日期：<strong>'+ToolBox.escHtml(quoteDate)+'</strong></p>';
+  if(qtyRaw!==''&&isFinite(qty)){
+    const totalLatest=latest*qty,totalMean=mean*qty,delta=totalLatest-totalMean;
+    h+='<p style="margin-top:8px;"><strong>采购总成本估算：</strong>数量 '+qty.toLocaleString()+(unit?' '+ToolBox.escHtml(unit):'')+'</p>';
+    h+='<p>按最新价：'+latest.toFixed(2)+' × '+qty.toLocaleString()+' = <strong>'+totalLatest.toFixed(2)+'</strong> 元</p>';
+    h+='<p>按样本均价：'+mean.toFixed(2)+' × '+qty.toLocaleString()+' = <strong>'+totalMean.toFixed(2)+'</strong> 元</p>';
+    h+='<p>与均价总成本差：<strong style="color:'+(delta>=0?'var(--danger)':'var(--success)')+'">'+(delta>=0?'+':'')+delta.toFixed(2)+' 元</strong></p>';
+    h+='<p style="font-size:12px;color:var(--text-muted);">总成本差只反映“数量 × 单价”的估算差异，实际采购还受运费、损耗、税率与分批到货影响。</p>';
+  }
+  if(en){
+    h='<p>Sample count n: <strong>'+n+'</strong></p>'+
+      '<p>Mean: <strong style="color:var(--primary);">'+mean.toFixed(2)+'</strong></p>'+
+      '<p>Median: <strong>'+med.toFixed(2)+'</strong></p>'+
+      '<p>Sample standard deviation s: <strong>'+s.toFixed(2)+'</strong></p>'+
+      '<p>Coefficient of variation CV: <strong>'+(cv===null?'n/a (mean is 0)':cv.toFixed(2)+'%')+'</strong></p>'+
+      '<p>Latest price: <strong>'+latest.toFixed(2)+'</strong></p>'+
+      '<p>Latest deviation from reference: <strong>'+(dev>=0?'+':'')+dev.toFixed(2)+'%</strong></p>'+
+      '<p>Volatility alert (threshold '+warnText+'%): <strong style="color:'+(trig?'var(--danger)':'var(--primary)')+'">'+(trig?'Triggered':'Not triggered')+'</strong></p>'+
+      '<p style="font-size:12px;color:var(--text-muted);">Comparison rule: an alert triggers only when |deviation| is strictly greater than the threshold; equality does not trigger. All samples must share the same specification and pricing unit, and the last item is treated as the latest price.</p>';
+    if(quoteDate)h+='<p>Quote date: <strong>'+ToolBox.escHtml(quoteDate)+'</strong></p>';
+    if(qtyRaw!==''&&isFinite(qty)){
+      const totalLatest=latest*qty,totalMean=mean*qty,delta=totalLatest-totalMean;
+      h+='<p style="margin-top:8px;"><strong>Estimated purchase cost:</strong> quantity '+qty.toLocaleString()+(unit?' '+ToolBox.escHtml(unit):'')+'</p>'+
+        '<p>At latest price: '+latest.toFixed(2)+' × '+qty.toLocaleString()+' = <strong>'+totalLatest.toFixed(2)+'</strong> CNY</p>'+
+        '<p>At sample mean: '+mean.toFixed(2)+' × '+qty.toLocaleString()+' = <strong>'+totalMean.toFixed(2)+'</strong> CNY</p>'+
+        '<p>Cost difference vs mean: <strong style="color:'+(delta>=0?'var(--danger)':'var(--success)')+'">'+(delta>=0?'+':'')+delta.toFixed(2)+' CNY</strong></p>'+
+        '<p style="font-size:12px;color:var(--text-muted);">The difference only reflects the estimated quantity × unit-price effect; actual purchasing also depends on freight, waste, tax and delivery batches.</p>';
+    }
+  }
+  document.getElementById("res").innerHTML=h;
 }
 calc();
 function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
@@ -327,7 +349,7 @@ function copyResult(){ToolBox.copyText(document.getElementById("res").innerText)
     </a>
     <a href="desk-dimensions.html" class="related-tool-card">
       <span class="rt-icon">📐</span>
-      <span class="rt-info"><span class="rt-name">书桌尺寸规划计算器</span><span class="rt-desc">桌椅多高才舒服？按身高与使用场景，按人体工学比例推荐桌高、椅高、屏幕中心高度与桌面深度。</span></span>
+      <span class="rt-info"><span class="rt-name">书桌尺寸规划计算器</span><span class="rt-desc">桌椅多高才舒服？按身高与使用场景，按人体工学比例推荐桌高、椅高、屏幕中心高度与桌面深度。…</span></span>
     </a>
     <a href="calculator-calc-15.html" class="related-tool-card">
       <span class="rt-icon">🪵</span>
