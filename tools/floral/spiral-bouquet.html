@@ -288,23 +288,32 @@ function fmtLocal(n){
   return parseFloat(n.toFixed(1)).toString();
 }
 
+var lastBouquet=null;
+function bouquetFail(msg){
+  lastBouquet=null;
+  document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+msg+'</p>';
+}
 function calc(){
   var size=document.getElementById('bouquetSize').value;
   var style=document.getElementById('bouquetStyle').value;
-  var stemLen=parseFloat(document.getElementById('stemLength').value)||45;
-  var mainPct=parseFloat(document.getElementById('mainRatio').value)||60;
-  var cfg=SIZE_CONFIG[size];
-  var sty=STYLE_CONFIG[style];
+  var stemEl=document.getElementById('stemLength'), pctEl=document.getElementById('mainRatio');
+  var stemRaw=String(stemEl.value).trim(), pctRaw=String(pctEl.value).trim();
+  var stemLen=Number(stemRaw), mainPct=Number(pctRaw);
+  if(stemRaw===''){stemEl.setAttribute('aria-invalid','true');bouquetFail('主花材长度不能为空，请输入大于 0 的数值。');return;}
+  if(!isFinite(stemLen)||stemLen<=0){stemEl.setAttribute('aria-invalid','true');bouquetFail('主花材长度须为大于 0 的数值。');return;}
+  if(pctRaw===''){pctEl.setAttribute('aria-invalid','true');bouquetFail('主花占比不能为空，请输入 10–100 的数值。');return;}
+  if(!isFinite(mainPct)||mainPct<10||mainPct>100){pctEl.setAttribute('aria-invalid','true');bouquetFail('主花占比须在 10–100 之间（100% 表示全部为主花，配花和叶材为 0）。');return;}
+  stemEl.removeAttribute('aria-invalid');pctEl.removeAttribute('aria-invalid');
+  var cfg=SIZE_CONFIG[size], sty=STYLE_CONFIG[style];
   var mainCount=Math.round(cfg.total*mainPct/100);
+  if(mainCount>cfg.total)mainCount=cfg.total;
   var remaining=cfg.total-mainCount;
   var fillerCount=Math.round(remaining*0.6);
+  if(fillerCount>remaining)fillerCount=remaining;
+  if(fillerCount<0)fillerCount=0;
   var leafCount=remaining-fillerCount;
-  if(leafCount<1){leafCount=1;fillerCount=remaining-1;}
-  var centerLen=stemLen;
-  var fillerLen=stemLen*sty.fillerRatio;
-  var outerLen=stemLen*sty.outerRatio;
-  var leafLen=stemLen*0.75;
-  var html='<div class="main-val">共需 '+cfg.total+' 枝花材</div>';
+  var centerLen=stemLen, fillerLen=stemLen*sty.fillerRatio, outerLen=stemLen*sty.outerRatio, leafLen=stemLen*0.75;
+  var html='<div class="main-val">共需 '+cfg.total+' 枝花材（主花 '+mainCount+' + 配花 '+fillerCount+' + 叶材 '+leafCount+' = '+cfg.total+'）</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+mainCount+'</div><div class="lbl">主花（枝）</div></div>';
   html+='<div class="stat-card"><div class="val">'+fillerCount+'</div><div class="lbl">配花（枝）</div></div>';
@@ -312,30 +321,29 @@ function calc(){
   html+='</div>';
   html+='<div class="proportion-bar">';
   html+='<div class="seg" style="width:'+mainPct+'%;background:#FF6B35;">主花 '+mainPct+'%</div>';
-  html+='<div class="seg" style="width:'+(100-mainPct)*0.6+'%;background:#7C3AED;">配花</div>';
-  html+='<div class="seg" style="width:'+(100-mainPct)*0.4+'%;background:#00796B;">叶材</div>';
+  if(fillerCount>0)html+='<div class="seg" style="width:'+(100-mainPct)*0.6+'%;background:#7C3AED;">配花</div>';
+  if(leafCount>0)html+='<div class="seg" style="width:'+(100-mainPct)*0.4+'%;background:#00796B;">叶材</div>';
   html+='</div>';
   html+='<h3 style="margin-top:12px;">📏 各层花材长度</h3>';
   html+='<div class="layer-card"><div class="layer-name"><span>🌹 中心主花</span><span>'+fmtLocal(centerLen)+' cm</span></div><div class="layer-detail">最长，位于花束中心，决定整体高度</div></div>';
-  html+='<div class="layer-card"><div class="layer-name"><span>🌼 中层配花</span><span>'+fmtLocal(fillerLen)+' cm</span></div><div class="layer-detail">比主花短约'+fmtLocal((1-sty.fillerRatio)*100)+'%，填充主花间隙</div></div>';
-  html+='<div class="layer-card"><div class="layer-name"><span>🌿 外层叶材</span><span>'+fmtLocal(leafLen)+' cm</span></div><div class="layer-detail">最短，包裹外圈，形成层次</div></div>';
+  if(fillerCount>0)html+='<div class="layer-card"><div class="layer-name"><span>🌼 中层配花</span><span>'+fmtLocal(fillerLen)+' cm</span></div><div class="layer-detail">比主花短约'+fmtLocal((1-sty.fillerRatio)*100)+'%，填充主花间隙</div></div>';
+  if(leafCount>0)html+='<div class="layer-card"><div class="layer-name"><span>🌿 外层叶材</span><span>'+fmtLocal(leafLen)+' cm</span></div><div class="layer-detail">最短，包裹外圈，形成层次</div></div>';
   html+='<div class="layer-card"><div class="layer-name"><span>🍃 外圈点缀</span><span>'+fmtLocal(outerLen)+' cm</span></div><div class="layer-detail">'+sty.desc+'，外圈花材长度</div></div>';
   html+='<div class="tip-box tip-info">💡 '+cfg.name+'花束共'+cfg.total+'枝，'+sty.name+'风格。握把处约位于花茎总长1/3处（约'+fmtLocal(stemLen/3)+'cm处）。</div>';
   html+='<div class="toolbar" style="margin-top:10px;"><button type="button" class="btn" onclick="copyResult()">复制清单</button></div>';
-  const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('result').innerHTML=html;
+  lastBouquet={size:cfg.name,style:sty.name,mainPct:mainPct,mainCount:mainCount,fillerCount:fillerCount,leafCount:leafCount,stemLen:stemLen,fillerLen:fillerLen,leafLen:leafLen,outerLen:outerLen,centerLen:centerLen,total:cfg.total};
 }
 
 function copyResult(){
-  var size=document.getElementById('bouquetSize').value;
-  var style=document.getElementById('bouquetStyle').value;
-  var stemLen=document.getElementById('stemLength').value;
-  var cfg=SIZE_CONFIG[size];
-  var sty=STYLE_CONFIG[style];
-  var text='螺旋花束清单（'+cfg.name+'-'+sty.name+'）：\n';
-  text+='主花 '+Math.round(cfg.total*parseFloat(document.getElementById('mainRatio').value)/100)+'枝 ('+stemLen+'cm)\n';
-  text+='配花 '+Math.round(cfg.total*(100-parseFloat(document.getElementById('mainRatio').value))/100*0.6)+'枝\n';
-  text+='叶材 '+Math.round(cfg.total*(100-parseFloat(document.getElementById('mainRatio').value))/100*0.4)+'枝\n';
-  text+='共'+cfg.total+'枝';
+  if(!lastBouquet){ToolBox.showToast('当前没有有效花束分配结果，无法复制','warning');return;}
+  var r=lastBouquet;
+  var text='螺旋花束清单（'+r.size+'-'+r.style+'，主花占比 '+fmtLocal(r.mainPct)+'%）：\n';
+  text+='主花 '+r.mainCount+' 枝（中心长 '+fmtLocal(r.centerLen)+' cm）\n';
+  text+='配花 '+r.fillerCount+' 枝'+(r.fillerCount>0?'（中层长约 '+fmtLocal(r.fillerLen)+' cm）':'')+'\n';
+  text+='叶材 '+r.leafCount+' 枝'+(r.leafCount>0?'（外层长约 '+fmtLocal(r.leafLen)+' cm）':'')+'\n';
+  text+='外圈点缀长约 '+fmtLocal(r.outerLen)+' cm\n';
+  text+='合计 '+r.mainCount+'+'+r.fillerCount+'+'+r.leafCount+'='+r.total+' 枝（总数守恒）';
   ToolBox.copyText(text, i18nText('msg337'));
 }
 

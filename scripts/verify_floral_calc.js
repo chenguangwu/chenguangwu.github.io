@@ -31,7 +31,8 @@ const CASES = [
   "expect": [
     "花篮 18 个 / 花圈 18 个",
     "数量区间：26 ~ 58 件",
-    "合计 8640.00 元"
+    "合计 8640.00 元",
+    "余额 160.00 元"
   ],
   "ref": "独立复算：bAvg=(200+400)/2=300、wAvg=(100+260)/2=180、share=50% ⇒ mix=300×0.5+180×0.5=240；总数=⌊8800/240⌋=36，nB=round(36×0.5)=18、nW=18（锚花篮/花圈18）；合计=18×300+18×180=8640（锚金额）；数量区间 mixLo=200×0.5+100×0.5=150→⌊8800/150⌋=58、mixHi=400×0.5+260×0.5=330→⌊8800/330⌋=26（锚 26~58）。默认 budget5000/单价150-300/80-200/share60 三锚均不命中。"
 },
@@ -73,9 +74,12 @@ const CASES = [
     "itemAisle",
     "itemWelcome"
   ],
+  "clicks": ["calc()"],
   "expect": [
     "桌花×30桌",
-    "通道花瓣×20米"
+    "通道花瓣×20米",
+    "1212 枝（基础 1082 + 备用 130）",
+    "9696 元"
   ],
   "ref": "桌花数量 = CENTER_FLOWERS[centerStyle] × tables(=30)；通道花瓣米数 = max(5, ceil(guests/10)) = max(5,20) = 20。回退默认（tables=15 / guests=150）→ 「桌花×15桌」「通道花瓣×15米」，两串均不命中。"
 },
@@ -94,14 +98,46 @@ const CASES = [
      + "原 expect「花瓣展开约1/2至2/3」正是卡片里 grade 3 的 desc。",
 },
 {
+  "slug": "floral/wedding-flowers",
+  "inputs": {"tables":"0","guests":"100","price":"5","bridesmaidCount":"4","boutonCount":"8"},
+  "checkIds": ["itemCenter"],
+  "clicks": ["calc()"],
+  "expect": ["勾选桌花时桌数须 ≥1"],
+  "ref": "勾选桌花但 tables=0 ⇒ 必须拒绝，不能静默按 0 桌出结果。"
+},
+{
+  "slug": "floral/price",
+  "inputs": {"budget":"8800","basketLo":"400","basketHi":"300","wreathLo":"100","wreathHi":"260","share":"50"},
+  "clicks": ["calc()"],
+  "expect": ["花篮单价上限不能低于下限"],
+  "ref": "上限 300 < 下限 400 ⇒ 直接提示，不再静默计算。"
+},
+{
+  "slug": "floral/golden-ratio",
+  "inputs": {"containerH":"15","containerW":"0"},
+  "clicks": ["calc()"],
+  "expect": ["请输入大于 0 的花器高度与直径"],
+  "ref": "直径 0 不得进入 SVG，也不能回退为高度。"
+},
+{
   "slug": "floral/preservative",
   "inputs": {
     "water": "750"
   },
+  "clicks": ["calc()"],
   "expect": [
-    "0.15"
+    "15 g",
+    "约包数（每包 10 g）"
   ],
-  "ref": "auto-restore"
+  "ref": "500ml 标准包 10g ⇒ 1包；750ml ⇒ 750×10/500=15g、1.5包（独立复算）。默认 500ml ⇒ 10g、1包，两锚均不命中。"
+},
+{
+  "slug": "floral/preservative",
+  "inputs": {"water":"750"},
+  "clicks": ["document.getElementById('presType').value='custom';toggleCustom();calc()"],
+  "expect": ["15 g","每包 10 g"],
+  "ref": "自定义 10g/500ml、每包10g，750ml ⇒ 15g、1.5包；验证按包装标签自定义路径。"
+
 }
 ];
 async function main() {

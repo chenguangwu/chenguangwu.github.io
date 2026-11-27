@@ -141,7 +141,7 @@
 <div class="formula-box">
   
   
-<div class="formula-eq">单项均价 =（单价下限 + 单价上限）÷ 2；组合均价 = 花篮均价 × 花篮占比 + 花圈均价 ×（1 − 花篮占比）；可采购件数 = 预算总额 ÷ 组合均价，向下取整。把单价下限代入复算得到可采购数量的上限，把单价上限代入复算得到下限，两者构成预算可采购的数量区间。</div></div>
+<div class="formula-eq">单项均价 =（单价下限 + 单价上限）÷ 2；组合均价 = 花篮均价 × 花篮占比 + 花圈均价 ×（1 − 花篮占比）；可采购件数 = 预算总额 ÷ 组合均价向下取整，再校正分配后的合计不超过预算。把单价下限代入复算得到数量上限，把单价上限代入复算得到下限，两者构成预算可采购的数量区间。</div></div>
 
 <div class="input-row">
 <div><label for="budget">预算总额（元）</label><input type="number" id="budget" value="5000" step="any" oninput="calc()" placeholder="如 5000"></div>
@@ -239,53 +239,71 @@ function fmt2(n){
   return n.toFixed(2);
 }
 
+var lastPrice=null;
+function priceFail(msg){
+  lastPrice=null;
+  document.getElementById('res').innerHTML='<p style="color:var(--danger);">⚠ '+msg+'</p>';
+  document.getElementById('priceTable').innerHTML='';
+  document.getElementById('priceDiff').innerHTML='';
+  document.getElementById('priceChart').innerHTML='';
+  document.getElementById('priceHist').innerHTML='';
+}
 function calc(){
-  var budget=parseFloat(document.getElementById('budget').value);
-  var bLo=parseFloat(document.getElementById('basketLo').value);
-  var bHi=parseFloat(document.getElementById('basketHi').value);
-  var wLo=parseFloat(document.getElementById('wreathLo').value);
-  var wHi=parseFloat(document.getElementById('wreathHi').value);
-  var share=parseFloat(document.getElementById('share').value);
-  var res=document.getElementById('res');
-  if(!isFinite(budget)||budget<=0||!isFinite(bLo)||!isFinite(bHi)||!isFinite(wLo)||!isFinite(wHi)||!isFinite(share)){
-    res.innerHTML='<p style="color:var(--text-muted);">请输入有效的预算与单价区间。</p>';
-    return;
-  }
-  if(share<0)share=0;
-  if(share>100)share=100;
+  var ids=['budget','basketLo','basketHi','wreathLo','wreathHi','share'];
+  var v={}; var first='';
+  ids.forEach(function(id){
+    var el=document.getElementById(id),raw=String(el.value).trim(),n=Number(raw);
+    if(raw===''){first=first||'请填写预算、单价区间与花篮占比';el.setAttribute('aria-invalid','true');}
+    else if(!isFinite(n)){first=first||'存在非数值输入';el.setAttribute('aria-invalid','true');}
+    else el.removeAttribute('aria-invalid');
+    v[id]=n;
+  });
+  if(first){priceFail(first+'。');return;}
+  if(v.budget<=0){priceFail('预算总额须大于 0 元。');return;}
+  if(v.basketLo<0||v.basketHi<0||v.wreathLo<0||v.wreathHi<0){priceFail('单价不能为负数。');return;}
+  if(v.basketHi<v.basketLo){priceFail('花篮单价上限不能低于下限。');return;}
+  if(v.wreathHi<v.wreathLo){priceFail('花圈单价上限不能低于下限。');return;}
+  if(v.share<0||v.share>100){priceFail('花篮数量占比须在 0–100% 之间。');return;}
+  var budget=v.budget,bLo=v.basketLo,bHi=v.basketHi,wLo=v.wreathLo,wHi=v.wreathHi,share=v.share;
   var s=share/100;
-  var bAvg=(bLo+bHi)/2, wAvg=(wLo+wHi)/2;
+  var bAvg=(bLo+bHi)/2,wAvg=(wLo+wHi)/2;
   var mix=bAvg*s+wAvg*(1-s);
-  if(!(mix>0)){
-    res.innerHTML='<p style="color:var(--text-muted);">组合均价需大于 0，请检查单价。</p>';
-    return;
-  }
+  if(!(mix>0)){priceFail('组合均价须大于 0，请检查单价与占比。');return;}
   var total=Math.floor(budget/mix);
-  var nB=Math.round(total*s), nW=total-nB;
+  var nB=Math.min(total,Math.floor(total*s));
+  var nW=total-nB;
   var amtB=nB*bAvg, amtW=nW*wAvg, amtAll=amtB+amtW;
-  var mixLo=bLo*s+wLo*(1-s), mixHi=bHi*s+wHi*(1-s);
-  var cntLo=mixLo>0?Math.floor(budget/mixLo):0;
-  var cntHi=mixHi>0?Math.floor(budget/mixHi):0;
-  var lo=Math.min(cntLo,cntHi), hi=Math.max(cntLo,cntHi);
-  function item(v,l){
-    return '<div style="padding:10px;border:1px solid var(--border);border-radius:8px;text-align:center;">'
-      +'<div style="font-size:18px;font-weight:600;color:var(--primary);">'+v+'</div>'
-      +'<div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+l+'</div></div>';
+  var guard=0;
+  while(amtAll>budget+1e-9&&guard<100000){
+    if(nW>0)nW--;else if(nB>0)nB--;else break;
+    total=nB+nW; amtB=nB*bAvg; amtW=nW*wAvg; amtAll=amtB+amtW; guard++;
   }
+  var mixLo=bLo*s+wLo*(1-s),mixHi=bHi*s+wHi*(1-s);
+  if(!(mixLo>0)||!(mixHi>0)){priceFail('单价下限组合须大于 0，无法给出数量区间。');return;}
+  var cntLo=Math.floor(budget/mixLo),cntHi=Math.floor(budget/mixHi);
+  var lo=Math.min(cntLo,cntHi),hi=Math.max(cntLo,cntHi);
+  function item(v,l){return '<div style="padding:10px;border:1px solid var(--border);border-radius:8px;text-align:center;"><div style="font-size:18px;font-weight:600;color:var(--primary);">'+v+'</div><div style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+l+'</div></div>';}
   var html='<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:10px;margin-bottom:12px;">';
   html+=item(fmt2(bAvg),'花篮均价（元/个）');
   html+=item(fmt2(wAvg),'花圈均价（元/个）');
   html+=item(fmt2(mix),'组合均价（元/件）');
   html+=item(total,'可采购总数（件）');
   html+='</div>';
-  html+='<p style="font-size:14px;line-height:1.9;">花篮 '+nB+' 个 / 花圈 '+nW+' 个</p>';
-  html+='<p style="font-size:14px;line-height:1.9;">花篮金额 '+fmt2(amtB)+' 元 + 花圈金额 '+fmt2(amtW)+' 元 = 合计 '+fmt2(amtAll)+' 元</p>';
-  html+='<p style="font-size:14px;line-height:1.9;">数量区间：'+lo+' ~ '+hi+' 件（按下限单价 '+cntLo+' 件 / 按上限单价 '+cntHi+' 件）</p>';
-  html+='<p style="font-size:12px;line-height:1.8;color:var(--text-muted);">单价区间 '+fmt2(bLo)+' 至 '+fmt2(bHi)+' 元（花篮）、'+fmt2(wLo)+' 至 '+fmt2(wHi)+' 元（花圈），花篮占比 '+share.toFixed(0)+'%。金额不含运费、插制人工与耗材。</p>';
-  const __g3=html;res.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  var balance=budget-amtAll, actualShare=total>0?(nB/total*100):0;
+  html+='<p style="font-size:14px;line-height:1.9;">花篮 '+nB+' 个 / 花圈 '+nW+' 个（实际花篮占比 '+fmt2(actualShare)+'%，目标 '+fmt2(share)+'%）</p>';
+  html+='<p style="font-size:14px;line-height:1.9;">花篮金额 '+fmt2(amtB)+' 元 + 花圈金额 '+fmt2(amtW)+' 元 = 合计 '+fmt2(amtAll)+' 元（≤ 预算 '+fmt2(budget)+' 元，余额 '+fmt2(balance)+' 元）</p>';
+  html+='<p style="font-size:14px;line-height:1.9;">数量区间：'+lo+' ~ '+hi+' 件（全部按下限价约 '+cntLo+' 件 / 全部按上限价约 '+cntHi+' 件）</p>';
+  html+='<p style="font-size:12px;line-height:1.8;color:var(--text-muted);">花篮占比为目标值，小预算取整后实际占比可能略低；已校正取整后总额不超预算，余额按估算价计。实际成交价、运费、插制人工与耗材另计，报价前请以花店实际报价复核。</p>';
+  document.getElementById('res').innerHTML=html;
+  lastPrice={budget:budget,bLo:bLo,bHi:bHi,wLo:wLo,wHi:wHi,share:share,bAvg:bAvg,wAvg:wAvg,mix:mix,total:total,nB:nB,nW:nW,amtB:amtB,amtW:amtW,amtAll:amtAll,balance:balance,actualShare:actualShare,lo:lo,hi:hi,cntLo:cntLo,cntHi:cntHi};
 }
 calc();
-function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
+function copyRes(){
+  if(!lastPrice){ToolBox.showToast('当前没有有效预算结果，无法复制','warning');return;}
+  var r=lastPrice;
+  ToolBox.copyText('花篮/花圈预算测算（按区间中值估算，已校正不超预算）：\n预算: '+fmt2(r.budget)+' 元\n花篮: '+r.nB+' 个 × '+fmt2(r.bAvg)+' 元 = '+fmt2(r.amtB)+' 元\n花圈: '+r.nW+' 个 × '+fmt2(r.wAvg)+' 元 = '+fmt2(r.amtW)+' 元\n合计: '+fmt2(r.amtAll)+' 元（预算余额 '+fmt2(r.balance)+' 元）\n可采购总数: '+r.total+' 件（实际花篮占比 '+fmt2(r.actualShare)+'%，目标 '+fmt2(r.share)+'%）\n数量区间: '+r.lo+'–'+r.hi+' 件（下限价/上限价复算）\n提示: 实际成交价、运费、人工与耗材另计。');
+}
+calc();
 </script>
 
 <!-- SEO 介绍区块 -->
@@ -459,6 +477,7 @@ function __priceExtras(){
 }
 function __priceExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!lastPrice){ToolBox.showToast('当前没有有效预算结果，无法导出','warning');return;}
     try{
         var box=document.querySelector('#priceTable');
         if(!box||!box.querySelector('tr')){
@@ -476,7 +495,7 @@ function __pricePresets(){
 }
 var __price_f0=(typeof calc==='function')?calc:null;
 if(__price_f0){
-    calc=function(){ var __r=__price_f0.apply(null,arguments); try{ __priceExtras(); }catch(e){} return __r; };
+    calc=function(){ var __r=__price_f0.apply(null,arguments); if(lastPrice){try{ __priceExtras(); }catch(e){}} return __r; };
 }
 function __priceBoot(){ try{ __pricePresets(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __priceBoot();
