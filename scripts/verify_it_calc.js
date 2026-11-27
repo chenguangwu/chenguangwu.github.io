@@ -5730,10 +5730,33 @@ const CASES = [
   },
   {
     slug: "it/css-formatter",
-    inputs: { input: "a{color:red;font-size:12px}" },
-    clicks: ["doBeautify()"],
-    expect: ["a { color: red; font-size: 12px }"],
+    clicks: ["document.getElementById('input').value='a{color:red;font-size:12px}';doBeautify();document.getElementById('__tbProbe').textContent='CSSFMT '+document.getElementById('output').textContent;"],
+    expect: ["CSSFMT a { color: red; font-size: 12px; }"],
     ref: "格式化规则：选择器后补空格、声明按 `属性: 值;` 输出。默认样例（.btn 等）格式化后不含本串。",
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='a:hover{color:red}';doBeautify();document.getElementById('__tbProbe').textContent='CSSPSE '+document.getElementById('output').textContent;"],
+    "expect": ["CSSPSE a:hover {"],
+    "ref": "第1056批：伪类冒号不得被当作声明分隔符输出成 `a: hover`；格式化后选择器仍是 `a:hover {`。默认样例不含该串 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='.parent :hover{color:red}';doMinify();document.getElementById('__tbProbe').textContent='CSSDESC '+document.getElementById('output').textContent;"],
+    "expect": ["CSSDESC .parent :hover{color:red;}"],
+    "ref": "第1056批：压缩不得删除 `.parent :hover` 中冒号前的后代空格；删除后变成 `.parent:hover`，匹配对象改变。默认样例不含该串 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='a::after{content:\"/*x*/a,b\"}';doMinify();document.getElementById('__tbProbe').textContent='CSSSTR '+document.getElementById('output').textContent;"],
+    "expect": ["CSSSTR a::after{content:\"/*x*/a,b\";}"],
+    "ref": "第1056批：字符串内部必须整体受保护，`content:\"/*x*/a,b\"` 的注释标记与逗号不能被当作 CSS 注释/结构改写；压缩后原样保留。默认样例不含该串 ⇒ 旧正则压缩转红。"
+  },
+  {
+    "slug": "it/css-formatter",
+    "clicks": ["document.getElementById('input').value='a{content:\":0px;\";margin:0px}';doMinify();document.getElementById('__tbProbe').textContent='CSSZERO '+document.getElementById('output').textContent;"],
+    "expect": ["CSSZERO a{content:\":0px;\";margin:0;}"],
+    "ref": "第1056批：零单位缩写只能作用于声明值，不能改写字符串里的 `:0px;`；真实 `margin:0px` 仍应压成 `margin:0`。默认样例不含该串 ⇒ 旧实现恢复后全局替换转红。"
   },
   {
     slug: "it/css-formatter",
@@ -10397,14 +10420,9 @@ const CASES = [
   },
   {
     "slug": "it/css-formatter",
-    "inputs": {
-      "input": "1\n2\n3",
-      "indent": "4"
-    },
-    "expect": [
-      "60deg)}}\n4\n"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"indent\":\"4\"}，输出区含「60deg)}}\n4\n」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["document.getElementById('input').value='.parent :hover{color:red}';document.getElementById('indent').value='4';doBeautify();document.getElementById('__tbProbe').textContent='SEL '+document.getElementById('output').textContent;"],
+    "expect": ["SEL .parent :hover {"],
+    "ref": "第1056批：格式化必须保留后代选择器 `.parent :hover` 的空格，不能被冒号规则改成 `.parent:hover`（匹配对象改变）。探针取格式化后的选择器行；默认样例不含该串 ⇒ 旧实现转红。"
   },
   {
     "slug": "it/css-minifier",

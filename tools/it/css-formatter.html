@@ -249,121 +249,172 @@
 const SAMPLE = '/* 按钮样式 */\n.btn{display:inline-block;padding:8px 16px;border-radius:4px;background:#4338CA;color:#fff;font-size:14px;cursor:pointer}\n.btn-primary{background:linear-gradient(135deg,#4338CA,#764ba2);border:none}\n.btn-primary:hover{background:linear-gradient(135deg,#5568d3,#653a92);transform:translateY(-1px)}\n@media (max-width:600px){.btn{width:100%;padding:12px}.btn-primary{font-size:16px}}\n@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}';
 const IND = () => { const v = document.getElementById('indent').value; return v === 'tab' ? '\t' : ' '.repeat(parseInt(v)); };
 function tokenizeCss(src){
-  const tokens = [];
-  let i = 0;
-  while(i < src.length){
-    const c = src[i];
-    if(c === '/' && src[i+1] === '*'){
-      let s = i; i += 2;
-      while(i < src.length && !(src[i] === '*' && src[i+1] === '/')) i++;
-      i += 2;
-      tokens.push({t:'comment', v: src.slice(s, i)});
-      continue;
+  const tokens=[]; let i=0;
+  while(i<src.length){
+    const c=src[i];
+    if(c==='/'&&src[i+1]==='*'){
+      let j=i+2; while(j<src.length&&!(src[j]==='*'&&src[j+1]==='/')) j++;
+      j=Math.min(src.length,j+2); tokens.push({t:'comment',v:src.slice(i,j)}); i=j; continue;
     }
-    if(/\s/.test(c)){
-      let s = i;
-      while(i < src.length && /\s/.test(src[i])) i++;
-      tokens.push({t:'ws', v: src.slice(s, i)});
-      continue;
+    if(c==='"'||c==="'"){
+      let j=i+1;
+      while(j<src.length){ if(src[j]==='\\'){j+=2;continue;} if(src[j]===c){j++;break;} j++; }
+      tokens.push({t:'string',v:src.slice(i,j)}); i=j; continue;
     }
-    if(c === '{' || c === '}' || c === ';'){
-      tokens.push({t:'punct', v:c});
-      i++;
-      continue;
-    }
-    if(c === ':'){
-      tokens.push({t:'colon', v:c});
-      i++;
-      continue;
-    }
-    let s = i;
-    while(i < src.length && !/\s/.test(src[i]) && !'{};:/*'.includes(src[i])) i++;
-    if(i > s) tokens.push({t:'word', v: src.slice(s, i)});
-    else { tokens.push({t:'word', v: c}); i++; }
+    if(/\s/.test(c)){ let j=i; while(j<src.length&&/\s/.test(src[j]))j++; tokens.push({t:'ws',v:src.slice(i,j)}); i=j; continue; }
+    if(c==='{'||c==='}'||c===';'){ tokens.push({t:'punct',v:c}); i++; continue; }
+    if(c===':'){ tokens.push({t:'colon',v:c}); i++; continue; }
+    let j=i;
+    while(j<src.length&&!/\s/.test(src[j])&&!'{};:"\''.includes(src[j])&&!(src[j]==='/'&&src[j+1]==='*'))j++;
+    if(j>i){ tokens.push({t:'word',v:src.slice(i,j)}); i=j; }
+    else { tokens.push({t:'word',v:c}); i++; }
   }
   return tokens;
+}
+function __cssBlockKind(prelude){
+  const t=String(prelude||'').trim().toLowerCase();
+  if(/^@(media|supports|keyframes|layer|container|document|scope|starting-style)\b/.test(t)) return 'rules';
+  return 'decl';
+}
+function __cssRaw(tokens){ return tokens.map(t=>t.v).join(''); }
+function __cssJoin(tokens){
+  return __cssRaw(tokens).replace(/[ \t\r\n\f]+/g,' ').trim();
+}
+function __cssIndent(depth){
+  const v=document.getElementById('indent').value;
+  return v==='tab'?'\t':' '.repeat(parseInt(v)||2);
+}
+function __cssPad(depth){ return __cssIndent(depth).repeat(Math.max(0,depth)); }
+function __cssSplitSemi(tokens){
+  const parts=[]; let cur=[];
+  tokens.forEach(t=>{ if(t.t==='punct'&&t.v===';'){ parts.push(cur); cur=[]; } else cur.push(t); });
+  if(cur.length) parts.push(cur);
+  return parts;
+}
+function __cssFormatDecls(tokens,depth){
+  return __cssSplitSemi(tokens).map(seg=>{
+    let raw=__cssJoin(seg); if(!raw) return '';
+    const ci=raw.indexOf(':');
+    if(ci<0) return __cssPad(depth)+raw+';';
+    const prop=raw.slice(0,ci).trim();
+    const val=raw.slice(ci+1).trim().replace(/[ \t\r\n\f]+/g,' ');
+    return __cssPad(depth)+prop+': '+val+';';
+  }).filter(Boolean).join('\n');
+}
+function __cssFormatSelector(tokens){
+  return __cssJoin(tokens).replace(/\s*,\s*/g,', ');
+}
+function __cssProtect(css,keepComments){
+  const parts=[]; let src='';
+  tokenizeCss(String(css==null?'':css)).forEach(tk=>{
+    if(tk.t==='comment'){ if(keepComments) src+='\u0001'+(parts.push(tk.v)-1)+'\u0001'; return; }
+    if(tk.t==='string'){ src+='\u0001'+(parts.push(tk.v)-1)+'\u0001'; return; }
+    src+=tk.v;
+  });
+  return {src,parts};
+}
+function __cssRestore(src,parts){
+  return src.replace(/\u0001(\d+)\u0001/g,(m,n)=>parts[+n]!=null?parts[+n]:m);
+}
+function __cssMinSel(tokens){
+  return __cssJoin(tokens).replace(/\s*([>+~])\s*/g,'$1').replace(/,\s*/g,',');
+}
+function __cssMinDecls(tokens){
+  return __cssSplitSemi(tokens).map(seg=>{
+    let raw=__cssJoin(seg); if(!raw) return '';
+    const ci=raw.indexOf(':'); if(ci<0) return raw+';';
+    const prop=raw.slice(0,ci).trim();
+    let val=raw.slice(ci+1).trim().replace(/[ \t\r\n\f]+/g,' ');
+    if(!/calc\(|var\(/i.test(val)) val=val.replace(/(^|[^0-9.])0(px|em|rem|pt)(?=[;},!\s]|$)/gi,'$10');
+    return prop+':'+val+';';
+  }).filter(Boolean).join('');
+}
+function __cssFlushDecls(tokens,out){
+  const text=__cssMinDecls(tokens); return text?out+text:out;
+}
+function __cssMinifyCode(src){
+  const tokens=tokenizeCss(src); const stack=['rules']; let out='',buf=[];
+  for(let i=0;i<tokens.length;i++){
+    const tk=tokens[i];
+    if(tk.t==='comment') continue;
+    if(tk.t==='punct'&&tk.v==='{'){
+      let pre=buf.slice(); buf=[];
+      if(stack[stack.length-1]==='decl'){
+        let cut=-1; for(let j=pre.length-1;j>=0;j--){ if(pre[j].t==='punct'&&pre[j].v===';'){cut=j;break;} }
+        if(cut>=0){ out=__cssFlushDecls(pre.slice(0,cut+1),out); pre=pre.slice(cut+1); }
+      }
+      const preText=__cssMinSel(pre);
+      out+=preText+'{'; stack.push(__cssBlockKind(preText)); continue;
+    }
+    if(tk.t==='punct'&&tk.v==='}'){
+      if(stack[stack.length-1]==='decl'&&buf.length) out=__cssFlushDecls(buf,out);
+      else if(buf.length) out+=__cssMinSel(buf)+';';
+      buf=[]; out+='}'; if(stack.length>1) stack.pop(); continue;
+    }
+    if(tk.t==='punct'&&tk.v===';'){
+      if(stack[stack.length-1]==='decl'){ buf.push(tk); out=__cssFlushDecls(buf,out); buf=[]; }
+      else { if(buf.length) out+=__cssMinSel(buf)+';'; buf=[]; }
+      continue;
+    }
+    buf.push(tk);
+  }
+  if(buf.length){ if(stack[stack.length-1]==='decl') out=__cssFlushDecls(buf,out); else out+=__cssMinSel(buf)+';'; }
+  return out;
 }
 function formatCss(){
   setErr('');
   try{
-    const tokens = tokenizeCss(document.getElementById('input').value);
-    let out = '';
-    let depth = 0;
-    let atLineStart = true;
-    let afterColon = false;
-    let prevType = null;
-    const pad = () => IND().repeat(depth);
-    let needNewlineBeforeNext = false;
-    for(let k = 0; k < tokens.length; k++){
-      const tk = tokens[k];
-      if(tk.t === 'ws') continue;
-      if(tk.t === 'comment'){
-        if(!atLineStart) out += '\n';
-        out += pad() + tk.v + '\n';
-        atLineStart = true;
-        continue;
+    var __in=document.getElementById('input');
+    var __src=(__in&&typeof __in.value==='string')?__in.value:(typeof SAMPLE==='string'?SAMPLE:'');
+    const tokens=tokenizeCss(__src);
+    let out='',buf=[],depth=0; const stack=['rules'];
+    const openBlock=(pre)=>{
+      const sel=__cssFormatSelector(pre);
+      out+=__cssPad(depth)+sel+' {\n'; depth++; stack.push(__cssBlockKind(sel));
+    };
+    const closeBlock=()=>{
+      const kind=stack[stack.length-1];
+      if(kind==='decl'&&buf.length){ const d=__cssFormatDecls(buf,depth); if(d) out+=d+'\n'; }
+      else if(kind==='rules'&&buf.length){ const s=__cssFormatSelector(buf); if(s) out+=__cssPad(depth)+s+';\n'; }
+      buf=[]; depth=Math.max(0,depth-1); out+=__cssPad(depth)+'}\n';
+      if(stack.length>1) stack.pop();
+    };
+    for(const tk of tokens){
+      if(tk.t==='comment'){
+        if(buf.length){ /* flush pending declaration/selector before comment */ if(stack[stack.length-1]==='decl'){ const d=__cssFormatDecls(buf,depth); if(d) out+=d+'\n'; } else { const s=__cssFormatSelector(buf); if(s) out+=__cssPad(depth)+s+' '; } buf=[]; }
+        out+=__cssPad(depth)+tk.v+'\n'; continue;
       }
-      if(tk.v === '{'){
-        out += ' {\n';
-        depth++;
-        atLineStart = true;
-        afterColon = false;
-        continue;
-      }
-      if(tk.v === '}'){
-        depth = Math.max(0, depth - 1);
-        if(!atLineStart) out += '\n';
-        out += pad() + '}\n';
-        atLineStart = true;
-        afterColon = false;
-        if(k + 1 < tokens.length && tokens[k+1].t !== 'ws'){
-          out += '\n';
+      if(tk.t==='punct'&&tk.v==='{'){
+        let pre=buf.slice(); buf=[];
+        if(stack[stack.length-1]==='decl'){
+          let cut=-1; for(let j=pre.length-1;j>=0;j--){ if(pre[j].t==='punct'&&pre[j].v===';'){cut=j;break;} }
+          if(cut>=0){ const d=__cssFormatDecls(pre.slice(0,cut+1),depth); if(d) out+=d+'\n'; pre=pre.slice(cut+1); }
         }
+        openBlock(pre); continue;
+      }
+      if(tk.t==='punct'&&tk.v==='}'){ closeBlock(); buf=[]; continue; }
+      if(tk.t==='punct'&&tk.v===';'){
+        if(stack[stack.length-1]==='decl'){ if(buf.length){ const d=__cssFormatDecls(buf,depth); if(d) out+=d+'\n'; } buf=[]; }
+        else { if(buf.length){ out+=__cssPad(depth)+__cssFormatSelector(buf)+';\n'; } buf=[]; }
         continue;
       }
-      if(tk.v === ';'){
-        out += ';\n';
-        atLineStart = true;
-        afterColon = false;
-        continue;
-      }
-      if(tk.t === 'colon'){
-        out += ': ';
-        afterColon = true;
-        continue;
-      }
-      if(tk.t === 'word'){
-        if(atLineStart){
-          out += pad() + tk.v;
-          atLineStart = false;
-        } else if(afterColon){
-          out += tk.v;
-        } else {
-          out += ' ' + tk.v;
-        }
-        afterColon = false;
-      }
+      buf.push(tk);
     }
-    setOut(out.trim() + '\n');
+    if(buf.length){ if(stack[stack.length-1]==='decl'){ const d=__cssFormatDecls(buf,depth); if(d) out+=d+'\n'; } else { out+=__cssPad(depth)+__cssFormatSelector(buf)+'\n'; } }
+    setOut(out.trim()+'\n');
     setErr('✅ 格式化成功');
-  }catch(e){ setErr('❌ ' + e.message); }
+  }catch(e){ setErr('❌ '+e.message); }
 }
 function minifyCss(){
   setErr('');
   try{
-    const src = document.getElementById('input').value;
-    let out = src.replace(/\/\*[\s\S]*?\*\//g, '');
-    out = out.replace(/\s+/g, ' ');
-    out = out.replace(/\s*\{\s*/g, '{');
-    out = out.replace(/\s*\}\s*/g, '}');
-    out = out.replace(/\s*;\s*/g, ';');
-    out = out.replace(/\s*:\s*/g, ':');
-    out = out.replace(/\s*$/, '');
-    out = out.replace(/^\s*/, '');
-    out = out.replace(/\}/g, '}\n');
-    setOut(out.trim());
+    var __in=document.getElementById('input');
+    var src=(__in&&typeof __in.value==='string')?__in.value:(typeof SAMPLE==='string'?SAMPLE:'');
+    const packed=__cssProtect(src,false);
+    const out=__cssMinifyCode(packed.src);
+    setOut(__cssRestore(out,packed.parts).trim());
     setErr('✅ 压缩成功');
-  }catch(e){ setErr('❌ ' + e.message); }
+  }catch(e){ setErr('❌ '+e.message); }
 }
 function doBeautify(){ formatCss(); }
 function doMinify(){ minifyCss(); }
