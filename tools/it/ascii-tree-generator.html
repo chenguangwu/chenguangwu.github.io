@@ -291,10 +291,14 @@ function build(){
   var lines=rawLines.filter(function(s){return String(s).trim();});
   var out=document.getElementById('result');
   if(!lines.length){document.getElementById('output').value='';const __h0='';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}
-  var tree=Object.create(null);
+  // 用 Map 保留插入顺序：Object.keys 会把整数键按数字顺序提前，10/ 会排到 2/ 前面。
+  var tree=new Map();
+  var conflicts=[];
+  function noteConflict(name){if(conflicts.indexOf(name)===-1)conflicts.push(name);}
   var modeEl=document.getElementById('inputMode');
   var mode=modeEl?modeEl.value:'auto';
-  var hasGlyph=lines.some(function(l){return /^[ \t]*[│|├└`]/.test(l);});
+  var CONNECTOR_RE=/^(?:├──|└──|\+--|`--|--)\s*/;
+  var hasGlyph=lines.some(function(l){return /^[ \t]*(?:[│|├└`]|\+--|--\s)/.test(l);});
   var anyIndent=lines.some(function(l){return /^[ \t]/.test(l);});
   var anySlash=lines.some(function(l){return l.trim().indexOf('/')!==-1;});
   // 自动识别：树形前缀优先；整份输入都有缩进且不含 / 才按缩进树。单行前导空格不会改变路径列表的解析方式。
@@ -302,11 +306,13 @@ function build(){
   if(indentMode){
     var parsed=lines.map(function(l){
       var t=String(l).replace(/\t/g,'    ').replace(/\s+$/,'');
-      // 把树形前缀「│   」/「|   」折算成 4 空格，与普通缩进统一计量
-      while(/^[│|]\s{3}/.test(t)) t='    '+t.slice(4);
+      // 连续树形前缀 unit（│ + 3 空格 / | + 3 空格 / 4 空格）整段折算为 4 空格；
+      // 旧实现只替换行首第一段，第二段竖线会残留在名称里。
+      var prefix=/^(?:(?:[│|]\s{3})|    )+/.exec(t);
+      if(prefix) t='    '.repeat(prefix[0].length/4)+t.slice(prefix[0].length);
       var lead=t.length-t.replace(/^\s+/,'').length;
       var after=t.slice(lead);
-      var name=after.replace(/^(?:├──|└──|\+--|`--|--)\s*/,'').trim();
+      var name=after.replace(CONNECTOR_RE,'').trim();
       return {lead:lead,leadText:after,name:name};
     });
     var steps=parsed.map(function(x){return x.lead;}).filter(function(v){return v>0;});
@@ -315,15 +321,20 @@ function build(){
     parsed.forEach(function(it){
       // 标准 tree 输出（src/ 后接 ├── a.js）连接符在行首、缩进为 0；
       // 连接符本身代表一级父子关系，必须计入层级，否则子项被误判为根节点。
-      var connector=/^(?:├──|└──|\+--|`--|--)\s*/.test(it.leadText || '');
+      var connector=CONNECTOR_RE.test(it.leadText || '');
       var depth=(it.lead?Math.max(1,Math.round(it.lead/unit)):0)+(connector?1:0);
       while(stack.length&&stack[stack.length-1].depth>=depth)stack.pop();
       var parent=stack.length?stack[stack.length-1].children:tree;
       var isDir=/\/$/.test(it.name), nm=it.name.replace(/\/$/,'');
       if(!nm)return;
-      if(!Object.prototype.hasOwnProperty.call(parent,nm))parent[nm]={_file:!isDir,_children:Object.create(null)};
-      else parent[nm]._file=false;
-      stack.push({depth:depth,children:parent[nm]._children});
+      if(!parent.has(nm)) parent.set(nm,{_file:!isDir,_children:new Map()});
+      else {
+        var existing=parent.get(nm);
+        // 重复普通文件名必须仍是文件；只有显式 / 或后续实际出现子节点才改判目录。
+        if(isDir&&existing._file){existing._file=false;noteConflict(nm);}
+        else if(!isDir&&!existing._file){noteConflict(nm);}
+      }
+      stack.push({depth:depth,children:parent.get(nm)._children});
     });
   }else{
     lines.forEach(function(l){
@@ -332,31 +343,38 @@ function build(){
       parts.forEach(function(p,idx){
         if(!p)return;
         var isFile=idx===parts.length-1;
-        if(!Object.prototype.hasOwnProperty.call(node,p))node[p]={_file:isFile,_children:Object.create(null)};
-        else if(!isFile)node[p]._file=false;   // N505：同一节点先被当文件、后又出现子路径 ⇒ 改判目录
-        if(!isFile)node=node[p]._children;
+        if(!node.has(p)) node.set(p,{_file:isFile,_children:new Map()});
+        else {
+          var ex=node.get(p);
+          if(!isFile&&ex._file)ex._file=false;   // N505：同一节点先被当文件、后又出现子路径 ⇒ 改判目录
+          else if(isFile&&!ex._file)noteConflict(p);
+        }
+        if(!isFile) node=node.get(p)._children;
       });
     });
   }
   // N505 统一后处理：任何含子节点的节点都按目录渲染，子树不会被静默丢弃
-  (function mark(node){Object.keys(node).forEach(function(k){var n=node[k];if(Object.keys(n._children).length){n._file=false;mark(n._children);}});})(tree);
+  (function mark(node){node.forEach(function(n){if(n._children.size){n._file=false;mark(n._children);}});})(tree);
   var outLines=[];
   function render(node,prefix,isRoot){
-    var keys=Object.keys(node);
-    keys.forEach(function(k,idx){
-      var isLast=idx===keys.length-1;
-      var isFile=node[k]._file;
+    var entries=Array.from(node.entries());
+    entries.forEach(function(entry,idx){
+      var k=entry[0], n=entry[1];
+      var isLast=idx===entries.length-1;
+      var isFile=n._file;
       var connector=isRoot?'':(isLast?'└── ':'├── ');
       outLines.push(prefix+connector+k+(isFile?'':'/'));
       if(!isFile){
         var childPrefix=prefix+(isRoot?'':(isLast?'    ':'│   '));
-        render(node[k]._children,childPrefix,false);
+        render(n._children,childPrefix,false);
       }
     });
   }
   render(tree,'',true);
   document.getElementById('output').value=outLines.join('\n');
-  const __h1='<p>✅ 已生成 <strong>'+outLines.length+'</strong> 行目录树（'+lines.length+(indentMode?' 行缩进树输入':' 个路径')+'）</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
+  var modeNote=(mode==='auto'?'，自动识别':'，手动选择')+'为'+(indentMode?'缩进树':'路径列表')+'解析';
+  const __h1='<p>✅ 已生成 <strong>'+outLines.length+'</strong> 行目录树（'+lines.length+(indentMode?' 行缩进树输入':' 个路径')+modeNote+'）</p>'+
+    (conflicts.length?'<p style="color:var(--danger);font-size:12px;">⚠ 同名项目同时出现文件与目录：'+escH(conflicts.slice(0,5).join('、'))+(conflicts.length>5?' 等':'')+'；已按目录渲染。</p>':'');if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h1;
 }
 
 var __ascii_tree_generator_last=0,__ascii_tree_generator_skip=false;

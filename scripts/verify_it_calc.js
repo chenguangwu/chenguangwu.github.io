@@ -4123,7 +4123,7 @@ const CASES = [
     slug: "it/ascii-tree-generator",
     inputs: { paths: "src/\na.js\nb.js\nlib/util.js" },
     clicks: ["build()"],
-    expect: ["已生成 5 行目录树（4 个路径）"],
+    expect: ["已生成 5 行目录树（4 个路径，自动识别为路径列表解析）"],
     ref: "独立复算：4 条路径按**换行**切分（非逗号）⇒ 5 行树、4 个路径。textarea 无 oninput ⇒ 必须 clicks `build()`。",
   },
   {
@@ -9233,7 +9233,7 @@ const CASES = [
       "output": "1\n2\n3"
     },
     "expect": [
-      "1 2 3\n✅ 已生成 3 行目录树（3 个路径）\nauto\n1 2 3"
+      "1 2 3\n✅ 已生成 3 行目录树（3 个路径，自动识别为路径列表解析）\nauto\n1 2 3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"paths\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\"}，输出区含「1 2 3\n✅ 已生成 3 行目录树（3 个路径）\n1 2 3」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -18478,6 +18478,46 @@ const CASES = [
     clicks: ["build()"],
     expect: ["src/ ├── a.js └── b.js"],
     ref: "第764批：标准 tree 输出中连接符位于行首、缩进为 0；连接符本身代表一级子节点。旧实现仅按连接符前空白算层级，两个文件都被当成与 src 同级的根节点。",
+  },
+  {
+    // 整数目录名必须保留输入顺序：10/ 在 2/ 之前，不能按 Object.keys 的数字顺序重排。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "10/a\n2/b" },
+    clicks: ["build();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent=(o.indexOf('10/')<o.indexOf('2/'))?'ORDER_OK':'ORDER_BAD';"],
+    expect: ["ORDER_OK"],
+    ref: "第1050批：Map 保留插入顺序；旧实现用 Object.keys(tree) 会把整数键 2、10 按数字升序排列，输入 10/a 再 2/b 会输出 2/ 在前。",
+  },
+  {
+    // 连续多层竖线前缀必须完整折算，不能只处理第一段。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root/\n├── a\n│   ├── b\n│   │   └── c.txt\n└── d.txt" },
+    clicks: ["build();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent=o.includes('│       └── c.txt')&&!o.includes('│   │')?'DEPTH_OK':'DEPTH_BAD';"],
+    expect: ["DEPTH_OK"],
+    ref: "第1050批：行首重复的 │ + 3 空格 unit 全部折算为 4 空格；旧实现只替换第一段，第二段竖线残留在名称中（c.txt 会显示成 │   └── c.txt）。",
+  },
+  {
+    // 同一父节点重复普通文件名必须保持文件类型，不能无条件改成目录。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root/\n├── a.txt\n└── a.txt" },
+    clicks: ["build();var o=document.getElementById('output').value;document.getElementById('__tbProbe').textContent=(o.split('\\n').pop()==='└── a.txt')?'FILE_OK':'FILE_BAD';"],
+    expect: ["FILE_OK"],
+    ref: "第1050批：重复 a.txt 没有子节点，仍是文件；旧实现命中已存在节点就 _file=false，输出成 a.txt/。",
+  },
+  {
+    // 自动识别必须把 ASCII +-- 分支当作树形前缀，而不是路径列表。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "src/\n+-- a.js" },
+    clicks: ["build()"],
+    expect: ["自动识别为缩进树解析", "└── a.js"],
+    ref: "第1050批：自动识别正则补上 +--；旧实现 hasGlyph 只查 │|├└`，+-- a.js 被按路径列表处理，成为根节点。",
+  },
+  {
+    // 文件与目录同名冲突要有明确提示，而不是静默改判。
+    slug: "it/ascii-tree-generator",
+    inputs: { paths: "root/\n├── a\n└── a/" },
+    clicks: ["build()"],
+    expect: ["同名项目同时出现文件与目录"],
+    ref: "第1050批：同一父下 a 先作文件、再出现 a/ 显式目录，输出按目录渲染并在结果区提示冲突名称。",
   },
   {
     slug: "it/ascii-tree-generator",
