@@ -10426,10 +10426,20 @@ const CASES = [
   },
   {
     "slug": "it/css-minifier",
-    "inputs": { "input": "a{width:0%;margin:0px}" },
-    "clicks": ["minify()"],
-    "dumpIds": ["output"],
-    "expect": ["a{width:0%;margin:0}"],
+    "clicks": ["document.getElementById('input').value='a{content:\":0px;\";margin:0px}';minify();document.getElementById('__tbProbe').textContent='MINSTR '+document.getElementById('output').textContent;"],
+    "expect": ["MINSTR a{content:\":0px;\";margin:0}"],
+    "ref": "第1057批：零单位缩写不得改写字符串内容；`content:\":0px;\"` 必须原样保留，真实 `margin:0px` 仍压成 `margin:0`。默认示例不含该串 ⇒ 旧实现恢复后全局替换转红。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "clicks": ["document.getElementById('input').value='a{width:calc(1px + 2px);&:hover{color:red}}';minify();document.getElementById('__tbProbe').textContent='MINCALC '+document.getElementById('output').textContent;"],
+    "expect": ["MINCALC a{width:calc(1px + 2px);&:hover{color:red}}"],
+    "ref": "第1057批：嵌套规则前的 calc 声明必须先按声明块压缩，不能把 `width:calc(1px + 2px)` 交给选择器处理而删掉加号空格。默认示例不含该串 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/css-minifier",
+    "clicks": ["document.getElementById('input').value='a{width:0%;margin:0px}';minify();document.getElementById('__tbProbe').textContent='ZERO '+document.getElementById('output').textContent;"],
+    "expect": ["ZERO a{width:0%;margin:0}"],
     "ref": "IT-774 零值单位：百分比宽度 0% 不得被吞成 0（旧实现 :0(px|em|rem|%|pt) 命中 0%）；0px 可安全压成 0。默认示例不含该串。"
   },
   {

@@ -407,32 +407,67 @@ function __cssShortenColors(value) {
   });
 }
 
-function __cssDecls(s) {
+function __cssDecls(s, keepSemi) {
   const text = s.replace(/\s+/g, ' ').trim()
     .replace(/\s*:\s*/g, ':')
     .replace(/\s*;\s*/g, ';')
     .replace(/\s*,\s*/g, ',')
     .replace(/;+$/, '');
   if (!text) return '';
-  return text.split(';').map(part => {
+  const res = text.split(';').map(part => {
     const i = part.indexOf(':');
     if (i < 0) return part;
-    // 只对声明值做颜色缩写，选择器里的 #id 与透明通道色不得误改。
-    return part.slice(0, i + 1) + __cssShortenColors(part.slice(i + 1));
+    const prop = part.slice(0, i).trim();
+    let val = part.slice(i + 1);
+    // 只对声明值做颜色缩写与零单位缩写；选择器里的 #id、自定义属性、calc/var 内的单位不得误改。
+    val = __cssShortenColors(val);
+    if (!prop.startsWith('--') && !/calc\(|var\(/i.test(val)) {
+      val = val.replace(/(^|[^0-9.])0(px|em|rem|pt)(?=[;},!\s]|$)/gi, '$10');
+    }
+    return prop + ':' + val;
   }).join(';');
+  return res + ((keepSemi && /;\s*$/.test(String(s).trim())) ? ';' : '');
 }
 
+function __cssBlockKind(prelude) {
+  const t = String(prelude || '').trim().toLowerCase();
+  if (/^@(media|supports|keyframes|layer|container|document|scope|starting-style)\b/.test(t)) return 'rules';
+  return 'decl';
+}
 function minifyCssAll(css, keepComments) {
   css = String(css == null ? '' : css);
   const { src, parts } = __cssProtect(css, keepComments);
+  const stack = ['rules'];
   let out = '', buf = '';
+  const top = () => stack[stack.length - 1];
   for (let i = 0; i < src.length; i++) {
     const ch = src[i];
-    if (ch === '{') { out += __cssSelector(buf) + '{'; buf = ''; }
-    else if (ch === '}') { out += __cssDecls(buf); out += '}'; buf = ''; }
-    else buf += ch;
+    if (ch === '{') {
+      let pre = buf; buf = '';
+      if (top() === 'decl') {
+        // 嵌套规则：最后一个分号之前是声明，之后才属于嵌套选择器；
+        // 否则 calc(1px + 2px) 会被 __cssSelector 删掉加号空格。
+        const cut = pre.lastIndexOf(';');
+        if (cut >= 0) { out += __cssDecls(pre.slice(0, cut + 1), true); pre = pre.slice(cut + 1); }
+      }
+      const sel = __cssSelector(pre);
+      out += sel + '{';
+      stack.push(__cssBlockKind(sel));
+    } else if (ch === '}') {
+      if (top() === 'decl') out += __cssDecls(buf);
+      else if (buf.trim()) out += __cssSelector(buf).replace(/;+$/, '') + ';';
+      buf = '';
+      out += '}';
+      if (stack.length > 1) stack.pop();
+    } else if (ch === ';') {
+      if (top() === 'decl') { buf += ch; out += __cssDecls(buf, true); buf = ''; }
+      else { if (buf.trim()) out += __cssSelector(buf).replace(/;+$/, '') + ';'; buf = ''; }
+    } else buf += ch;
   }
-  if (buf.trim()) out += __cssSelector(buf).replace(/;+$/, '') + (buf.trim().endsWith(';') ? ';' : '');
+  if (buf.trim()) {
+    if (top() === 'decl') out += __cssDecls(buf);
+    else out += __cssSelector(buf).replace(/;+$/, '') + ';';
+  }
   return __cssRestore(out, parts);
 }
 
@@ -468,9 +503,7 @@ function minify() {
   
   const removeComments = document.getElementById('removeComments').checked;
   // 保守分词：选择器与声明分开处理，伪类前的后代空格、选择器 #id、0% 均保持原样。
-  let css = minifyCssAll(input, !removeComments)
-           .replace(/\s*:0(px|em|rem|pt)(?=[;},!\s])/gi, ':0');
-  css = css.trim();
+  let css = minifyCssAll(input, !removeComments).trim();
   
   document.getElementById('output').textContent = css;
   showStats(input, css);
