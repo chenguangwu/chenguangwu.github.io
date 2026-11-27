@@ -14229,7 +14229,7 @@ const CASES = [
       "padDigits": "auto"
     },
     "expect": [
-      "* 42 052\n1 2 3\n,\nauto\nutf8\n按严格 UTF-8 解码\n061,012,062,012,063\n1 061 · 012 2 062 · 012 3 063\n3\n3\n3\n3"
+      "* 42 052\n1 2 3\n,\nauto\nutf8\n按严格 UTF-8 解码\n061,012,062,012,063\n1 061 ↵ 012 2 062 ↵ 012 3 063\n3\n3\n3\n3"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"1\\n2\\n3\",\"output\":\"1\\n2\\n3\",\"inputOct\":\"1\\n2\\n3\",\"outputText\":\"1\\n2\\n3\",\"encoding\":\"utf8\",\"sep\":\",\",\"padDigits\":\"auto\"}，输出区含「* 42 052\n1 2 3\n,\nauto\nutf8\n061,012,062,0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -19765,7 +19765,50 @@ const CASES = [
     clicks: ["document.getElementById('input').value='\\uFEFFabc';encodeText();var e=document.getElementById('output').value;document.getElementById('input').value=e;decodeText();var ok=document.getElementById('output').value.codePointAt(0)===0xFEFF;document.getElementById('__tbProbe').textContent='BOM64 '+(ok?'OK':'BAD');"],
     expect: ["BOM64 OK"],
     ref: "UTF-8 BOM 往返：'\\uFEFFabc' 以 Base64 编码再解码，首字符必须仍是 U+FEFF；旧版 TextDecoder 默认剥 BOM 得到 'abc'。",
-  }
+  },
+  // ── 第1060批：八进制可逆格式 / 非 BMP / 进制解码严格校验 ──
+  {
+    slug: "it/text-to-octal",
+    inputs: { input: "AB", encoding: "utf8", sep: "", padDigits: "auto" },
+    clicks: ["convert();var c=document.getElementById('output').value;document.getElementById('inputOct').value=c;convertOctToText();document.getElementById('__tbProbe').textContent='OCT1060A '+((c==='101102'&&document.getElementById('outputText').value==='AB')?'OK':'BAD '+c+' '+document.getElementById('outputText').value);"],
+    expect: ["OCT1060A OK"],
+    ref: "第1060批：无分隔符 + 自动位宽必须固定 3 位输出 101102 并能反解回 AB；修复前反解按空白切分把整串当一个 token。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { input: "AB", encoding: "utf8", sep: "0", padDigits: "auto" },
+    clicks: ["convert();var c=document.getElementById('output').value;document.getElementById('inputOct').value=c;convertOctToText();document.getElementById('__tbProbe').textContent='OCT1060B '+((c==='01010102'&&document.getElementById('outputText').value==='AB')?'OK':'BAD '+c+' '+document.getElementById('outputText').value);"],
+    expect: ["OCT1060B OK"],
+    ref: "第1060批：0 前缀 + 自动位宽固定 3 位输出 01010102，按 0 前缀分组反解回 AB，且不得把八进制前导 0 误删。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { input: "😀", encoding: "utf8", sep: " ", padDigits: "3" },
+    clicks: ["convert();var o=document.getElementById('output').value,v=document.getElementById('viz').innerHTML;document.getElementById('inputOct').value=o;convertOctToText();document.getElementById('__tbProbe').textContent='OCT1060C '+((o==='360 237 230 200'&&document.getElementById('outputText').value.codePointAt(0)===0x1F600)?'OK':'BAD '+JSON.stringify(o)+'|'+JSON.stringify(document.getElementById('outputText').value));"],
+    expect: ["OCT1060C OK"],
+    ref: "第1060批：UTF-8 非 BMP 字符必须按真实四字节 f0 9f 98 80（360 237 230 200）展示并往返 😀；不得逐码元显示代理项替换字节。",
+  },
+  {
+    slug: "it/text-to-octal",
+    inputs: { input: "😀", encoding: "utf16", sep: " ", padDigits: "3" },
+    clicks: ["convert();var o=document.getElementById('output').value;document.getElementById('inputOct').value=o;convertOctToText();var n=document.getElementById('octNote').textContent;document.getElementById('__tbProbe').textContent='OCT1060D '+((o==='330 075 336 000'&&document.getElementById('outputText').value==='😀'&&!/孤立/.test(n))?'OK':'BAD '+o+' '+n);"],
+    expect: ["OCT1060D OK"],
+    ref: "第1060批：UTF-16BE 高代理项后必须跳过配对低代理项，😀 编码为 330 075 336 000 且不得误报孤立代理项。",
+  },
+  {
+    slug: "it/text-to-hex",
+    inputs: { inputHex: "4G" },
+    clicks: ["convertHexToText();var n=document.getElementById('outputText').placeholder||'';document.getElementById('__tbProbe').textContent='HEX1060 '+((!document.getElementById('outputText').value&&/十六进制字符/.test(n))?'OK':'BAD '+n);"],
+    expect: ["HEX1060 OK"],
+    ref: "第1060批：4G 必须整段校验报错，不能 parseInt('4G',16)=4 静默输出；错误提示定位第 2 个非法字符。",
+  },
+  {
+    slug: "it/text-to-binary",
+    inputs: { inputBin: "0100000X" },
+    clicks: ["convertBinToText();var n=document.getElementById('outputText').placeholder||'';document.getElementById('__tbProbe').textContent='BIN1060 '+((!document.getElementById('outputText').value&&/二进制字符/.test(n))?'OK':'BAD '+n);"],
+    expect: ["BIN1060 OK"],
+    ref: "第1060批：0100000X 必须整段校验报错，不能 parseInt 部分解析后补齐成零字节；错误提示定位第 8 个非法字符。",
+  },
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(

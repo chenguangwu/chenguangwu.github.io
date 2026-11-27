@@ -444,10 +444,12 @@ function bytesToText(bytes, encoding){
 
 function bytesToOctal(bytes, padDigits){
   var parts = [];
-  var pad = padDigits === 'auto' ? 3 : parseInt(padDigits, 10);
   var sep = getSeparator();
   var useBackslashPrefix = sep === '\\';
   var useZeroPrefix = sep === '0';
+  // 无分隔/前缀格式没有天然边界，自动位宽会产生歧义；固定为 3 位（一字节最多 377）保证可逆。
+  var joinless = sep === '' || useBackslashPrefix || useZeroPrefix;
+  var pad = (padDigits === 'auto' && joinless) ? 3 : (padDigits === 'auto' ? 3 : parseInt(padDigits, 10));
   for(var i = 0; i < bytes.length; i++){
     var oct = bytes[i].toString(8);
     if(pad !== 'auto') oct = oct.padStart(pad, '0');
@@ -459,15 +461,43 @@ function bytesToOctal(bytes, padDigits){
 }
 
 function octalToBytes(octalStr){
-  var cleaned = octalStr.replace(/\\/g, ' ').replace(/[\s,;:\-_]/g, ' ').trim();
-  var tokens = cleaned.split(/\s+/).filter(function(t){ return t.length > 0; });
+  var sep = getSeparator();
+  var pad = getPadDigits();
+  var useBackslashPrefix = sep === '\\';
+  var useZeroPrefix = sep === '0';
+  var joinless = sep === '' || useBackslashPrefix || useZeroPrefix;
+  var width = (pad === 'auto') ? 3 : parseInt(pad, 10);
+  if(!(width >= 1 && width <= 32)) throw new Error(octMsg('八进制位宽无效','Octal width is invalid'));
+  var tokens = [];
+  if(joinless){
+    var raw = octalStr.replace(/\s+/g, '');
+    if(!raw) throw new Error(octMsg('没有可解析的八进制内容','No octal content to parse'));
+    var unit = width + (useBackslashPrefix || useZeroPrefix ? 1 : 0);
+    if(raw.length % unit !== 0){
+      throw new Error(octMsg('无分隔符/前缀格式必须按固定 '+width+' 位一组解析，当前长度 '+raw.length+' 不是 '+unit+' 的整数倍；请改用带分隔符的输出或固定位宽','Separator-less/prefixed octal needs fixed '+width+'-digit groups; length '+raw.length+' is not a multiple of '+unit));
+    }
+    for(var p = 0; p < raw.length; p += unit){
+      var tok = raw.substring(p, p + unit);
+      if(useBackslashPrefix){
+        if(tok.charAt(0) !== '\\') throw new Error(octMsg('第 '+(p/unit+1)+' 组缺少 \\ 前缀','Group '+(p/unit+1)+' is missing the \\ prefix'));
+        tok = tok.substring(1);
+      } else if(useZeroPrefix){
+        if(tok.charAt(0) !== '0') throw new Error(octMsg('第 '+(p/unit+1)+' 组缺少 0 前缀','Group '+(p/unit+1)+' is missing the 0 prefix'));
+        tok = tok.substring(1);
+      }
+      tokens.push(tok);
+    }
+  } else {
+    var cleaned = octalStr.replace(/\\/g, ' ').replace(/[\s,;:\-_]/g, ' ').trim();
+    tokens = cleaned.split(/\s+/).filter(function(t){ return t.length > 0; });
+    if(tokens.length === 0) throw new Error(octMsg('没有可解析的八进制内容','No octal content to parse'));
+  }
   var bytes = [];
   for(var i = 0; i < tokens.length; i++){
     var token = tokens[i];
-    if(token.charAt(0) === '0' && token.length > 1) token = token.substring(1);
-    if(!/^[0-7]+$/.test(token)) throw new Error(octMsg('第 '+(i+1)+' 个八进制值「'+tokens[i]+'」含 0–7 之外的字符','Octal value #'+(i+1)+' "'+tokens[i]+'" contains characters outside 0–7'));
+    if(!/^[0-7]+$/.test(token)) throw new Error(octMsg('第 '+(i+1)+' 个八进制值「'+token+'」含 0–7 之外的字符','Octal value #'+(i+1)+' "'+token+'" contains characters outside 0–7'));
     var n = parseInt(token, 8);
-    if(n > 255) throw new Error(octMsg('第 '+(i+1)+' 个八进制值「'+tokens[i]+'」超出单字节范围 0–377（解码为 '+n+'）','Octal value #'+(i+1)+' "'+tokens[i]+'" exceeds the byte range 0–377 (value '+n+')'));
+    if(n > 255) throw new Error(octMsg('第 '+(i+1)+' 个八进制值「'+token+'」超出单字节范围 0–377（解码为 '+n+'）','Octal value #'+(i+1)+' "'+token+'" exceeds the byte range 0–377 (value '+n+')'));
     bytes.push(n);
   }
   return new Uint8Array(bytes);
@@ -494,7 +524,9 @@ function convert(){
     return;
   }
   var parts = bytesToOctal(bytes, padDigits);
-  octNote(encoding==='ascii'?octMsg('编码：ASCII 单字节（只接受 0–127）','Encoding: ASCII single byte (0–127 only)'):(encoding==='utf16'?octMsg('编码：UTF-16BE（每字符 2 字节，代理对占 4 字节）','Encoding: UTF-16BE (2 bytes per code unit, 4 bytes for surrogate pairs)'):octMsg('编码：UTF-8（严格 UTF-8，非 ASCII 为多字节）','Encoding: UTF-8 (strict UTF-8; non-ASCII uses multiple bytes)')))
+  var __octBaseNote=encoding==='ascii'?octMsg('编码：ASCII 单字节（只接受 0–127）','Encoding: ASCII single byte (0–127 only)'):(encoding==='utf16'?octMsg('编码：UTF-16BE（每字符 2 字节，代理对占 4 字节）','Encoding: UTF-16BE (2 bytes per code unit, 4 bytes for surrogate pairs)'):octMsg('编码：UTF-8（严格 UTF-8，非 ASCII 为多字节）','Encoding: UTF-8 (strict UTF-8; non-ASCII uses multiple bytes)'));
+  if((sep === '\\' || sep === '0' || sep === '') && padDigits === 'auto') __octBaseNote += octMsg('；无分隔符/前缀格式已固定 3 位以保证可逆','; separator-less/prefixed output is fixed at 3 digits so it stays reversible');
+  octNote(__octBaseNote);
   var joinSep = (sep === '\\' || sep === '0') ? '' : sep;
   document.getElementById('output').value = parts.join(joinSep);
 
@@ -509,7 +541,7 @@ function convert(){
     }
     charOct = charOct.trim();
     var displayCh = ch === ' ' ? '␣' : (ch === '\n' ? '↵' : (ch === '\t' ? '⇥' : ch));
-    if(displayCh < ' ' || displayCh > '~') displayCh = '·';
+    if(displayCh < ' ' || displayCh === '\u007f') displayCh = '·';
     vizHtml += '<span class="byte-row"><span class="ch">' + ToolBox.escHtml(displayCh) + '</span><span class="bits">' + charOct + '</span></span>';
   }
   const __h1=vizHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('viz').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('viz').innerHTML=__h1;
