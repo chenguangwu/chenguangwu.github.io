@@ -11,6 +11,18 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "rubber/abrasion-test",
+  "inputs": { "method": "din", "wearValue": "20" },
+  "expect": [ "DIN磨耗值 20" ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rubber/abrasion-test",
+  "inputs": { "wearValue": "-1" },
+  "expect": [ "磨耗值须为非负数值" ],
+  "ref": "auto-restore"
+},
+{
   "slug": "rubber/cure-time",
   "inputs": {
     "refTemp": "225",
@@ -24,12 +36,30 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  "slug": "rubber/cure-time",
+  "inputs": { "refTime": "0" },
+  "expect": [ "基准硫化时间」须为大于 0 的数值" ],
+  "ref": "auto-restore"
+},
+{
   "slug": "rubber/hardness-calc",
   "inputs": {
     "hardValue": "75",
     "shoreA": "50"
   },
-  "expect": [ "76 硬度等级：" ],
+  "expect": [ "76 硬度区间：" ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rubber/hardness-calc",
+  "inputs": { "hardValue": "100" },
+  "expect": [ "IRHD： 不可换算" ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rubber/hardness-calc",
+  "inputs": { "hardType": "D", "hardValue": "60" },
+  "expect": [ "Shore D>50 反解超出" ],
   "ref": "auto-restore"
 },
 {
@@ -54,6 +84,18 @@ const CASES = [
   "expect": [
     "62.50"
   ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rubber/tensile-strength",
+  "inputs": { "maxForce": "-10" },
+  "expect": [ "最大拉伸力不能为负" ],
+  "ref": "auto-restore"
+},
+{
+  "slug": "rubber/tensile-strength",
+  "inputs": { "breakLen": "20" },
+  "expect": [ "断裂时标距不能小于原始标距" ],
   "ref": "auto-restore"
 }
 ];
