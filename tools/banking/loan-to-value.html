@@ -269,13 +269,17 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var __loan_to_valueOk=false;
 function calcTool(){
-              var __ig=__tbInputGuard(['loan', 'val'],["贷款额 (元)", "抵押物价值 (元)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+__loan_to_valueOk=false;
+function __loan_to_valueClearDyn(){var tb=document.getElementById('loan_to_valueTable'); if(tb) tb.innerHTML=''; var ch=document.getElementById('ltvChart'); if(ch) ch.innerHTML='';}
+              var __ig=__tbInputGuard(['loan', 'val'],["贷款额 (元)", "抵押物价值 (元)"]);if(__ig){__loan_to_valueClearDyn();const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const loan=num('loan'),val=num('val');
-            if (!(loan > 0) || !(val > 0)) {
+            if (!(loan > 0) || !(val > 0)) {__loan_to_valueClearDyn();
                 ToolBox.setResult('result','<p style="color:var(--danger);">⚠ 贷款额与抵押物价值均须大于 0，请输入正数后再计算。</p>');
                 return;
             }
+            __loan_to_valueOk=true;
             const LTV=loan/val*100;
             const __g2=dataGrid([
                 [LTV.toFixed(1),'贷款价值比 LTV (%)'],
@@ -335,6 +339,7 @@ calcTool();
 <script>
 function __loan_to_valueNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __loan_to_valueExtras(){
+    if(!__loan_to_valueOk) return;
     function __loan_to_valueRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var loan=num('loan'),val=num('val');
@@ -356,6 +361,7 @@ function __loan_to_valueExtras(){
     TBKit.util.diffBox('#loan_to_valueDiff',['LTV']);
 }
 function __loan_to_valueExport(){
+    if(!__loan_to_valueOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#loan_to_valueTable','loan-to-value.csv'); } catch(e){}
 }
