@@ -1088,7 +1088,7 @@
           if (!Object.prototype.hasOwnProperty.call(p.values, k)) continue;
           setValue('#' + k, p.values[k]);
         }
-        if (typeof after === 'function') { try { after(); } catch (e) {} }
+        if (typeof after === 'function') { try { after(p); } catch (e) {} }
         var all = wrap.querySelectorAll('.tbk-preset-btn');
         for (var i = 0; i < all.length; i++) all[i].classList.remove('active');
         b.classList.add('active');

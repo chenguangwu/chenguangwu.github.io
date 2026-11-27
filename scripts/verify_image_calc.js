@@ -431,7 +431,7 @@ function batch204StaticChecks(){
   var mos = fs.readFileSync("tools/image/image-mosaic.html","utf8");
   out.push({name:"B210 mosaic multiple regions",ok:mos.indexOf('id="mosaicMulti"')>=0&&mos.indexOf('regions.push(nr)')>=0&&mos.indexOf('regionsNat.forEach')>=0});
   var ngc = fs.readFileSync("tools/image/nine-grid-cutter.html","utf8");
-  out.push({name:"B209 nine-grid output size",ok:ngc.indexOf('id="ngcOutSide"')>=0&&ngc.indexOf('var pieceW = outSide')>=0&&ngc.indexOf('3×3 选 3240 即每格 1080px')>=0});
+  out.push({name:"B209 nine-grid output size",ok:ngc.indexOf('id="ngcOutSide"')>=0&&ngc.indexOf("function __ngcComputeDims")>=0&&ngc.indexOf("输出每片")>=0&&ngc.indexOf("像素保真")>=0});
   var cvr = fs.readFileSync("tools/image/image-converter.html","utf8");
   out.push({name:"B209 converter controls",ok:cvr.indexOf('id="convQuality"')>=0&&cvr.indexOf('id="convMaxSide"')>=0&&cvr.indexOf('class="convFmt"')>=0&&cvr.indexOf('f.lossy ? quality : undefined')>=0});
   var idp = fs.readFileSync("tools/image/id-photo-crop.html","utf8");
