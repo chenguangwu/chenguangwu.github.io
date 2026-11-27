@@ -335,7 +335,10 @@ function fmtP(v){
   if(v<0.0001) return v.toExponential(2);
   return v.toFixed(4);
 }
+var __ttOk=false;
+function __ttClear(){['ttChart','ttTable','ttDiff'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
 function calcTool(){
+  __ttOk=false; __ttClear();
   var __ig=__tbInputGuard(['xbar', 'mu0', 'sd', 'n'],["样本均值 x̄", "假设均值 μ₀", "样本标准差 s", "样本量 n"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
   const y=1-(((((1.061405429*t-1.453152027)*t+1.421413741)*t-0.284496736)*t+0.254829592)*t)*Math.exp(-x*x);
@@ -359,6 +362,7 @@ function betai(a,b,x){if(x<=0)return 0; if(x>=1)return 1;
             const xb=num('xbar'),m0=num('mu0'),s=num('sd'),n=num('n');
             // SMS-1：df=n−1；n<2 或 n 非整数时自由度 ≤0，betai 会给出伪 p（n=1⇒p=0「极显著」、n=0⇒p=1）
             if(!isFinite(n)||n<2||Math.abs(n-Math.round(n))>1e-9||!isFinite(s)||s<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 样本量 n 须为 ≥ 2 的整数、样本标准差 s 须大于 0（否则自由度 ≤ 0，p 值无定义）</p>');return;}
+  __ttOk=true;
             const t=(xb-m0)/(s/Math.sqrt(n));
             const df=n-1;
             const p=betai(df/2,0.5, df/(df+t*t));
@@ -378,12 +382,14 @@ calcTool();
 function __ttNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __ttExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__ttOk){try{ToolBox.showToast('请先执行有效计算，暂无可导出数据','warning');}catch(e){}return;}
     try { TBKit.util.exportTable('#ttTable', 'one-sample-t-test.csv'); } catch (e) {}
 }
 function __ttExtras(){
+    if(!__ttOk){__ttClear();return;}
     if (typeof TBKit === 'undefined') return;
     var xb=__ttNum('xbar'), m0=__ttNum('mu0'), sd=__ttNum('sd'), n=__ttNum('n');
-    if(!isFinite(xb)||!isFinite(m0)||!isFinite(sd)||!isFinite(n)||sd<=0||n<2) return;
+    if(!isFinite(xb)||!isFinite(m0)||!isFinite(sd)||!isFinite(n)||sd<=0||n<2||Math.abs(n-Math.round(n))>1e-9) return;
     var t=(xb-m0)/(sd/Math.sqrt(n)), df=n-1, at=Math.abs(t);
     var en=TBKit.util.isEn();
     TBKit.chart.bell('#ttChart',{
