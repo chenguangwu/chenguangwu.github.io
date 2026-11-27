@@ -238,8 +238,8 @@ const CASES = [
 {
   "slug": "home/water-heater-sizing",
   "inputs": { "type": "instant", "people": "3", "sim": "2", "minutes": "10", "flow": "10", "cold": "15", "target": "40", "tank": "60", "power": "2", "price": "0.6" },
-  "expect": ["超出规格表上限（24 kW / 100 A）"],
-  "ref": "第537批：2 路同时 10 L/min、温升 25°C ⇒ 34.9 kW，超过即热规格表 24 kW 与空开 100 A 上限；旧实现返回 24 kW/100 A 并给出不足推荐。"
+  "expect": ["36.7 kW", "上限（24 kW / 160 A）"],
+  "ref": "第537批：2 路同时 10 L/min、温升 25°C 按 95% 效率需 36.7 kW，超过即热规格表 24 kW；所需单相电流约 167 A、按 1.1 留余量后 184 A，超过 160 A 空开上限，必须提示降载。旧实现按输入铭牌 2 kW 算电流，误报 10 A。"
 },
 {
   "slug": "home/appliance-lifespan",
