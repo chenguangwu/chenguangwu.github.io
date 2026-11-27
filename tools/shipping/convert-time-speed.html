@@ -93,6 +93,14 @@
         "@type": "Answer",
         "text": "取计划或实际对地平均速度，需计入流压；分段限速航段应逐段按限速与时间累加，而非简单用全程均值。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "航程为 0 时每海里耗时怎么显示？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "平均航速为 0 节时，每海里耗时显示“不适用”，不再输出 Infinity；航程与时间仍照常显示。"
+      }
     }
   ]
 }
@@ -178,6 +186,7 @@
 <dl class="dd-faq">
 <dt>海里和公里怎么换？</dt><dd>1 海里=1852 米≈1.852 公里，航程从海里转公里乘 1.852 即可。</dd>
 <dt>平均航速怎么取？</dt><dd>取计划或实际对地<a class="term-link" href="/tools/kinematics/avg-velocity.html">平均速度</a>，需计入流压；分段限速航段应逐段按限速与时间累加，而非简单用全程均值。</dd>
+<dt>航程为 0 时每海里耗时怎么显示？</dt><dd>平均航速为 0 节时，每海里耗时显示“不适用”，不再输出 Infinity；航程与时间仍照常显示。</dd>
 </dl>
 </div>
 </section>
@@ -232,10 +241,10 @@ function calc(){
   else{bad=!isFinite(d)||d<0||!isFinite(t)||t<=0;msg='航程须不小于 0，航行时间须大于 0；时间为 0 时无法求平均航速。';}
   if(bad){document.getElementById("res").innerHTML='<p style="color:var(--danger,#c0392b);font-weight:600;">'+(en?'Invalid range: '+msg:'输入范围无效：'+msg)+'</p>';return;}
   var out,detail;
-  if(mode==='distance'){var nm=v*t;out='航程 = '+nm.toFixed(2)+' 海里 (≈ '+(nm*1.852).toFixed(2)+' km)';detail='航速 '+(v*1.852).toFixed(2)+' km/h；昼夜连续航行 '+(v*24).toFixed(1)+' 海里/天';}
-  else if(mode==='time'){var hr=d/v;out='航行时间 = '+hr.toFixed(2)+' 小时 ('+hr.toFixed(3)+' h)';detail='航程 '+d.toFixed(2)+' 海里；平均航速 '+v.toFixed(2)+' 节 = '+(v*1.852).toFixed(2)+' km/h';}
-  else{var kn=d/t;out='平均航速 = '+kn.toFixed(2)+' 节 (≈ '+(kn*1.852).toFixed(2)+' km/h)';detail='航程 '+d.toFixed(2)+' 海里 / 时间 '+t.toFixed(2)+' h；每海里耗时 '+(60/kn).toFixed(2)+' 分钟';}
-  var _d="\n"+detail+"\n本页按匀速直线估算，未计加减速、风浪、流压与等候时间；对地航速须按风、流矢量校正。\n跨时区航行按船时累计，注意日界线日期变更。\n参考：集装箱船经济航速通常 12–18 节，超过 20 节油耗近似平方增长。";
+  if(mode==='distance'){var nm=v*t;out=(en?'Distance = ':'航程 = ')+nm.toFixed(2)+(en?' nm (≈ ':' 海里 (≈ ')+(nm*1.852).toFixed(2)+(en?' km)':' km)');detail=(en?'Speed ':'航速 ')+(v*1.852).toFixed(2)+' km/h'+(en?'; continuous 24 h run ':'；昼夜连续航行 ')+(v*24).toFixed(1)+(en?' nm/day':' 海里/天');}
+  else if(mode==='time'){var hr=d/v;out=(en?'Time = ':'航行时间 = ')+hr.toFixed(2)+(en?' hours (':' 小时 (')+hr.toFixed(3)+' h)';detail=(en?'Distance ':'航程 ')+d.toFixed(2)+(en?' nm; average speed ':' 海里；平均航速 ')+v.toFixed(2)+(en?' kn = ':' 节 = ')+(v*1.852).toFixed(2)+' km/h';}
+  else{var kn=d/t;out=(en?'Average speed = ':'平均航速 = ')+kn.toFixed(2)+(en?' kn (≈ ':' 节 (≈ ')+(kn*1.852).toFixed(2)+' km/h)';if(kn===0){detail=(en?'Distance ':'航程 ')+d.toFixed(2)+(en?' nm / time ':' 海里 / 时间 ')+t.toFixed(2)+(en?' h; time per nautical mile: not applicable (speed is 0).':' h；每海里耗时：不适用（航速为 0）。');}else{detail=(en?'Distance ':'航程 ')+d.toFixed(2)+(en?' nm / time ':' 海里 / 时间 ')+t.toFixed(2)+(en?' h; time per nautical mile ':' h；每海里耗时 ')+(60/kn).toFixed(2)+(en?' min':' 分钟');}}
+  var _d=en?"\n"+detail+"\nUniform straight-line estimate only; acceleration, wind, current and waiting time are excluded. Speed over ground must be corrected with wind and current vectors.\nTime across time zones is accumulated in ship time; watch the date line.\nReference: container ships usually cruise at 12–18 kn; fuel use grows roughly with the square of speed above 20 kn.":"\n"+detail+"\n本页按匀速直线估算，未计加减速、风浪、流压与等候时间；对地航速须按风、流矢量校正。\n跨时区航行按船时累计，注意日界线日期变更。\n参考：集装箱船经济航速通常 12–18 节，超过 20 节油耗近似平方增长。";
   document.getElementById("res").innerHTML='<p style="font-size:18px;color:var(--primary);white-space:pre-line;">'+(out+_d).replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</p>';
 }calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
@@ -259,8 +268,8 @@ function calc(){
       <span class="rt-info"><span class="rt-name">潮汐（高/低潮）推算</span><span class="rt-desc">输入参考站 4 次潮汐（时间+潮高+高/低）与副港差比推算副港潮汐；</span></span>
     </a>
     <a href="calc-76.html" class="related-tool-card">
-      <span class="rt-icon">🚢</span>
-      <span class="rt-info"><span class="rt-name">船舶排水/载重吨计算</span><span class="rt-desc">输入船舶垂线间长、型宽、首/中/尾吃水、方形系数与水密度计算排水量、TPC、MTC、纵倾与载重吨；</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">船舶排水与当前载荷估算</span><span class="rt-desc">输入船舶垂线间长、型宽、首/中/尾吃水、方形系数与水密度计算排水量、TPC、MTC、纵倾与载重吨；</span></span>
     </a>
     <a href="estimate-length.html" class="related-tool-card">
       <span class="rt-icon">📏</span>

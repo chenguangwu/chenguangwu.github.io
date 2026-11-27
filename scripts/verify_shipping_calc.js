@@ -143,6 +143,11 @@ const CASES = [
   "expect": ["必须同时包含高潮与低潮"],
   "ref": "四次事件全为高潮时缺低潮组，旧实现潮差出现无穷值。"
 }
+,
+{ "slug":"shipping/calc-76", "inputs":{"v8":"50000"}, "clicks":["calc()"], "expect":["空船重量大于当前排水量"], "ref":"第1122批：空船重量超过当前排水量时不得输出非负载荷或 DWT" },
+{ "slug":"shipping/tide", "clicks":["for(var i=0;i<4;i++){var d=[['03:20','1.2','high'],['09:40','0.4','low'],['15:50','1.5','high'],['22:10','0.3','low']][i];document.getElementById('rt'+i).value=d[0];document.getElementById('rh'+i).value=d[1];document.getElementById('rtype'+i).value=d[2];}document.getElementById('hTimeOff').value='';calc()"], "expect":["留空不会被当作 0"], "ref":"第1122批：时间差留空不得静默按 0，须提示填写" },
+{ "slug":"shipping/estimate-length", "inputs":{"v0":"0"}, "clicks":["calc()"], "expect":["水深与船舶吨位须大于 0"], "ref":"第1122批：水深 0 不得再给推荐 scope 或满足提示" },
+{ "slug":"shipping/convert-time-speed", "inputs":{"mode":"speed","d":"0","t":"2"}, "clicks":["calc()"], "expect":["不适用"], "ref":"第1122批：零航程平均航速 0 节，每海里耗时应为不适用而非 Infinity" }
 
 ];
 async function main() {
