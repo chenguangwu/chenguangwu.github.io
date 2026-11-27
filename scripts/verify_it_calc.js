@@ -5486,6 +5486,42 @@ const CASES = [
   },
   {
     slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34)+'  '+String.fromCharCode(34)+',x';renderPreview();var o=document.getElementById('output').value;var c=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDSP1046 '+((o.indexOf('&nbsp;&nbsp;')>=0&&o.indexOf('&nbsp;&nbsp;&nbsp;&nbsp;')<0&&c.indexOf(String.fromCharCode(34)+'  '+String.fromCharCode(34))>=0)?'OK':'BAD');"],
+    expect: ["MDSP1046 OK"],
+    ref: "第1046批：引号内纯空格单元格只编码一次；两个空格必须是 2 个 &nbsp;（不是 4 个），CSV 仍保留两个原始空格。旧实现首尾两段重叠，得 4 个。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34,9,160)+'x'+String.fromCharCode(34)+',y';renderPreview();var o=document.getElementById('output').value;var c=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDWS1046 '+((o.indexOf('&#9;&nbsp;x')>=0&&c.indexOf(String.fromCharCode(9,160)+'x')>=0)?'OK':'BAD');"],
+    expect: ["MDWS1046 OK"],
+    ref: "第1046批：引号内边缘制表符/不换行空格必须按字符保留为 &#9; / &nbsp;，CSV 导出保留原字符；旧实现 trim 掉非普通空格边界。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34)+'hello'+String.fromCharCode(10)+'world'+String.fromCharCode(34)+',x';renderPreview();var o=document.getElementById('output').value;var c=__mdTableCsv();document.getElementById('__tbProbe').textContent='MDNL1046 '+((o.indexOf('hello<br>world')>=0&&c.indexOf('hello\\nworld')>=0)?'OK':'BAD');"],
+    expect: ["MDNL1046 OK"],
+    ref: "第1046批：带引号 CSD 单元格内的真实换行不得被物理拆行；Markdown 用 <br> 呈现，CSV 导出保留原始换行。旧实现先按换行切分，跨行引号字段直接报未闭合。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='2';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b';document.getElementById('bodyLine').value=String.fromCharCode(34)+'a'+String.fromCharCode(34)+'b,c';renderPreview();var e=document.getElementById('csvInputError');document.getElementById('__tbProbe').textContent='MDQUOTE1046 '+((document.getElementById('output').value===''&&e.style.display==='block'&&/引号闭合后只能接逗号/.test(e.textContent))?'OK':'BAD');"],
+    expect: ["MDQUOTE1046 OK"],
+    ref: "第1046批：闭合引号后出现普通字符必须报错并清空输出，不能静默拼成 ab；旧解析缺少该位置检查。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='1';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('headerLine').value='a,b,c';document.getElementById('bodyLine').value='1,2,3';renderPreview();document.getElementById('__tbProbe').textContent='MDEXP1046 '+((document.getElementById('cols').value==='3'&&document.getElementById('output').value.indexOf('| 1 | 2 | 3 |')>=0&&document.getElementById('csvSpaceNotice').textContent.indexOf('自动扩展')>=0)?'OK':'BAD');"],
+    expect: ["MDEXP1046 OK"],
+    ref: "第1046批：输入 3 列而设置为 1 列时，必须提示并自动扩展列数到 3，保留全部单元格；旧实现静默 slice 截掉后两列。",
+  },
+  {
+    slug: "it/markdown-table-generator",
+    clicks: ["document.getElementById('cols').value='1';document.getElementById('rows').value='1';document.getElementById('align').value='left';document.getElementById('bodyLine').value='1';document.getElementById('headerLine').value=Array(21).fill('h').join(',');renderPreview();document.getElementById('__tbProbe').textContent='MDLIMIT1046 '+((document.getElementById('output').value===''&&document.getElementById('csvInputError').textContent.indexOf('超过支持上限')>=0)?'OK':'BAD');"],
+    expect: ["MDLIMIT1046 OK"],
+    ref: "第1046批：输入 21 列超过 20 列上限时必须明确报错停止生成，不能静默截断；旧实现 slice 后仍出表。",
+  },
+  {
+    slug: "it/markdown-table-generator",
     inputs: { cols: "2", headerLine: "A,B", bodyLine: "1,2", rows: "1", align: "left" },
     clicks: ["renderPreview()"],
     expect: ["| 1 | 2 |"],
