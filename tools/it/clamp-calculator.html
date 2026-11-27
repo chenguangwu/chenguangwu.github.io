@@ -213,12 +213,12 @@
       <tbody>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="夹取定义">Definition</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="clamp(x, lo, hi) = min(max(x, lo), hi)">clamp(x, lo, hi) = min(max(x, lo), hi)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="clamp(lo, x, hi) = max(lo, min(x, hi))">clamp(lo, x, hi) = max(lo, min(x, hi))</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="CSS Values and Units Level 4">CSS Values and Units Level 4</td>
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="参数约束">Parameter order</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="要求 lo ≤ hi，否则结果依实现而定">requires lo <= hi; otherwise results are implementation-defined</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="最小值优先：lo ≥ hi 时仍取 lo（不交给实现决定）">minimum wins: when lo >= hi the result is still lo</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="CSS Values and Units Level 4">CSS Values and Units Level 4</td>
         </tr>
         <tr>
@@ -295,7 +295,8 @@ function trimNum(n,d){
   return s==='-0'?'0':s;
 }
 function fmt(n){return trimNum(n,2);}
-function fmtSize(n){return trimNum(n,4);}
+function fmtSize(n){return trimNum(n,8);}
+function fmtBound(n){return trimNum(n,Math.abs(n)>0&&Math.abs(n)<0.01?8:2);}
 function fmtMathN(n,d){return trimNum(n,d);}
 function fmtMath(n){return fmtMathN(n,3);}
 function clampLine(s,r,d){return fmtMathN(s,d)+'vw '+(r<0?'- '+fmtMathN(-r,d):'+ '+fmtMathN(r,d))+'px';}
@@ -332,8 +333,10 @@ function clampConfig(){
   if(m>p||p>x) return {err:clampText('range')};
   var mid=(a+b)/2;
   var single=Math.abs(p-(m+x)/2)<1e-9;
+  // 精度阈值按数值量级缩放：0.00004~0.00012px 这种极小区间不能沿用 0.005px 的绝对阈值。
+  var tol=Math.max(1e-9,Math.abs(x-m)*1e-4);
   var chosen=null;
-  for(var d=3;d<=8;d++){
+  for(var d=3;d<=12;d++){
     var s1,r1,s2,r2,inner,evaluate;
     if(single){
       s1=fmtMathN((x-m)/(b-a)*100,d); r1=fmtMathN(m-s1*a/100,d);
@@ -351,9 +354,9 @@ function clampConfig(){
     }
     var dev=Math.max(Math.abs(evaluate(a)-m),Math.abs(evaluate(mid)-p),Math.abs(evaluate(b)-x));
     chosen={min:m,pref:p,max:x,vwMin:a,vwMax:b,mid:mid,inner:inner,
-      expr:'clamp('+fmtSize(m)+'px, '+inner+', '+fmtSize(x)+'px)',evaluate:evaluate,precision:d,maxDev:dev};
+      expr:'clamp('+fmtSize(m)+'px, '+inner+', '+fmtSize(x)+'px)',evaluate:evaluate,precision:d,maxDev:dev,tolerance:tol};
     // 三位小数通常足够；若断点偏差超过 0.005px，则逐位提高系数精度，避免斜率被舍成 0。
-    if(dev<=0.005) break;
+    if(dev<=tol) break;
   }
   return chosen;
 }
@@ -365,11 +368,11 @@ function calc(){
     slide();
     return;
   }
-  var lo=fmt(cfg.evaluate(cfg.vwMin)), mid=fmt(cfg.evaluate(cfg.mid)), hi=fmt(cfg.evaluate(cfg.vwMax));
-  var devTxt=fmt(cfg.maxDev)+'px';
+  var lo=fmtBound(cfg.evaluate(cfg.vwMin)), mid=fmtBound(cfg.evaluate(cfg.mid)), hi=fmtBound(cfg.evaluate(cfg.vwMax));
+  var devTxt=fmtSize(cfg.maxDev)+'px';
   var html='<p>'+clampText('generated')+'<code style="background:rgba(0,0,0,.05);padding:4px 10px;border-radius:8px;font-size:14px;">'+escH(cfg.expr)+'</code></p>'+
     '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('bounds')+fmt(cfg.vwMin)+'px='+lo+'px · '+clampText('mid')+fmt(cfg.mid)+'px='+mid+'px · '+fmt(cfg.vwMax)+'px='+hi+'px</p>'+
-    '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('deviation')+devTxt+(cfg.maxDev>0.005?(clampText('precision').replace('{d}',cfg.precision)):'')+'</p>'+
+    '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('deviation')+devTxt+(cfg.maxDev>cfg.tolerance?(clampText('precision').replace('{d}',cfg.precision)):'')+'</p>'+
     '<p style="font-size:12px;color:var(--muted,#6B7280);">'+clampText('rule')+'</p>';
   document.getElementById('result').innerHTML=html;
   window._clamp=cfg.expr;
