@@ -162,25 +162,25 @@
       <div>
         <label for="quoteCcy">报价货币（目标货币）</label>
         <select id="quoteCcy" onchange="onCcyChange()">
-          <option value="EUR">EUR 欧元</option>
-          <option value="GBP">GBP 英镑</option>
-          <option value="JPY" selected>JPY 日元</option>
-          <option value="CHF">CHF 瑞郎</option>
-          <option value="CAD">CAD 加元</option>
-          <option value="AUD">AUD 澳元</option>
-          <option value="CNY">CNY 人民币</option>
-          <option value="USD">USD 美元</option>
+          <option value="EUR" data-rate="1.0850">EUR 欧元</option>
+          <option value="GBP" data-rate="1.2750">GBP 英镑</option>
+          <option value="JPY" data-rate="0.00665" selected>JPY 日元</option>
+          <option value="CHF" data-rate="1.1300">CHF 瑞郎</option>
+          <option value="CAD" data-rate="0.7380">CAD 加元</option>
+          <option value="AUD" data-rate="0.6650">AUD 澳元</option>
+          <option value="CNY" data-rate="0.1380">CNY 人民币</option>
+          <option value="USD" data-rate="1">USD 美元</option>
         </select>
       </div>
     </div>
 
     <div class="input-row">
       <div>
-        <label for="baseUsd">1 基础货币 = ? USD</label>
+        <label for="baseUsd">1 <span id="baseUsdLabel">基础货币</span> = ? USD</label>
         <input type="number" id="baseUsd" value="1.0850" step="0.0001" min="0" oninput="calc()" placeholder="如 1.0850">
       </div>
       <div>
-        <label for="quoteUsd">1 报价货币 = ? USD</label>
+        <label for="quoteUsd">1 <span id="quoteUsdLabel">报价货币</span> = ? USD</label>
         <input type="number" id="quoteUsd" value="0.00665" step="0.00001" min="0" oninput="calc()" placeholder="如 0.00665">
       </div>
     </div>
@@ -263,7 +263,7 @@
 <li>多币种记账：把小币种金额统一折算成记账本位币（USD 或人民币），做资产盘点。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">交叉汇率 = 基础货币兑 USD ÷ 报价货币兑 USD。即 (Base/USD) ÷ (Quote/USD) = Base/Quote；金额换算 = 金额 × 交叉汇率；USD 等值 = 金额 × 基础货币兑 USD。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">输入 EUR/USD=1.0850、USD/JPY=0.00665（即 1 USD=150.38 JPY，JPY/USD=0.00665）、金额=1000 EUR：交叉汇率 EUR/JPY = 1.0850 ÷ 0.00665 = 163.1579，即 1 EUR≈163.1579 JPY；换算得 1000×163.1579=163157.89 JPY；USD 等值=1000×1.0850=1085.00 USD。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">输入 EUR/USD=1.0850、JPY/USD=0.00665（即 USD/JPY≈150.38，1 USD≈150.38 JPY）、金额=1000 EUR：交叉汇率 EUR/JPY = 1.0850 ÷ 0.00665 = 163.1579，即 1 EUR≈163.1579 JPY；换算得 1000×163.1579=163157.89 JPY；USD 等值=1000×1.0850=1085.00 USD。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>和直接用 EUR/JPY 行情报价的差异？</dt><dd>交叉汇率由两条美元腿推导，与经纪商直盘 EUR/JPY 报价通常有微小点差（来自买卖价与流动性）；本工具用中间价演示原理，实盘以券商报价为准。</dd>
@@ -315,11 +315,18 @@ function getVal(id){
   return el ? (+el.value || 0) : 0;
 }
 
+function updateRateLabels(){
+  var base=document.getElementById('baseCcy'),quote=document.getElementById('quoteCcy');
+  var bl=document.getElementById('baseUsdLabel'),ql=document.getElementById('quoteUsdLabel');
+  if(bl)bl.textContent=base.value;
+  if(ql)ql.textContent=quote.value;
+}
 function onCcyChange(){
   var baseOpt = document.getElementById('baseCcy').selectedOptions[0];
   var quoteOpt = document.getElementById('quoteCcy').selectedOptions[0];
   document.getElementById('baseUsd').value = baseOpt.dataset.rate;
   document.getElementById('quoteUsd').value = quoteOpt.dataset.rate;
+  updateRateLabels();
   calc();
 }
 
@@ -333,6 +340,7 @@ function swapCcy(){
 }
 
 function calc(){
+  updateRateLabels();
   var baseCcy = document.getElementById('baseCcy').value;
   var quoteCcy = document.getElementById('quoteCcy').value;
   var baseUsd = getVal('baseUsd');
