@@ -269,6 +269,7 @@ function strictNum(id){
   var raw=document.getElementById(id).value.trim();
   return raw===''?NaN:parseFloat(raw);
 }
+var __extrValid=false;var __extrText='';
 function calc() {
   var dEl=document.getElementById('screwDia');
   var rpmEl=document.getElementById('screwRpm');
@@ -289,10 +290,12 @@ function calc() {
   setInvalid(pEl,!pOk); setInvalid(hEl,!hOk); setInvalid(effEl,!effOk);
 
   if (!dOk || !rpmOk || !rhoOk || !pOk || !hOk || !effOk) {
+    __extrValid=false;
     ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效参数：所有参数需大于 0，输送效率需在 0–100% 之间</p>');
     return;
   }
   if (h * 2 >= D) {
+    __extrValid=false;
     setInvalid(dEl,true); setInvalid(hEl,true);
     ToolBox.setResult('result', '<p style="color:var(--danger);">请输入有效参数：螺槽深度过大，请检查</p>');
     return;
@@ -309,25 +312,18 @@ function calc() {
   var outputKgDay = outputKgh * 24;
   var outputTonMonth = (outputKgDay * 30) / 1000;
 
+  __extrValid=true; __extrText='挤出产量: '+outputKgh.toFixed(1)+' kg/h (螺杆'+D+'mm, 转速'+rpm+'rpm, 效率'+eff+'%)';
   var html = '<p>每转排量：<strong>' + volumePerRev.toFixed(2) + ' cm³/rev</strong></p>';
   html += '<p>每分钟排量：<strong>' + (volumePerMin).toFixed(0) + ' cm³/min</strong></p>';
   html += '<p>挤出产量：<strong>' + outputKgh.toFixed(1) + ' kg/h</strong></p>';
-  html += '<p>日产量（24h）：<strong>' + outputKgDay.toFixed(0) + ' kg/天</strong></p>';
-  html += '<p>月产量（30天）：<strong>' + outputTonMonth.toFixed(1) + ' 吨/月</strong></p>';
+  html += '<p>日产量（24h）：<strong>' + outputKgDay.toFixed(0) + '</strong> kg/天</p>';
+  html += '<p>月产量（30天）：<strong>' + outputTonMonth.toFixed(1) + '</strong> 吨/月</p>';
   const __g1=html;ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
 }
 
 function copyResult() {
-  var D = parseFloat(document.getElementById('screwDia').value) || 0;
-  var rpm = parseFloat(document.getElementById('screwRpm').value) || 0;
-  var rho = parseFloat(document.getElementById('density').value) || 0;
-  var p = parseFloat(document.getElementById('pitch').value) || 0;
-  var h = parseFloat(document.getElementById('channelDepth').value) || 0;
-  var eff = parseFloat(document.getElementById('efficiency').value) || 0;
-  var flowArea = Math.PI/4*(D*D-Math.pow(D-2*h,2));
-  var outputKgh = (flowArea * p / 1000 * rpm / 60) * rho * (eff/100) * 3.6;
-  var text = '挤出产量: ' + outputKgh.toFixed(1) + ' kg/h (螺杆' + D + 'mm, 转速' + rpm + 'rpm)';
-  ToolBox.copyText(text, i18nText('msg409'));
+  if(!__extrValid){ToolBox.showToast('请先修正输入，再复制结果','error');return;}
+  ToolBox.copyText(__extrText, i18nText('msg409'));
 }
 
 var refData = [
