@@ -142,7 +142,7 @@
     <li><b>排序</b>：把请求参数（排除 sign 本身与空值）按参数名 ASCII 升序排列。</li>
     <li><b>拼接</b>：拼成 <code>k1=v1&amp;k2=v2…</code>，首尾按约定追加或前置 <code>key=密钥</code>。</li>
     <li><b>摘要</b>：MD5 模式按 RFC 1321 输出 32 位小写十六进制；HMAC-SHA256 模式输出 64 位小写十六进制。</li>
-    <li><b>安全</b>：须带时间戳与 nonce 防重放；密钥只能留在服务端，绝不下发客户端。</li>
+    <li><b>安全</b>：可勾选自动加入 Unix 秒级 timestamp 与一次性 nonce 防重放；服务端仍须校验时间窗口与 nonce，密钥只能留在服务端，绝不下发客户端。</li>
   </ul>
 </div>
 
@@ -163,8 +163,22 @@
       <textarea id="params" style="width:100%;min-height:120px;">app_id=1001
 method=order.create
 amount=39.80</textarea>
-      <div id="paramNote" class="note" aria-live="polite">值原样参与签名，不做 URL 编码；值中的 &amp; 请写成 %26，或改为每行一个参数。重复 key 会直接报错，不会静默丢弃。</div>
+      <div id="paramNote" class="note" aria-live="polite">值原样参与签名，不做 URL 编码；值中的 &amp; 请写成 %26，或改为每行一个参数。重复 key 会直接报错，不会静默丢弃。默认排除 sign 字段和空值。</div>
     </div>
+    <div class="input-row">
+      <label for="paramMode">输入模式</label>
+      <select id="paramMode">
+        <option value="auto">自动（含 &amp; 视为查询串）</option>
+        <option value="line">逐行（值中 &amp; 原样保留）</option>
+        <option value="query">查询串（&amp; 分隔，不解码）</option>
+      </select>
+    </div>
+    <div class="input-row" style="flex-wrap:wrap;gap:12px;">
+      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="excludeSign" checked> 排除 sign 字段</label>
+      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="excludeEmpty" checked> 排除空值</label>
+      <label style="display:flex;align-items:center;gap:6px;"><input type="checkbox" id="addReplayGuard"> 自动加入 timestamp（秒）与 nonce</label>
+    </div>
+    <div id="signStale" class="note" style="display:none;color:var(--danger);" aria-live="polite">输入已变化，当前签名已过期，请重新生成后再复制。</div>
 
     <div class="toolbar">
       <button class="btn primary" onclick="runSign()">生成签名</button>
@@ -297,30 +311,39 @@ async function hmacHex(secret, s) {
     .join('');
 }
 
+function paramMode() {
+  var el = document.getElementById('paramMode');
+  return el ? el.value : 'auto';
+}
+
 function parseParamEntries() {
-  // 两种写法：每行一条 k=v，或 URL 查询串 k=v&k=v。值不做 trim、不做 URL 编解码，
-  // 保证「看到的值 = 参与签名的值」；但未编码的 & 无法区分分隔符与值内容，必须明确报错。
+  // 三种写法：自动（含 & 视为查询串）、逐行（只按首个 = 分割，值内 & 原样保留）、
+  // 查询串（按 & 分段，不解码）。值不做 trim、不做 URL 编解码，保证「看到的值 = 参与签名的值」。
   const raw = (document.getElementById('params').value || '').replace(/\r/g, '');
   const lines = raw.split('\n');
   const entries = [];
   const seen = Object.create(null);
+  const mode = paramMode();
   for (let li = 0; li < lines.length; li++) {
     const line = lines[li];
     if (line.trim() === '') continue;
-    const segs = line.indexOf('&') >= 0 ? line.split('&') : [line];
+    const queryLike = mode === 'query' || (mode === 'auto' && line.indexOf('&') >= 0);
+    const segs = queryLike ? line.split('&') : [line];
     for (let si = 0; si < segs.length; si++) {
       const seg = segs[si];
       if (seg === '') {
-        throw new Error('第 ' + (li + 1) + ' 行出现空参数段（多余的 &）；值为空请写成 key=，值的 & 请编码为 %26');
+        throw new Error('第 ' + (li + 1) + ' 行出现空参数段（多余的 &）；值为空请写成 key=，值的 & 请改用逐行模式或编码为 %26');
       }
       const i = seg.indexOf('=');
       if (i <= 0) {
-        throw new Error('第 ' + (li + 1) + ' 行参数缺少 key=value' + (line.indexOf('&') >= 0 ? '（值中的 & 必须编码为 %26，或改为每行一个参数）' : ''));
+        throw new Error('第 ' + (li + 1) + ' 行参数缺少 key=value' + (queryLike ? '（查询串模式按 & 分隔；值中的 & 请改用逐行模式或编码为 %26）' : ''));
       }
       const key = seg.slice(0, i);
       const value = seg.slice(i + 1);
       if (key !== key.trim()) throw new Error('第 ' + (li + 1) + ' 行参数名首尾不能有空白：' + JSON.stringify(key));
-      if (seen[key]) throw new Error('重复参数 key：' + key + '。为保证签名顺序明确，重复键不被支持，请合并、改名或删除其中一项');
+      if (seen[key]) {
+        throw new Error('重复参数 key：' + key + '。为保证签名顺序明确，重复键不被支持，请合并、改名或删除其中一项');
+      }
       seen[key] = true;
       entries.push({ key: key, value: value });
     }
@@ -330,10 +353,56 @@ function parseParamEntries() {
 }
 
 function parseParams() {
-  const obj = {};
+  // 用无原型字典保存，避免 __proto__/constructor 等键被 Object.prototype 静默吞掉。
+  const obj = Object.create(null);
   parseParamEntries().forEach(function(e) { obj[e.key] = e.value; });
   return obj;
 }
+
+function signIsEn() {
+  try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn) return !!TBKit.util.isEn(); } catch (e) {}
+  return /lang=en-US/i.test(location.search || '');
+}
+
+function signOption(name, fallback) {
+  var el = document.getElementById(name);
+  return el ? !!el.checked : fallback;
+}
+
+function splitActiveEntries(entries) {
+  var excludeSign = signOption('excludeSign', true);
+  var excludeEmpty = signOption('excludeEmpty', true);
+  var active = [], excluded = [];
+  entries.forEach(function(e) {
+    var hitSign = excludeSign && String(e.key).toLowerCase() === 'sign';
+    var hitEmpty = excludeEmpty && e.value === '';
+    if (hitSign || hitEmpty) excluded.push({ key: e.key, reason: hitSign ? 'sign' : 'empty' });
+    else active.push(e);
+  });
+  return { active: active, excluded: excluded };
+}
+
+function updateParamModeNote() {
+  var note = document.getElementById('paramNote');
+  if (!note) return;
+  var mode = paramMode();
+  var en = signIsEn();
+  if (en) {
+    note.textContent = mode === 'line'
+      ? 'Line mode: split each line at the first =; & inside values is kept literally. Empty values are excluded by default.'
+      : mode === 'query'
+        ? 'Query mode: split on &, with no URL decoding; encode & as %26 and make sure the server uses the same rule. Empty values are excluded by default.'
+        : 'Auto mode: a line containing & is treated as a query string; otherwise it is one key=value. Empty values and sign are excluded by default.';
+  } else {
+    note.textContent = mode === 'line'
+      ? '逐行模式：每行按首个 = 分割，值中的 & 原样保留。默认排除空值。'
+      : mode === 'query'
+        ? '查询串模式：按 & 分段，不做 URL 解码；值中的 & 请编码为 %26，并确认服务端采用同一规则。默认排除空值。'
+        : '自动模式：含 & 的行按查询串分段，否则视为单条 key=value。默认排除 sign 与空值。';
+  }
+  note.style.color = '';
+}
+
 
 function toggleSecret() {
   const el = document.getElementById('secret');
@@ -351,22 +420,98 @@ function escHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+var signRunSeq = 0, signStale = false;
+
+function signSnapshot() {
+  return JSON.stringify({
+    algo: document.getElementById('algo').value,
+    secret: document.getElementById('secret').value,
+    params: document.getElementById('params').value,
+    mode: paramMode(),
+    excludeSign: signOption('excludeSign', true),
+    excludeEmpty: signOption('excludeEmpty', true),
+    replay: signOption('addReplayGuard', false)
+  });
+}
+
+function setSignStale(on) {
+  signStale = !!on;
+  var box = document.getElementById('signStale');
+  if (box) box.style.display = signStale ? 'block' : 'none';
+}
+
+function markSignStale() {
+  if (document.getElementById('signValue')) setSignStale(true);
+}
+
+function makeNonce() {
+  var bytes = new Uint8Array(16);
+  if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+    window.crypto.getRandomValues(bytes);
+  } else {
+    for (var i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+  }
+  return Array.prototype.map.call(bytes, function(b) { return b.toString(16).padStart(2, '0'); }).join('');
+}
+
 async function runSign() {
-  const algo = document.getElementById('algo').value;
-  const secret = document.getElementById('secret').value || '';
-  const out = document.getElementById('out');
-  const note = document.getElementById('paramNote');
+  var seq = ++signRunSeq;
+  var snapshot = signSnapshot();
+  var algo = document.getElementById('algo').value;
+  var secret = document.getElementById('secret').value || '';
+  var out = document.getElementById('out');
+  var note = document.getElementById('paramNote');
+  var en = signIsEn();
+  // 重新生成期间旧签名一律视为过期，避免用户复制到与当前输入不对应的值。
+  if (document.getElementById('signValue')) setSignStale(true);
   let entries;
   try {
     entries = parseParamEntries();
   } catch (e) {
     out.innerHTML = '<p style="color:var(--danger)">⚠ ' + escHtml(e.message) + '</p>';
-    if (note) { note.textContent = '签名未生成：' + e.message; note.style.color = 'var(--danger)'; }
+    if (note) { note.textContent = (en ? 'Signature not generated: ' : '签名未生成：') + e.message; note.style.color = 'var(--danger)'; }
+    setSignStale(true);
     return;
   }
-  const sorted = entries.slice().sort(function(a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
-  const base = sorted.map(function(e) { return e.key + '=' + e.value; }).join('&');
-  if (note) { note.textContent = '已按 key 排序，共 ' + entries.length + ' 个参数；值原样参与签名，不做 URL 编码。'; note.style.color = ''; }
+  var filtered = splitActiveEntries(entries);
+  if (!filtered.active.length) {
+    var emptyMsg = en ? 'No parameters left after excluding sign and empty values.' : '排除 sign 与空值后没有可参与签名的参数。';
+    out.innerHTML = '<p style="color:var(--danger)">⚠ ' + escHtml(emptyMsg) + '</p>';
+    if (note) { note.textContent = emptyMsg; note.style.color = 'var(--danger)'; }
+    setSignStale(true);
+    return;
+  }
+
+  var replayInfo = '';
+  if (signOption('addReplayGuard', false)) {
+    var tsValue = String(Math.floor(Date.now() / 1000));
+    var nonceValue = makeNonce();
+    var hasTs = filtered.active.some(function(e) { return e.key === 'timestamp'; });
+    var hasNonce = filtered.active.some(function(e) { return e.key === 'nonce'; });
+    if (!hasTs) filtered.active.push({ key: 'timestamp', value: tsValue });
+    if (!hasNonce) filtered.active.push({ key: 'nonce', value: nonceValue });
+    replayInfo = en
+      ? 'Injected timestamp=' + (hasTs ? 'existing value kept' : tsValue + ' (Unix seconds)') + ', nonce=' + (hasNonce ? 'existing value kept' : nonceValue) + '; the server must still enforce the time window and one-time nonce.'
+      : '已注入 timestamp=' + (hasTs ? '保留已有值' : tsValue + '（Unix 秒）') + '、nonce=' + (hasNonce ? '保留已有值' : nonceValue) + '；服务端仍须校验时间窗口与一次性 nonce。';
+  } else {
+    replayInfo = en
+      ? 'No anti-replay fields were injected; add timestamp and nonce yourself. The server must still enforce the time window and one-time nonce.'
+      : '未注入防重放参数，请自行提供 timestamp 与 nonce；服务端仍须校验时间窗口与一次性 nonce。';
+  }
+
+  var sorted = filtered.active.slice().sort(function(a, b) { return a.key < b.key ? -1 : a.key > b.key ? 1 : 0; });
+  var base = sorted.map(function(e) { return e.key + '=' + e.value; }).join('&');
+  if (note) {
+    var excludedText = filtered.excluded.length
+      ? (en ? ' Excluded: ' : ' 已排除：') + filtered.excluded.map(function(e) {
+          return e.key + (e.reason === 'sign' ? (en ? ' (sign)' : '（sign）') : (en ? ' (empty)' : '（空值）'));
+        }).join(', ') + '.'
+      : '';
+    note.textContent = (en
+      ? 'Sorted by key; ' + filtered.active.length + ' parameter(s) participate. Values are signed exactly as written, with no URL encoding.'
+      : '已按 key 排序，共 ' + filtered.active.length + ' 个参数参与签名；值原样参与签名，不做 URL 编码。') + excludedText + ' ' + replayInfo;
+    note.style.color = '';
+  }
 
   let sign;
   if (algo === 'sha256') {
@@ -374,21 +519,43 @@ async function runSign() {
   } else {
     sign = await md5Hex(base + '&secret=' + secret);
     if (!sign) {
-      out.innerHTML = '<p>当前环境不支持 MD5 近似计算，请改用 HMAC-SHA256。</p>';
+      out.innerHTML = '<p>' + (en ? 'MD5 is not available in this environment; use HMAC-SHA256.' : '当前环境不支持 MD5 近似计算，请改用 HMAC-SHA256。') + '</p>';
+      setSignStale(true);
       return;
     }
   }
+  // 异步完成时只允许最新请求写入；输入或请求序号变化都丢弃旧结果。
+  if (seq !== signRunSeq) return;
+  if (snapshot !== signSnapshot()) { setSignStale(true); return; }
+  setSignStale(false);
 
-  const msgNote = algo === 'sha256'
-    ? 'HMAC-SHA256：消息 = 规范化串；密钥单独作为 HMAC key（密钥不显示）'
-    : 'MD5：实际输入 = 规范化串 + &quot;&amp;secret=&quot; + 密钥（密钥不显示）；上方规范化串不含密钥';
+  var msgNote = algo === 'sha256'
+    ? (en ? 'HMAC-SHA256: message = canonical string; the secret is the HMAC key and is never displayed.' : 'HMAC-SHA256：消息 = 规范化串；密钥单独作为 HMAC key（密钥不显示）')
+    : (en ? 'MD5: actual input = canonical string + "&secret=" + secret key; the canonical string above does not contain the secret.' : 'MD5：实际输入 = 规范化串 + &quot;&amp;secret=&quot; + 密钥（密钥不显示）；上方规范化串不含密钥');
   out.innerHTML =
-    '<p>规范化串（参与签名）：<strong style="word-break:break-all">' + escHtml(base) + '</strong></p>' +
+    '<p>' + (en ? 'Canonical string (signed): ' : '规范化串（参与签名）：') + '<strong style="word-break:break-all">' + escHtml(base) + '</strong></p>' +
     '<p style="font-size:13px;color:var(--text-muted);">' + msgNote + '</p>' +
-    '<p>签名结果：<strong id="signValue" style="word-break:break-all">' + escHtml(sign) + '</strong></p>';
+    '<p>' + (en ? 'Signature: ' : '签名结果：') + '<strong id="signValue" style="word-break:break-all">' + escHtml(sign) + '</strong></p>';
+}
+
+function bindSignStaleEvents() {
+  ['params', 'secret', 'algo', 'paramMode', 'excludeSign', 'excludeEmpty', 'addReplayGuard'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (!el || el.__signStaleBound) return;
+    el.__signStaleBound = true;
+    el.addEventListener('input', markSignStale);
+    el.addEventListener('change', function() {
+      if (id === 'paramMode') updateParamModeNote();
+      markSignStale();
+    });
+  });
 }
 
 function copyResult() {
+  if (signStale) {
+    ToolBox.showToast(signIsEn() ? 'Inputs changed; generate a new signature before copying.' : '输入已变化，请重新生成签名后再复制。', 'warning');
+    return;
+  }
   const signEl = document.getElementById('signValue');
   const text = signEl ? String(signEl.textContent || '').trim() : '';
   if (!text) {
@@ -526,7 +693,7 @@ var __api_sign_generator_f0=(typeof copyResult==='function')?copyResult:null;
 if(__api_sign_generator_f0){
     copyResult=function(){ var __r=__api_sign_generator_f0.apply(null,arguments); try{ __api_sign_generatorExtras(); }catch(e){} return __r; };
 }
-function __api_sign_generatorBoot(){ try{ if(typeof TBKit!=='undefined'&&TBKit.history&&!localStorage.getItem('apiSignHistPurgedV2')){ TBKit.history.clear(); localStorage.setItem('apiSignHistPurgedV2','1'); } }catch(e){} try{ __api_sign_generatorPresets(); }catch(e){} try{ if(typeof runSign==='function') runSign(); }catch(e){} }
+function __api_sign_generatorBoot(){ try{ if(typeof TBKit!=='undefined'&&TBKit.history&&!localStorage.getItem('apiSignHistPurgedV2')){ TBKit.history.clear(); localStorage.setItem('apiSignHistPurgedV2','1'); } }catch(e){} try{ bindSignStaleEvents(); updateParamModeNote(); }catch(e){} try{ __api_sign_generatorPresets(); }catch(e){} try{ if(typeof runSign==='function') runSign(); }catch(e){} }
 if (document.readyState && document.readyState !== 'loading') __api_sign_generatorBoot();
 else document.addEventListener('DOMContentLoaded', __api_sign_generatorBoot);
 </script>

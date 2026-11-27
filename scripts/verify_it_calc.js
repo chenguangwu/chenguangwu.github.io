@@ -3372,6 +3372,45 @@ const CASES = [
   },
   {
     slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=\nsign=old\nb=2", algo: "sha256" },
+    checkIds: ["excludeSign", "excludeEmpty"],
+    awaitClicks: true,
+    clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;var n=document.getElementById('paramNote').textContent;document.getElementById('__tbProbe').textContent='FILTER1045 '+((o.indexOf('b=2')>=0&&o.indexOf('sign=old')<0&&o.indexOf('a=&')<0&&n.indexOf('已排除')>=0)?'OK':'BAD');});"],
+    expect: ["FILTER1045 OK"],
+    ref: "第1045批：默认规则必须与说明一致，排除 sign 字段和空值；a= / sign=old / b=2 只让 b=2 参与签名，并在参数说明中列出被排除字段。旧实现把 sign=old 和 a= 都拼入规范化串。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "message=a&b", algo: "sha256", paramMode: "line" },
+    awaitClicks: true,
+    clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('__tbProbe').textContent='LINE1045 '+((o.indexOf('message=a&amp;b')>=0)?'OK':'BAD');});"],
+    expect: ["LINE1045 OK"],
+    ref: "第1045批：逐行模式只按首个 = 分割，值中的 & 原样保留；message=a&b 必须形成一条 message=a&b 参数，而不是查询串两段。旧实现只要见到 & 就分段并报错。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "__proto__=x\nconstructor=y", algo: "sha256" },
+    clicks: ["var p=parseParams();var k=Object.keys(p);document.getElementById('__tbProbe').textContent='PROTO1045 '+((k.length===2&&p.__proto__==='x'&&p.constructor==='y')?'OK':'BAD');"],
+    expect: ["PROTO1045 OK"],
+    ref: "第1045批：参数容器改用无原型字典，`__proto__` / `constructor` 必须成为普通自有键；旧实现用 {} 保存，`__proto__` 被原型访问器吞掉，parseParams 只剩 constructor。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=1", algo: "sha256" },
+    clicks: ["var n=makeNonce();var src=String(runSign);document.getElementById('__tbProbe').textContent='REPLAY1045 '+((/^[0-9a-f]{32}$/.test(n)&&src.indexOf('addReplayGuard')>=0&&src.indexOf('timestamp')>=0)?'OK':'BAD');"],
+    expect: ["REPLAY1045 OK"],
+    ref: "第1045批：`makeNonce` 必须生成 32 位十六进制 nonce，`runSign` 必须读取 addReplayGuard 并注入 timestamp；勾选后的实际签名串与 Unix 秒提示已在 Chrome 真机验证，旧实现完全没有该入口。",
+  },
+  {
+    slug: "it/api-sign-generator",
+    inputs: { secret: "s", params: "a=1", algo: "sha256" },
+    awaitClicks: true,
+    clicks: ["runSign().then(function(){document.getElementById('params').value='a=2';markSignStale();var copied='';ToolBox.copyText=function(t){copied=t;};copyResult();document.getElementById('__tbProbe').textContent='STALE1045 '+((copied===''&&document.getElementById('signStale').style.display==='block')?'OK':'BAD');});"],
+    expect: ["STALE1045 OK"],
+    ref: "第1045批：生成后修改参数必须标记旧签名过期并阻止复制；旧实现不比较输入快照，copyResult 继续复制上一次签名。",
+  },
+  {
+    slug: "it/api-sign-generator",
     inputs: { secret: "s", params: "a=1", algo: "md5" },
     clicks: ["runSign()"],
     expect: ["签名结果： 9b211a5b174da8c32c0c361b39155597"],
@@ -18214,6 +18253,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1\na=2", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){document.getElementById('algo').value='DUP '+(document.getElementById('out').innerHTML.indexOf('重复参数 key：a')>=0?'OK':'BAD');});"],
     expect: ["DUP OK"],
     ref: "第762批：重复 key a=1/a=2 必须明确报错并停止签名；旧实现对象覆盖静默只保留最后一个 a=2，签名结果看似正常。",
@@ -18221,6 +18261,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1&b", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){document.getElementById('algo').value='AMP '+(document.getElementById('out').innerHTML.indexOf('%26')>=0?'OK':'BAD');});"],
     expect: ["AMP OK"],
     ref: "第762批：值里未编码的 & 会被当成分隔符，b 段无 key=value 必须报错并提示 %26；旧实现直接跳过 b 段，签名悄悄少一个参数。",
@@ -18228,6 +18269,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=x+y&b=%E4%B8%AD%20z", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('algo').value='CANON '+(o.indexOf('a=x+y&amp;b=%E4%B8%AD%20z')>=0?'OK':'BAD');});"],
     expect: ["CANON OK"],
     ref: "第762批：参数值原样参与签名，不做 URL 解码或 re-encode；`x+y`、`%E4%B8%AD%20z` 必须保持字面值。旧实现 trim 并可能改变空格/顺序。",
@@ -18235,6 +18277,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1&b=2", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["runSign().then(function(){var o=document.getElementById('out').innerHTML;document.getElementById('algo').value='NOCANON '+(o.indexOf('s3cr3t')<0&&o.indexOf('&secret=')<0&&document.getElementById('signValue')?'OK':'BAD');});"],
     expect: ["NOCANON OK"],
     ref: "第762批：输出只显示规范化串（不含 secret）和签名；HMAC 文案不得误写成拼接 secret。旧实现对 HMAC 也展示 `规范化串&secret=密钥`，直接泄露密钥。",
@@ -18242,6 +18285,7 @@ const CASES = [
   {
     slug: "it/api-sign-generator",
     inputs: { secret: "s3cr3t", params: "a=1", algo: "sha256" },
+    awaitClicks: true,
     clicks: ["var old=ToolBox.copyText;var copied='';ToolBox.copyText=function(t){copied=t;};runSign().then(function(){var sv=document.getElementById('signValue');if(sv)sv.textContent='deadbeef';copyResult();ToolBox.copyText=old;document.getElementById('algo').value='COPYM '+(copied==='deadbeef'?'OK':'BAD:'+copied);});"],
     expect: ["COPYM OK"],
     ref: "第762批：复制签名只能复制 #signValue 的签名值，不得把规范化串或密钥一起复制；旧实现复制整个结果区文本。",
