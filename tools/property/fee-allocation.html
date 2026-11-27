@@ -153,7 +153,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按面积或户数比例分摊物业总费用，支持自定义户主明细">Fee Allocation</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">物业费分摊（双模式）：面积分摊模式 各户分摊 = 总额 × (该户面积 ÷ 总建筑面积)、每㎡单价 = 总额 ÷ 总建筑面积；按户均摊模式 各户分摊 = 总额 ÷ 户数、每户占比 = 1 ÷ 户数；末尾合计校验 Σ各户分摊 与总额之差并提示浮点误差。校验：未添加任何住户时报错「请至少添加一户」，面积非数按 0 兜底（总面积为 0 时占比记 0）。判据：无固定分级，切换模式即整表重算。</div>
+      <div class="formula-eq">物业费分摊（双模式，按分结算）：面积分摊模式 各户权重 = 该户面积 ÷ 总建筑面积、每㎡单价 = 总额 ÷ 总建筑面积；按户均摊模式 各户权重 = 1 ÷ 户数。每户先按权重折算到分并向下取整，剩余分按「小数余数从大到小」逐户补 1 分，余数相同按明细顺序；表内金额即实际应缴分币，合计与总额严格一致。校验：总额不得为空或负数（0 为合法零金额）；面积模式各户面积不得为空或负数，总面积必须大于 0；未添加住户报「请至少添加一户」。判据：无固定分级，切换模式即整表重算。</div>
       <p class="formula-desc">按面积或户数比例分摊物业总费用，支持自定义户主明细</p>
     </div>
 
@@ -302,8 +302,9 @@ function collectUnits(){
   rows.forEach(function(r){
     var inputs = r.querySelectorAll('input');
     var name = inputs[0].value.trim() || '未命名';
-    var area = parseFloat(inputs[1].value) || 0;
-    arr.push({name:name, area:area});
+    var areaRaw = inputs[1] ? String(inputs[1].value).trim() : '';
+    var area = areaRaw === '' ? null : parseFloat(areaRaw);
+    arr.push({name:name, area:area, areaRaw:areaRaw});
   });
   return arr;
 }
@@ -314,52 +315,64 @@ function onModeChange(){
 }
 
 function calc(){
-  var totalFee = parseFloat(document.getElementById('totalFee').value) || 0;
-  var mode = document.getElementById('mode').value;
-  var units = collectUnits();
-  var count = units.length;
-  if(count === 0){ document.getElementById('result').innerHTML='<p>请至少添加一户</p>'; return; }
+  var result=document.getElementById('result');
+  var totalRaw=String(document.getElementById('totalFee').value).trim();
+  var mode=document.getElementById('mode').value;
+  var units=collectUnits();
+  var count=units.length;
+  if(totalRaw===''){result.innerHTML='<div class="info-box">请填写物业费总额（0 为合法零金额）。</div>';return;}
+  var totalFee=parseFloat(totalRaw);
+  if(!isFinite(totalFee)){result.innerHTML='<div class="info-box">物业费总额请输入有效数字。</div>';return;}
+  if(totalFee<0){result.innerHTML='<div class="info-box">物业费总额不能为负数。</div>';return;}
+  if(count===0){result.innerHTML='<div class="info-box">请至少添加一户。</div>';return;}
 
-  var totalArea = units.reduce(function(s,u){ return s + (u.area||0); }, 0);
-  var html = '<div class="summary-grid">';
-  html += summaryCard('物业费总额', '¥' + totalFee.toFixed(2));
-  html += summaryCard('总户数', count + ' 户');
-  if(mode === 'area'){
-    html += summaryCard('总建筑面积', totalArea.toFixed(2) + ' ㎡');
-    html += summaryCard('每㎡单价', totalArea>0 ? '¥' + (totalFee/totalArea).toFixed(4) : '—');
-  }else{
-    html += summaryCard('户均费用', '¥' + (totalFee/count).toFixed(2));
-  }
-  html += '</div>';
-
-  html += '<div style="margin-top:16px;">';
-  html += '<table><thead><tr><th>户名</th>';
-  html += mode==='area' ? '<th>面积(㎡)</th><th>面积占比</th>' : '<th>户数占比</th>';
-  html += '<th>分摊金额(元)</th></tr></thead><tbody>';
-
-  units.forEach(function(u){
-    var ratio, amount;
-    if(mode === 'area'){
-      ratio = totalArea > 0 ? u.area / totalArea : 0;
-      amount = totalFee * ratio;
-      html += '<tr><td>'+ToolBox.escHtml(u.name)+'</td><td>'+u.area.toFixed(2)+'</td><td>'+(ratio*100).toFixed(2)+'%</td><td>¥'+amount.toFixed(2)+'</td></tr>';
-    }else{
-      ratio = 1 / count;
-      amount = totalFee * ratio;
-      html += '<tr><td>'+ToolBox.escHtml(u.name)+'</td><td>'+(ratio*100).toFixed(2)+'%</td><td>¥'+amount.toFixed(2)+'</td></tr>';
+  var totalArea=0, weights=[];
+  if(mode==='area'){
+    for(var i=0;i<units.length;i++){
+      var u=units[i];
+      if(u.areaRaw===''){result.innerHTML='<div class="info-box">第 '+(i+1)+' 户「'+ToolBox.escHtml(u.name)+'」面积未填写。</div>';return;}
+      if(!isFinite(u.area)){result.innerHTML='<div class="info-box">第 '+(i+1)+' 户面积请输入有效数字。</div>';return;}
+      if(u.area<0){result.innerHTML='<div class="info-box">第 '+(i+1)+' 户面积不能为负数。</div>';return;}
+      totalArea+=u.area;
+      weights.push(u.area);
     }
+    if(totalArea<=0){result.innerHTML='<div class="info-box">按面积分摊时总面积必须大于 0，请检查各户面积。</div>';return;}
+  }else{
+    for(var j=0;j<units.length;j++)weights.push(1);
+  }
+
+  var totalCents=Math.round(totalFee*100);
+  var sumW=weights.reduce(function(a,b){return a+b;},0);
+  var exact=weights.map(function(w){return totalCents*w/sumW;});
+  var cents=exact.map(function(x){return Math.floor(x+1e-9);});
+  var used=cents.reduce(function(a,b){return a+b;},0);
+  var rem=totalCents-used;
+  var order=exact.map(function(x,i){return {i:i,frac:x-Math.floor(x+1e-9)};}).sort(function(a,b){return b.frac-a.frac||a.i-b.i;});
+  for(var k=0;k<rem;k++)cents[order[k%order.length].i]+=1;
+  var sumCents=cents.reduce(function(a,b){return a+b;},0);
+
+  var html='<div class="summary-grid">';
+  html+=summaryCard('物业费总额','¥'+totalFee.toFixed(2));
+  html+=summaryCard('总户数',count+' 户');
+  if(mode==='area'){
+    html+=summaryCard('总建筑面积',totalArea.toFixed(2)+' ㎡');
+    html+=summaryCard('每㎡单价',totalArea>0?'¥'+(totalFee/totalArea).toFixed(4):'—');
+  }else{
+    html+=summaryCard('户均参考','¥'+(totalFee/count).toFixed(2));
+  }
+  html+='</div>';
+  html+='<div style="margin-top:16px;"><table><thead><tr><th>户名</th>';
+  html+=mode==='area'?'<th>面积(㎡)</th><th>面积占比</th>':'<th>户数占比</th>';
+  html+='<th>分摊金额(元)</th></tr></thead><tbody>';
+  units.forEach(function(u,idx){
+    var ratio=mode==='area'?(u.area/totalArea):(1/count);
+    var amount=(cents[idx]/100).toFixed(2);
+    if(mode==='area')html+='<tr><td>'+ToolBox.escHtml(u.name)+'</td><td>'+u.area.toFixed(2)+'</td><td>'+(ratio*100).toFixed(2)+'%</td><td>¥'+amount+'</td></tr>';
+    else html+='<tr><td>'+ToolBox.escHtml(u.name)+'</td><td>'+(ratio*100).toFixed(2)+'%</td><td>¥'+amount+'</td></tr>';
   });
-  html += '</tbody></table></div>';
-
-  // 校验
-  var sumCheck = units.reduce(function(s,u){
-    var ratio = mode==='area' ? (totalArea>0?u.area/totalArea:0) : 1/count;
-    return s + totalFee * ratio;
-  }, 0);
-  var diff = Math.abs(sumCheck - totalFee);
-  html += '<div class="tip-box tip-info" style="margin-top:12px;">分摊金额合计 ¥'+sumCheck.toFixed(2)+'，与总额差额 ¥'+diff.toFixed(4)+'（浮点误差）。</div>';
-
-  const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  html+='</tbody></table></div>';
+  html+='<div class="tip-box tip-info" style="margin-top:12px;">分摊金额合计 ¥'+(sumCents/100).toFixed(2)+'，与总额差额 ¥'+(((sumCents-totalCents)/100).toFixed(2))+'。金额以分为单位分配，剩余 '+rem+' 分按小数余数从大到小逐户补足；同余按明细顺序。表内金额可直接用于收款核对。</div>';
+  result.innerHTML=html;
 }
 
 function summaryCard(lbl, num){
