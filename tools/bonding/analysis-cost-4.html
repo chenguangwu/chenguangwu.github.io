@@ -96,6 +96,14 @@
         "@type": "Answer",
         "text": "相对第一行方案（基准），单件成本降幅即节省率；可把现用工艺放第一行做对比基准。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "某一行写成“3元”或“98abc”会怎样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "整批输入按字段严格校验；发现尾缀、字段数不对或缺值时，工具停止比较并列出原始行与字段，不会跳过坏行后给出“最优方案”。请按逗号分隔的 5 个纯数字字段重填。"
+      }
     }
   ]
 }
@@ -177,6 +185,7 @@
 <dl class="dd-faq">
 <dt>为什么要把良品率算进去？</dt><dd>返工件同样消耗材料与工时，除以良品率可把返工损失摊回单件，避免低估低良品率方案的真实成本。</dd>
 <dt>节省率是相对谁算的？</dt><dd>相对第一行方案（基准），单件成本降幅即节省率；可把现用工艺放第一行做对比基准。</dd>
+<dt>某一行写成“3元”或“98abc”会怎样？</dt><dd>整批输入按字段严格校验；发现尾缀、字段数不对或缺值时，工具停止比较并列出原始行与字段，不会跳过坏行后给出“最优方案”。请按逗号分隔的 5 个纯数字字段重填。</dd>
 </dl>
 </div>
 </section>
@@ -220,21 +229,35 @@
 <script>
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
+var raw=document.getElementById("data").value.split("\n");
 var rows='',n=0,best=null,bestU=0,base=null,baseU=0,baseE=0,bestE=0,invalid=[];
-lines.forEach(function(ln,idx){
-var p=ln.split(/[,，\t ]+/);
-var name=p[0]||"",mat=parseFloat(p[1]),mn=parseFloat(p[2]),rt=parseFloat(p[3]),yp=parseFloat(p[4]);
-if(name===''||!isFinite(mat)||!isFinite(mn)||!isFinite(rt)||!isFinite(yp)||mat<0||mn<0||rt<0||!(yp>0)||yp>100){invalid.push('第'+(idx+1)+'行：方案名/数值缺失，或成本、工时、费率 &lt;0，或良品率不在 (0,100]');return;}
-var yf=yp/100;
-var unit=(mat+mn*rt)/yf, eff=mn/yf;
-n++;
-var safeName=escHtml(name);
-if(base===null){base=name;baseU=unit;baseE=eff;}
-if(best===null||unit<bestU){best=name;bestU=unit;bestE=eff;}
-rows+='<tr><td>'+safeName+'</td><td>'+mat.toFixed(2)+'</td><td>'+mn.toFixed(2)+'</td><td>'+(mn*rt).toFixed(2)+'</td><td>'+yp.toFixed(1)+'%</td><td>'+unit.toFixed(2)+'</td><td>'+eff.toFixed(2)+'</td></tr>';
+function isNum(x){return /^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(x);}
+raw.forEach(function(ln,idx){
+  if(ln.trim()==='') return;
+  var p=ln.trim().split(/[,，\t]+/).map(function(x){return x.trim();});
+  var lineNo=idx+1;
+  if(p.length!==5){invalid.push('第'+lineNo+'行：应有 5 个字段（方案名,胶水成本,工时,工时费率,良品率%），当前 '+p.length+' 个；原始行：'+ln.trim());return;}
+  var name=p[0],matRaw=p[1],mnRaw=p[2],rtRaw=p[3],ypRaw=p[4];
+  if(name===''){invalid.push('第'+lineNo+'行：方案名为空');return;}
+  var bad=[];
+  if(!isNum(matRaw)) bad.push('胶水成本“'+matRaw+'”');
+  if(!isNum(mnRaw)) bad.push('工时“'+mnRaw+'”');
+  if(!isNum(rtRaw)) bad.push('工时费率“'+rtRaw+'”');
+  if(!isNum(ypRaw)) bad.push('良品率“'+ypRaw+'”');
+  if(bad.length){invalid.push('第'+lineNo+'行：'+bad.join('、')+' 不是有效数字（不接受“3元”“98abc”等尾缀）；原始行：'+ln.trim());return;}
+  var mat=Number(matRaw),mn=Number(mnRaw),rt=Number(rtRaw),yp=Number(ypRaw);
+  if(mat<0||mn<0||rt<0||!(yp>0)||yp>100){invalid.push('第'+lineNo+'行：成本、工时、费率须 ≥0，良品率须在 (0,100]；原始行：'+ln.trim());return;}
+  var yf=yp/100;
+  var unit=(mat+mn*rt)/yf, eff=mn/yf;
+  n++;
+  var safeName=escHtml(name);
+  if(base===null){base=name;baseU=unit;baseE=eff;}
+  if(best===null||unit<bestU){best=name;bestU=unit;bestE=eff;}
+  rows+='<tr><td>'+safeName+'</td><td>'+mat.toFixed(2)+'</td><td>'+mn.toFixed(2)+'</td><td>'+(mn*rt).toFixed(2)+'</td><td>'+yp.toFixed(1)+'%</td><td>'+unit.toFixed(2)+'</td><td>'+eff.toFixed(2)+'</td></tr>';
 });
-if(!n){document.getElementById("res").innerHTML='<p>请按「方案名,胶水成本,工时(分钟),工时费率,良品率%」逐行输入</p>'+(invalid.length?'<div class="tip-box tip-error">'+invalid.join('<br>')+'</div>':'');return;}
+if(invalid.length){window.__costInvalid=true;document.getElementById("res").innerHTML='<div class="tip-box tip-error"><strong>输入有误，未进行比较：</strong><br>'+invalid.join('<br>')+'</div>';return;}
+if(!n){window.__costInvalid=true;document.getElementById("res").innerHTML='<p>请按「方案名,胶水成本,工时(分钟),工时费率,良品率%」逐行输入</p>';return;}
+window.__costInvalid=false;
 var save=baseU>0?(baseU-bestU)/baseU*100:0;
 var effUp=baseE>0?(baseE-bestE)/baseE*100:0;
 const __g2='<p>对比方案数：<strong>'+n+'</strong></p>'+
@@ -268,7 +291,7 @@ calc();function copyRes(){ToolBox.copyText(document.getElementById("res").innerT
     </a>
     <a href="detector-27.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">粘接（无损/检测/超声波）方法</span><span class="rt-desc">依据超声波探伤的回波与耦合数据，判断粘接界面的脱粘、分层等缺陷状况并给出合格判定，用于无损质量检测</span></span>
+      <span class="rt-info"><span class="rt-name">粘接（无损/检测/超声波）方法</span><span class="rt-desc">记录超声波回波、底波衰减与可疑信号密度，提示复检与加密扫查；</span></span>
     </a>
     <a href="detector-26.html" class="related-tool-card">
       <span class="rt-icon">📏</span>

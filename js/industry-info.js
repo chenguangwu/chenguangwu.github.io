@@ -201,7 +201,7 @@ window.INDUSTRY_INFO = {
   'aquaculture'          : { name: '水产养殖', icon: '🐟', hot: 32180 },
   'fengshui'             : { name: '风水命理', icon: '🏔️', hot: 31782 },
   'project'              : { name: '项目管理', icon: '📊', hot: 31095 },
-  'bonding'              : { name: '粘接密封', icon: '🧷', hot: 31086 },
+  'bonding'              : { name: '粘接密封', icon: '🧷', hot: 31087 },
   'stats'                : { name: '统计分析', icon: '📈', hot: 28590 },
   'yi'                   : { name: '周易八卦', icon: '📐', hot: 27569 },
   'express'              : { name: '快递物流', icon: '📦', hot: 25505 },

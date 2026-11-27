@@ -83,6 +83,14 @@
   "mainEntity": [
     {
       "@type": "Question",
+      "name": "Δσ 填范围还是幅值？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "填应力范围（σmax−σmin），工具按 Δσ/2 取应力幅再进入 Goodman 修正；若把单边幅值当范围填，计算结果会偏保守约一半。页面当前只处理一组恒幅循环，不处理载荷谱分级或 Miner 累积损伤。"
+      }
+    },
+    {
+      "@type": "Question",
       "name": "Goodman 修正和 S-N 曲线是什么？",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -134,10 +142,10 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="性能/周期/寿命">Assessor Cycle Lifespan</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">粘接结构疲劳寿命估算（S-N 曲线）<br>疲劳极限 σE = σb × 0.5 × 表面系数 β ÷ 应力集中系数 Kt<br>Goodman 修正等效应力 σeq = (Δσ/2) ÷ (1 − σm/σb)<br>疲劳寿命 N = (σE ÷ σeq)^5 × 10⁶（次，m=5）<br>设计循环次数输入按万次 ×10⁴ 换算<br>安全系数 = N ÷ 设计次数<br>判定：≥2 安全｜1~2 临界｜&lt;1 不安全<br>σeq≤0 或 ≥σE 判无法承受<br>实际寿命受表面质量、尺寸效应、温度影响，需实验验证</div>
-  <p class="formula-desc">依据疲劳寿命的应力—循环关系（S-N 曲线与 Miner 线性累积损伤准则），输入载荷谱与材料参数，估算可达循环次数与安全寿命，辅助耐久性判定；纯前端计算，数据不出浏览器。</p>
+  <p class="formula-desc">按单组恒幅循环的 S-N 曲线与 Goodman 修正估算可达循环次数与安全系数；输入 Δσ 为应力范围（最大减最小），工具取 Δσ/2 作为应力幅。当前不处理载荷谱分级或 Miner 累积损伤；纯前端计算，数据不出浏览器。</p>
 </div>
 
-<div class="input-row"><div><label for="sigmaB">材料抗拉强度 σb（MPa）</label><input type="number" id="sigmaB" value="600" style="font-size:16px;" placeholder="如 600"></div><div><label for="deltaSigma">应力幅值 Δσ（MPa）</label><input type="number" id="deltaSigma" value="200" style="font-size:16px;" placeholder="如 200"></div></div>
+<div class="input-row"><div><label for="sigmaB">材料抗拉强度 σb（MPa）</label><input type="number" id="sigmaB" value="600" style="font-size:16px;" placeholder="如 600"></div><div><label for="deltaSigma">应力范围 Δσ（MPa，σmax−σmin）</label><input type="number" id="deltaSigma" value="200" style="font-size:16px;" placeholder="如 200"></div></div>
 <div class="input-row"><div><label for="sigmaM">平均应力 σm（MPa）</label><input type="number" id="sigmaM" value="100" style="font-size:16px;" placeholder="如 100"></div><div><label for="kt">应力集中系数 Kt</label><input type="number" id="kt" value="2.0" step="0.1" style="font-size:16px;" placeholder="如 2.0"></div></div>
 <div class="input-row"><div><label for="designN">设计循环次数 N（万次）</label><input type="number" id="designN" value="100" style="font-size:16px;" placeholder="如 100"></div><div><label for="surface">表面加工系数</label><select id="surface" style="font-size:16px;"><option value="0.9">抛光 (0.9)</option><option value="0.8" selected>磨削 (0.8)</option><option value="0.65">车削 (0.65)</option><option value="0.45">粗加工 (0.45)</option></select></div></div>
 <div class="toolbar"><div id="assessor_cycle_lifespanPresets"></div><button type="button" class="btn primary" onclick="calc()">评估疲劳寿命</button><button class="btn" type="button" onclick="__assessor_cycle_lifespanExport()">导出明细 CSV</button><button type="button" class="btn" onclick="ToolBox.copyFromElement('res','tool.copy_ok')">复制结果</button></div>
@@ -167,13 +175,14 @@
 <h2>📚 深度解析：疲劳（性能/周期/寿命）评估</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>胶接/金属连接件疲劳校核：给出材料 σb、应力幅 Δσ、平均应力 σm、<a class="term-link" href="/tools/structural/stress-concentration.html">应力集中</a> Kt，估算可达循环寿命与安全系数，判断是否需改用更高强度材料或降低应力。</li>
+<li>胶接/金属连接件疲劳校核：给出材料 σb、应力范围 Δσ（σmax−σmin）、平均应力 σm、<a class="term-link" href="/tools/structural/stress-concentration.html">应力集中</a> Kt，估算可达循环寿命与安全系数，判断是否需改用更高强度材料或降低应力。</li>
 <li>表面处理方案比选：抛光/磨削/车削/粗加工对应不同表面系数 β，比较其对疲劳极限与寿命的影响，择优工艺。</li>
 <li>设计寿命符合性：输入目标设计循环次数，用安全系数 sf=N/designN 判定「安全(sf≥2)/临界(1-2)/不安全(&lt;1)」。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：σb800/Δσ200/σm100/Kt2.0/设计50万次/磨削β0.8</div><div class="dd-ex-body">输入：σb=800 MPa、Δσ=200 MPa、σm=100 MPa、Kt=2.0、设计寿命 50 万次、表面磨削 β=0.8。疲劳极限 σE=σb×0.5×β/Kt=800×0.5×0.8/2.0=160.0 MPa；Goodman 等效应力 σEq=Δσ/2/(1−σm/σb)=200/2/(1−100/800)=114.29 MPa；按 S-N 曲线（指数 m=5）可达寿命 N=(σE/σEq)^5×10⁶=(160/114.29)^5×10⁶≈537.8 万次；安全系数 sf=N/designN=537.8/50=10.76→安全。对照默认（σb600/Kt2.0/设计100万次）σE=120、σEq=120、N=100 万次、sf=1.00→临界，说明提高材料强度对寿命是指数级提升。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
+<dt>Δσ 填范围还是幅值？</dt><dd>填应力范围（σmax−σmin），工具按 Δσ/2 取应力幅再进入 Goodman 修正；若把单边幅值当范围填，计算结果会偏保守约一半。页面当前只处理一组恒幅循环，不处理载荷谱分级或 Miner 累积损伤。</dd>
 <dt>Goodman 修正和 S-N 曲线是什么？</dt><dd>Goodman 直线将平均应力对疲劳强度的削弱线性折算到等效应力；S-N 曲线描述应力幅与破坏循环次数的幂律关系，本工具取 m=5（钢/胶接常用近似）。二者结合可在无实验曲线时给出工程估算。</dd>
 <dt>安全系数 sf=1 就代表刚好够用吗？</dt><dd>不。sf=1 只是理论寿命等于设计寿命，未留余量；工程上要求 sf≥2（实际寿命 ≥2 倍设计寿命）才算可靠。sf 在 1-2 为「临界」需优化（降应力/换材料/减小 Kt），&lt;1 为「不安全」必须改设计。</dd>
 </dl>
@@ -275,19 +284,26 @@ function __tbInputGuardCore(_ids,_labels){
 }
 
 
+function __assessClearAux(){
+  ['resRefBar','assessor_cycle_lifespanTable','assessor_cycle_lifespanDiff','assessor_cycle_lifespanChart'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.innerHTML='';
+  });
+  window.__assessorInvalid=true;
+}
 function calc(){
-    var __ig=__tbInputGuard(['sigmaB', 'deltaSigma', 'sigmaM', 'kt', 'designN'],["材料抗拉强度 σb（MPa）", "应力幅值 Δσ（MPa）", "平均应力 σm（MPa）", "应力集中系数 Kt", "设计循环次数 N（万次）"]);if(__ig){const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+    var __ig=__tbInputGuard(['sigmaB', 'deltaSigma', 'sigmaM', 'kt', 'designN'],["材料抗拉强度 σb（MPa）", "应力范围 Δσ（MPa）", "平均应力 σm（MPa）", "应力集中系数 Kt", "设计循环次数 N（万次）"]);if(__ig){__assessClearAux();const __g1=__ig;ToolBox.setResult("res",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 var sigmaB=parseFloat(document.getElementById('sigmaB').value);
   var dSigma=parseFloat(document.getElementById('deltaSigma').value);
   var sigmaM=parseFloat(document.getElementById('sigmaM').value);
   var kt=parseFloat(document.getElementById('kt').value);
   var designN=parseFloat(document.getElementById('designN').value)*1e4;
   var beta=parseFloat(document.getElementById('surface').value);
-  if(!(sigmaB>0)||!(dSigma>0)||!(kt>0)||!(beta>0)||!(designN>0)){document.getElementById('res').innerHTML='<div class="tip-box tip-error">材料抗拉强度、应力幅值、应力集中系数、表面系数与设计循环次数均必须为 &gt; 0 的有限值（设计循环次数按万次输入，不能为 0）。</div>';return;}
-  if(sigmaM>=sigmaB){document.getElementById('res').innerHTML='<div class="tip-box tip-error">平均应力 σm 必须小于抗拉强度 σb，否则 Goodman 修正分母 ≤ 0，模型不适用。</div>';return;}
+  if(!(sigmaB>0)||!(dSigma>0)||!(kt>0)||!(beta>0)||!(designN>0)){__assessClearAux();document.getElementById('res').innerHTML='<div class="tip-box tip-error">材料抗拉强度、应力范围、应力集中系数、表面系数与设计循环次数均必须为 &gt; 0 的有限值（设计循环次数按万次输入，不能为 0）。</div>';return;}
+  if(sigmaM>=sigmaB){__assessClearAux();document.getElementById('res').innerHTML='<div class="tip-box tip-error">平均应力 σm 必须小于抗拉强度 σb，否则 Goodman 修正分母 ≤ 0，模型不适用。</div>';return;}
   var sigmaE=sigmaB*0.5*beta/kt;
   var sigmaEq=dSigma/2/(1-sigmaM/sigmaB);
-  if(sigmaEq<=0||sigmaEq>=sigmaE){document.getElementById('res').innerHTML='<div class="tip-box tip-error">等效应力过大，构件无法承受该循环载荷，需重新设计。</div>';return;}
+  if(sigmaEq<=0||sigmaEq>sigmaE){__assessClearAux();document.getElementById('res').innerHTML='<div class="tip-box tip-error">等效应力过大，构件无法承受该循环载荷，需重新设计。</div>';return;}
+  window.__assessorInvalid=false;
   var N=Math.pow(sigmaE/sigmaEq,5)*1e6;
   var sf=N/designN;
   var status,color,tip,advice;
@@ -329,7 +345,7 @@ calc();
     </a>
     <a href="detector-27.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">粘接（无损/检测/超声波）方法</span><span class="rt-desc">依据超声波探伤的回波与耦合数据，判断粘接界面的脱粘、分层等缺陷状况并给出合格判定，用于无损质量检测</span></span>
+      <span class="rt-info"><span class="rt-name">粘接（无损/检测/超声波）方法</span><span class="rt-desc">记录超声波回波、底波衰减与可疑信号密度，提示复检与加密扫查；</span></span>
     </a>
     <a href="detector-26.html" class="related-tool-card">
       <span class="rt-icon">📏</span>
@@ -443,6 +459,7 @@ function __assessor_cycle_lifespanRender(keys,rk,en){
 function __assessor_cycle_lifespanExtras(){
     if (typeof TBKit === 'undefined') return;
     if (__assessor_cycle_lifespan_skip) return;
+    if (window.__assessorInvalid) return;
     var snap=__assessor_cycle_lifespanSnap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -472,6 +489,7 @@ function __assessor_cycle_lifespanExtras(){
 }
 function __assessor_cycle_lifespanExport(){
     if (typeof TBKit === 'undefined') return;
+    if (window.__assessorInvalid) { ToolBox.showToast('当前输入无效，已清除旧标尺与图表；请修正后再导出。','warning'); return; }
     try{
         var box=document.querySelector('#assessor_cycle_lifespanTable');
         if(!box||!box.querySelector('tr')){

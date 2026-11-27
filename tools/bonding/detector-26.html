@@ -96,6 +96,14 @@
         "@type": "Answer",
         "text": "无明显缺陷+厚度均匀 → 合格；少量气泡等轻缺陷或厚度略超差 → 需返修；脱粘区域/大量气泡/夹杂等 level≥3 → 直接不合格须去除重粘。缺陷与厚度指标为「或」逻辑，任一严重即不合格。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "测点里混入“0.2mm”或“abc”会怎样？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会静默丢弃。工具逐项校验，指出第几个测点、原始内容与原因，并清空旧结论、表格与导出；有效测点不足 3 个同样阻止计算。请改为纯数字（mm）后重试。"
+      }
     }
   ]
 }
@@ -175,6 +183,7 @@
 <dl class="dd-faq">
 <dt>平均厚度达标了为什么还会「需返修」？</dt><dd>因为本工具同时卡「厚度偏差」和「均匀性」两个指标。平均在范围内但各点忽厚忽薄（cv&gt;15%）说明涂胶不均，局部可能过薄失效或局部富胶<a class="term-link" href="/tools/structural/stress-concentration.html">应力集中</a>，故判需返修而非直接合格。</dd>
 <dt>缺陷等级怎么影响结论？</dt><dd>无明显缺陷+厚度均匀 → 合格；少量气泡等轻缺陷或厚度略超差 → 需返修；脱粘区域/大量气泡/夹杂等 level≥3 → 直接不合格须去除重粘。缺陷与厚度指标为「或」逻辑，任一严重即不合格。</dd>
+<dt>测点里混入“0.2mm”或“abc”会怎样？</dt><dd>不会静默丢弃。工具逐项校验，指出第几个测点、原始内容与原因，并清空旧结论、表格与导出；有效测点不足 3 个同样阻止计算。请改为纯数字（mm）后重试。</dd>
 </dl>
 </div>
 </section>
@@ -280,10 +289,23 @@ var designT=parseFloat(document.getElementById('designT').value);
   var tol=parseFloat(document.getElementById('tolerance').value);
   var text=document.getElementById('measures').value.trim();
   var defect=+document.getElementById('defect').value;
-  var vals=text.split(/[,，\s]+/).map(Number).filter(function(v){return !isNaN(v);});
-  if(!(designT>0)||!(tol>=0)){document.getElementById('res').innerHTML='<div class="tip-box tip-error">设计胶层厚度必须 &gt; 0，允许偏差必须 ≥ 0。</div>';return;}
-  if(vals.length<3){ToolBox.showToast(i18nText('toast.msg568'),'error');return;}
-  if(vals.some(function(v){return !(v>0)||!isFinite(v);})){document.getElementById('res').innerHTML='<div class="tip-box tip-error">每个测点厚度都必须为 &gt; 0 的有限数值；零值或负值不能参与均匀性计算。</div>';return;}
+  function clearAux(){
+    ['detector_26Table','detector_26Diff','detector_26Chart'].forEach(function(id){var el=document.getElementById(id);if(el)el.innerHTML='';});
+    window.__detector26Invalid=true;
+  }
+  function fail(msg){clearAux();document.getElementById('res').innerHTML='<div class="tip-box tip-error">'+msg+'</div>';}
+  if(!(designT>0)||!(tol>=0)){fail('设计胶层厚度必须 &gt; 0，允许偏差必须 ≥ 0。');return;}
+  var tokens=text.split(/[,，\s]+/).filter(function(t){return t!=='';});
+  var vals=[],tokenErrs=[];
+  tokens.forEach(function(t,i){
+    if(!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/.test(t)){tokenErrs.push('第 '+(i+1)+' 个测点“'+t+'”不是有效数字');return;}
+    var v=Number(t);
+    if(!(v>0)||!isFinite(v)){tokenErrs.push('第 '+(i+1)+' 个测点“'+t+'”须为大于 0 的有限数值');return;}
+    vals.push(v);
+  });
+  if(tokenErrs.length){fail('测点格式有误，未计算、未保留旧结论：<br>'+tokenErrs.join('<br>')+'<br>请修正原始输入后重试；无效测点不会被静默丢弃。');return;}
+  if(vals.length<3){fail('有效测点不足 3 个（当前 '+vals.length+' 个），无法计算均匀性；旧结论已清除。');return;}
+  window.__detector26Invalid=false;
   var sum=vals.reduce(function(a,b){return a+b;},0);
   var avg=sum/vals.length;
   var mx=Math.max.apply(null,vals);var mn=Math.min.apply(null,vals);
@@ -338,7 +360,7 @@ calc();
     </a>
     <a href="detector-27.html" class="related-tool-card">
       <span class="rt-icon">🔍</span>
-      <span class="rt-info"><span class="rt-name">粘接（无损/检测/超声波）方法</span><span class="rt-desc">依据超声波探伤的回波与耦合数据，判断粘接界面的脱粘、分层等缺陷状况并给出合格判定，用于无损质量检测</span></span>
+      <span class="rt-info"><span class="rt-name">粘接（无损/检测/超声波）方法</span><span class="rt-desc">记录超声波回波、底波衰减与可疑信号密度，提示复检与加密扫查；</span></span>
     </a>
   </div>
 </div>
@@ -448,6 +470,7 @@ function __detector_26Render(keys,rk,en){
 function __detector_26Extras(){
     if (typeof TBKit === 'undefined') return;
     if (__detector_26_skip) return;
+    if (window.__detector26Invalid) return;
     var snap=__detector_26Snap();
     var keys=Object.keys(snap);
     if(!keys.length) return;
@@ -477,6 +500,7 @@ function __detector_26Extras(){
 }
 function __detector_26Export(){
     if (typeof TBKit === 'undefined') return;
+    if (window.__detector26Invalid) { ToolBox.showToast('当前测点无效或不足，旧结论已清除；请修正后再导出。','warning'); return; }
     try{
         var box=document.querySelector('#detector_26Table');
         if(!box||!box.querySelector('tr')){
