@@ -132,8 +132,8 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="位管理/收费">Stats Manager</p>
 <div class="formula-box">
   <div class="formula-title">📐 计算公式</div>
-  <div class="formula-eq">临停周转与占用（本页实算口径）：临停可用车位 = 总车位 − 包月车位；周转率 = 日均临停车次 ÷ 临停可用车位（次/位·日）；平均在场车辆 = 日均临停车次 × 平均时长 ÷ 24（辆）；车位占用率 = (包月车位 + 平均在场) ÷ 总车位 × 100（%）。校验：总车位须 &gt;0 否则报「请填写总车位数（需大于 0）」，包月超总车位报「请核对录入」。判据：无固定分级，可用位为 0 时周转率记 0。</div>
-  <div class="formula-eq">停车收入测算（本页实算口径）：临停日均收入 = 日均临停车次 × 平均时长 × 单价（元）；临停月收入 = 日收入 × 30；月租金收入 = 包月车位 × 月租（元）；月总收入 = 临停月收入 + 月租金；单车位月均产出 = 月总收入 ÷ 总车位。校验：同周转框——总车位 &gt;0、包月超总数即提示核对。判据：无固定分级，收入随车次、时长、单价与月租线性联动。</div>
+  <div class="formula-eq">临停周转与占用（本页实算口径）：临停可用车位 = 总车位 − 包月车位；周转率 = 日均临停车次 ÷ 临停可用车位（次/位·日）；平均在场车辆 = 日均临停车次 × 平均时长 ÷ 24（辆）；车位占用率 = (包月车位 + 平均在场) ÷ 总车位 × 100（%），超过 100% 时按容量封顶并提示核对。校验：各字段不得为空或负数，总车位/包月/车次/天数须为整数，总车位须 &gt;0，平均时长须在 0–24 小时。判据：可用位为 0 时周转率记「不适用」，不以 0 代替。</div>
+  <div class="formula-eq">停车收入测算（本页实算口径）：临停日均收入 = 日均临停车次 × 平均时长 × 单价（元）；临停周期收入 = 日收入 × 统计天数（默认 30 天）；同期租金收入 = 包月车位 × 月租 × 统计天数 ÷ 30；周期总收入 = 临停周期收入 + 同期租金；单车位月均产出 = 周期总收入 ÷ 统计天数 × 30 ÷ 总车位。假设包月车位全时占用、临停线性计费，不含免费时段/封顶/优惠；峰值占用无法由日均数据推断。判据：无固定分级，收入随车次、时长、单价、天数和月租线性联动。</div>
   <p class="formula-desc" data-zh="按车场总车位、包月占用与临停数据，算出临停周转率、日均在场车辆数、车位占用率与月度收入构成，用于物业月报与收支公示。平均在场车数按「临停车次 × 平均停放时长 ÷ 24」估算。数据仅在浏览器本地处理，不会上传。">按车场总车位、包月占用与临停数据，算出临停周转率、日均在拥车辆数、车位占用率与月度收入构成，用于物业月报与收支公示。平均在场车数按「临停车次 × 平均停放时长 ÷ 24」估算。所有数据仅在浏览器本地处理，不上传。</p>
 </div>
 
@@ -143,6 +143,7 @@
 <div class="input-row"><label for="dur">平均停放时长（h）</label><input id="dur" type="number" value="2.5" step="0.1" min="0" oninput="calc()" placeholder="如 2.5"></div>
 <div class="input-row"><label for="price">临停单价（元/h）</label><input id="price" type="number" value="5" step="0.5" min="0" oninput="calc()" placeholder="如 5"></div>
 <div class="input-row"><label for="rent_fee">包月单价（元/月）</label><input id="rent_fee" type="number" value="350" step="10" min="0" oninput="calc()" placeholder="如 350"></div>
+<div class="input-row"><label for="days">统计天数（天）</label><input id="days" type="number" value="30" step="1" min="1" oninput="calc()" placeholder="如 30"></div>
 <div class="toolbar"><div id="stats_managerPresets"></div><button type="button" class="btn primary" onclick="calc()">统计</button><button class="btn" type="button" onclick="__stats_managerExport()">导出明细 CSV</button><button type="button" class="btn" onclick="copyResult()">复制</button></div>
 <div class="result-box" id="res"></div> <div id="stats_managerTable"></div> <div id="stats_managerDiff"></div> <div id="stats_managerChart"></div> <div id="stats_managerHist"></div>
   </div>
@@ -223,32 +224,52 @@
 function fmt(n,d){d=d==null?2:d;return Number(n).toLocaleString('zh-CN',{minimumFractionDigits:d,maximumFractionDigits:d});}
 function calc(){
   const res=document.getElementById("res");
-  const tot=parseFloat(document.getElementById("tot").value);
-  const rc=parseFloat(document.getElementById("rent_cnt").value)||0;
-  const vs=parseFloat(document.getElementById("visits").value)||0;
-  const du=parseFloat(document.getElementById("dur").value)||0;
-  const pr=parseFloat(document.getElementById("price").value)||0;
-  const fee=parseFloat(document.getElementById("rent_fee").value)||0;
-  if(!(tot>0)){res.innerHTML='<p>请填写总车位数（需大于 0）</p>';return;}
-  if(rc>tot){const __g1='<p>包月车位数（'+fmt(rc,0)+'）超过总车位数（'+fmt(tot,0)+((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"), please verify your entry</p>":"），请核对录入</p>");res.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));return;}
-  const tmpSpace=tot-rc;
-  const turn=tmpSpace>0?vs/tmpSpace:0;
-  const onsite=vs*du/24;
-  const occ=(rc+onsite)/tot*100;
-  const dayIncome=vs*du*pr;
-  const monTmp=dayIncome*30;
-  const monRent=rc*fee;
-  const monTotal=monTmp+monRent;
-  const perSpace=monTotal/tot;
-  let html='<p>总车位：<strong>'+fmt(tot,0)+'</strong> 个　其中包月 <strong>'+fmt(rc,0)+'</strong>、临停可用 <strong>'+fmt(tmpSpace,0)+'</strong> 个</p>';
-  html+='<p><span style="color:var(--primary);">临停位周转率：<strong>'+fmt(turn)+'</strong> 次/位·日</span></p>';
-  html+='<p>日均临停：<strong>'+fmt(vs,0)+'</strong> 车次　平均在场：<strong>'+fmt(onsite)+'</strong> 辆</p>';
-  html+='<p>车位占用率：<strong>'+fmt(occ)+'%</strong></p><hr>';
-  html+='<p>临停日均收入：<strong>'+fmt(dayIncome)+'</strong> 元（'+fmt(pr)+' 元/时）</p>';
-  html+='<p>预计月临停收入：<strong>'+fmt(monTmp)+'</strong> 元　月租金收入：<strong>'+fmt(monRent)+'</strong> 元</p>';
-  html+='<p><span style="color:var(--primary);">预计月总收入：<strong>'+fmt(monTotal)+'</strong> 元</span></p>';
-  html+='<p>单个车位月均产出：<strong>'+fmt(perSpace)+'</strong> 元</p>';
-  const __g2=html;res.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  function __num(id,label,opt){
+    opt=opt||{};
+    const el=document.getElementById(id);
+    const raw=el?String(el.value).trim():"";
+    if(raw==="")throw new Error("请填写「"+label+"」（0 为有效值）。");
+    const v=parseFloat(raw);
+    if(!isFinite(v))throw new Error("「"+label+"」请输入有效数字。");
+    if(opt.int&&Math.abs(Math.round(v)-v)>1e-9)throw new Error("「"+label+"」必须为整数。");
+    if(v<opt.min)throw new Error("「"+label+"」不能小于 "+opt.min+"。");
+    if(opt.max!==undefined&&v>opt.max)throw new Error("「"+label+"」不能大于 "+opt.max+"。");
+    return v;
+  }
+  try{
+    const tot=__num("tot","总车位数",{int:true,min:1});
+    const rc=__num("rent_cnt","包月车位数",{int:true,min:0,max:tot});
+    const vs=__num("visits","当日临停车次",{int:true,min:0});
+    const du=__num("dur","平均停放时长（h）",{min:0,max:24});
+    const pr=__num("price","临停单价（元/h）",{min:0});
+    const fee=__num("rent_fee","包月单价（元/月）",{min:0});
+    const days=__num("days","统计天数",{int:true,min:1});
+    if(rc>tot)throw new Error("包月车位数（"+fmt(rc,0)+"）超过总车位数（"+fmt(tot,0)+"），请核对录入。");
+    const tmpSpace=tot-rc;
+    const onsite=vs*du/24;
+    const occRaw=(rc+onsite)/tot*100;
+    const occ=Math.min(100,occRaw);
+    const turn=tmpSpace>0?(vs/tmpSpace):null;
+    const dayIncome=vs*du*pr;
+    const monTmp=dayIncome*days;
+    const monRent=rc*fee*(days/30);
+    const monTotal=monTmp+monRent;
+    const perSpace=monTotal/days*30/tot;
+    let warns=[];
+    if(tmpSpace===0&&vs>0)warns.push("临停可用车位为 0，但录入了 "+fmt(vs,0)+" 车次；周转率不适用，请核对包月车位与临停车次。");
+    if(onsite>tmpSpace&&tmpSpace>=0)warns.push("日均临停在场 "+fmt(onsite)+" 辆已超过临停可用 "+fmt(tmpSpace,0)+" 个；占用率按容量封顶 100%，请核对车次、时长或临停能力。");
+    let html='<p>总车位：<strong>'+fmt(tot,0)+'</strong> 个　其中包月 <strong>'+fmt(rc,0)+'</strong>、临停可用 <strong>'+fmt(tmpSpace,0)+'</strong> 个</p>';
+    html+='<p><span style="color:var(--primary);">临停位周转率：<strong>'+(turn===null?"不适用":fmt(turn))+'</strong>'+(turn===null?"（临停可用车位为 0）":" 次/位·日")+'</span></p>';
+    html+='<p>日均临停：<strong>'+fmt(vs,0)+'</strong> 车次　平均在场：<strong>'+fmt(onsite)+'</strong> 辆</p>';
+    html+='<p>车位占用率：<strong>'+fmt(occ)+'%</strong>'+(occRaw>100?'（按容量封顶，原值 '+fmt(occRaw)+'%）':'')+'</p><hr>';
+    html+='<p>临停日均收入：<strong>'+fmt(dayIncome)+'</strong> 元（'+fmt(pr)+' 元/时）</p>';
+    html+='<p>预计 '+fmt(days,0)+' 天临停收入：<strong>'+fmt(monTmp)+'</strong> 元　同期租金收入：<strong>'+fmt(monRent)+'</strong> 元</p>';
+    html+='<p><span style="color:var(--primary);">'+fmt(days,0)+' 天总收入：<strong>'+fmt(monTotal)+'</strong> 元</span></p>';
+    html+='<p>单车位月均产出（按 30 天折算）：<strong>'+fmt(perSpace)+'</strong> 元</p>';
+    if(warns.length)html+='<div class="info-box" style="margin-top:10px;">⚠ '+warns.join("<br>⚠ ")+'</div>';
+    html+='<div class="info-box" style="margin-top:10px;">估算口径：包月车位按全时占用；临停收入按统计天数线性外推（默认 30 天）；不含免费时段、封顶与优惠。峰值占用无法由日均数据推断。</div>';
+    res.innerHTML=html;
+  }catch(e){res.innerHTML='<div class="info-box">'+e.message+'</div>';}
 }
 calc();function copyResult(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
