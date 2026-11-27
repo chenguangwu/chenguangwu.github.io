@@ -165,7 +165,7 @@ const CASES = [
 {
   "slug": "property/rater-performance",
   "inputs": {
-    "v0": "128",
+    "v0": "95",
     "w0": "20",
     "v1": "80",
     "w1": "20",
@@ -179,9 +179,9 @@ const CASES = [
     "w5": "15"
   },
   "expect": [
-    "89.3"
+    "88.3"
   ],
-  "ref": "auto-restore"
+  "ref": "客户满意度 95、其余默认： (95×20 + 80×20 + 90×15 + 88×15 + 92×15 + 85×15) ÷ 100 = 88.25 → 88.3。默认 85 为 86.3，可区分；128 等超范围值现改为点名报错。"
 },
 {
   "slug": "property/report-manager",
@@ -336,8 +336,38 @@ const CASES = [
   {
     "slug": "property/rater-performance",
     "inputs": { "w0": "30", "w1": "20", "w2": "15", "w3": "15", "w4": "15", "w5": "15" },
-    "expect": ["110 权重合计"],
-    "ref": "第1072批 N149：六维权重合计 30+20+15+15+15+15=110（默认合计 100）。旧实现 (totalW/100*100)+'%' 显示「110%」+label「权重总和」，误导用户以为配错；评分本身按 110 归一正常。新实现显示「110」+label「权重合计（已归一）」。锚「110 权重合计」数值+label 组合串：默认合计 100 不含该串、旧版显示「110% 权重总和」也不含 ⇒ 强判别零逃生。"
+    "expect": ["110 权重合计（原始，用于归一）"],
+    "ref": "六维权重合计 30+20+15+15+15+15=110（默认合计 100）。显示原始权重合计并注明用于归一，不再把 110 误写成 110% 或「已归一」。锚完整数值+label 组合串：默认合计 100 不含该串 ⇒ 强判别。"
+  },
+  {
+    "slug": "property/rater-performance",
+    "inputs": { "v0": "120" },
+    "expect": ["客户满意度得分：不能大于 100"],
+    "ref": "得分 120 必须点名拒绝，不再静默截断为 100；输入框保留原值。"
+  },
+  {
+    "slug": "property/rater-performance",
+    "inputs": { "w1": "-5" },
+    "expect": ["设施维护权重：不能小于 0"],
+    "ref": "负权重必须点名拒绝，不再静默归零。"
+  },
+  {
+    "slug": "property/rater-performance",
+    "inputs": { "v5": "10", "w5": "0" },
+    "expect": ["86.5", "环境品质 （不计入）", "权重为 0、不参与评分与排序：环境品质"],
+    "ref": "环境品质 10 分但权重 0：不计入综合得分（其余权重合计 85 → 86.5），且不得出现在优先改进，页面需标注「不计入」。默认 15% 权重时得分为 86.3 不含 86.5 ⇒ 强判别。"
+  },
+  {
+    "slug": "property/rater-performance",
+    "inputs": { "gradeA": "85", "gradeB": "75", "gradeC": "65", "gradeD": "55" },
+    "expect": ["86.3", "A级 · 优秀", "A≥85"],
+    "ref": "默认 86.3 为 B 级；把 A 下限调到 85 后应变为 A 级，证明评级阈值可配置而非固定 90。"
+  },
+  {
+    "slug": "property/rater-performance",
+    "inputs": { "gradeA": "80", "gradeB": "90" },
+    "expect": ["评级阈值：必须严格递减（A > B > C > D）"],
+    "ref": "A 下限低于 B 下限必须报错，不得按顺序静默套用。"
   },
 { slug:"property/assessor-manager-1", inputs:{"contractAmt":""}, expect:["请填写合同金额"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
 { slug:"property/elevator-energy", inputs:{"liftCount":"","floors":"","floorHeight":"","power":"","loadRate":"","tripsPerDay":"","tripFloors":"","idleHours":"","idlePower":"","price":"","speed":"","startStop":"","regen":"","meterMonthly":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）；含新增速度/启停/再生字段" },

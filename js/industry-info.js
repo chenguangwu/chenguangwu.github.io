@@ -111,7 +111,7 @@ window.INDUSTRY_INFO = {
   'neurology'            : { name: '神经内科', icon: '🧠', hot: 145578 },
   'endocrinology'        : { name: '内分泌科', icon: '🧬', hot: 145430 },
   'medical'              : { name: '医疗专业', icon: '🏥', hot: 143118 },
-  'property'             : { name: '物业管理', icon: '🏢', hot: 141473 },
+  'property'             : { name: '物业管理', icon: '🏢', hot: 141474 },
   'beauty'               : { name: '美容护肤', icon: '💄', hot: 141375 },
   'dentistry'            : { name: '口腔医学', icon: '🦷', hot: 138783 },
   'rheumatology'         : { name: '风湿免疫', icon: '🦴', hot: 138361 },
