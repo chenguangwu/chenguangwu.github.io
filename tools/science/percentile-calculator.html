@@ -242,10 +242,20 @@ function fmt(x){
   return x.toLocaleString(undefined,{maximumFractionDigits:3});
 }
 function __unsafeIntToken(t){
-  if(!/^[+-]?\d+$/.test(t)) return false;
+  var lit=/^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(String(t).trim());
+  if(!lit) return false;
   var v=Number(t);
-  if(!isFinite(v)||!Number.isSafeInteger(v)) return true;
-  try{return BigInt(t)!==BigInt(v);}catch(e){return false;}
+  if(!isFinite(v)) return true;
+  var digits=(lit[2]+(lit[3]||'')).replace(/^0+/,'');
+  if(digits==='') return false; // 全零
+  if(v===0) return true; // 下溢成 0
+  var sig=digits.replace(/0+$/,'');
+  if(Math.abs(v)>Number.MAX_SAFE_INTEGER){
+    // 无指数或 e0 的整数字面量必须逐位安全；科学计数形式仅在有效数字较少时视为近似值。
+    if(!lit[4]||Number(lit[4])===0) return true;
+    if(Number.isInteger(v)&&sig.length>15) return true;
+  }
+  return false;
 }
 function __escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 function parseData(str){
@@ -272,7 +282,7 @@ function quantileLinear(sorted, p){
 function calculate(){
   const out=document.getElementById('output');
   const parsed=parseData(document.getElementById('data').value);
-  if(parsed.error!==undefined){out.innerHTML='<p style="color:var(--danger)">'+(parsed.unsafe?'数据项「'+__escHtml(parsed.error)+'」超出安全整数范围（±(2^53−1)），转换为 Number 会改变数值；请改用可精确表示的值或科学记数法':'数据项「'+__escHtml(parsed.error)+'」不是有效数值，请修正或删除后重试')+'</p>';return;}
+  if(parsed.error!==undefined){out.innerHTML='<p style="color:var(--danger)">'+(parsed.unsafe?'数据项「'+__escHtml(parsed.error)+'」整数超出安全整数范围（±(2^53−1)）或无法被 Number 精确表示（下溢/整数字面量不一致）；请改用可精确表示的值或删除该项':'数据项「'+__escHtml(parsed.error)+'」不是有效数值，请修正或删除后重试')+'</p>';return;}
   const data=parsed.vals;
   const pctStr=document.getElementById('percentiles').value;
   if(data.length===0){const __h0='<p style="color:var(--danger)" data-zh="请输入有效数据">Please enter valid data.</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){out.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}out.innerHTML=__h0;return;}

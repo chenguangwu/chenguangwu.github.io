@@ -203,13 +203,21 @@
   }
   /** t 分布双尾临界值（二分法，α 常用 0.1/0.05/0.01） */
   function tCrit(df, alpha) {
-    if (!(df > 0)) return NaN;
-    var lo = 0, hi = 100;
-    for (var i = 0; i < 80; i++) {
+    if (!(df > 0) || !(alpha > 0)) return NaN;
+    // 先扩展上界直到 tP2(hi, df) <= alpha，避免小样本高置信度被固定 100 截断
+    // （df=1、99.9% 的真实临界值约 636.62）。
+    var hi = 100;
+    while (tP2(hi, df) > alpha) {
+      hi *= 2;
+      if (!isFinite(hi) || hi > 1e12) return NaN;
+    }
+    var lo = 0;
+    for (var i = 0; i < 200; i++) {
       var mid = (lo + hi) / 2;
       if (tP2(mid, df) > alpha) lo = mid; else hi = mid;
     }
-    return (lo + hi) / 2;
+    var v = (lo + hi) / 2;
+    return isFinite(v) ? v : NaN;
   }
 
   function parseList(str) {

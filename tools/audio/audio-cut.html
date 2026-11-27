@@ -593,10 +593,8 @@ function onDecoded(buf, file) {
   document.getElementById('fiChannels').textContent = buf.numberOfChannels + (buf.numberOfChannels === 1 ? '（单声道）' : '（立体声）');
   document.getElementById('fiSize').textContent = formatSize(file.size);
 
-  // 启用按钮
-  ['btnPreview', 'btnExport', 'btnSelectAll', 'btnResetSel'].forEach(function(id) {
-    document.getElementById(id).disabled = false;
-  });
+  // 按钮状态统一由选区有效性决定：解码后默认全选，但极短音频仍可能不满足最小区间。
+  updateActionButtons();
   document.getElementById('waveWrap').classList.remove('disabled');
 
   // 时间输入
@@ -832,8 +830,8 @@ function onTimeInput(which, val) {
   var v = parseFloat(text);
   if (text === '' || !isFinite(v)) {
     timeInputValid = false;
-    document.getElementById('btnExport').disabled = true;
     stopPreview();
+    updateActionButtons();
     setResult(__cutLabel('请输入有效的起止时间', 'Enter valid start and end times'));
     return;
   }
@@ -856,6 +854,7 @@ function onTimeInput(which, val) {
 
 function selectAll() {
   if (!audioBuffer) return;
+  timeInputValid = true;
   selStart = 0; selEnd = duration;
   drawWaveform();
   updateSelInfo(true);
@@ -888,6 +887,20 @@ function updateSelInfo(updateInputs) {
     document.getElementById('startInput').value = selStart.toFixed(3);
     document.getElementById('endInput').value = selEnd.toFixed(3);
   }
+  updateActionButtons();
+}
+
+function updateActionButtons() {
+  var exportBtn = document.getElementById('btnExport');
+  var previewBtn = document.getElementById('btnPreview');
+  var hasAudio = !!audioBuffer;
+  var validSelection = hasAudio && timeInputValid && (selEnd - selStart) >= getMinGap();
+  ['btnSelectAll', 'btnResetSel'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.disabled = !hasAudio;
+  });
+  if (previewBtn) previewBtn.disabled = !validSelection;
+  if (exportBtn) exportBtn.disabled = !validSelection || exportBusy;
 }
 
 // ===== 试听 =====
@@ -986,16 +999,16 @@ function exportSelection() {
   if (length <= 0) { ToolBox.showToast(i18nText('toast.msg975'), 'error'); return; }
 
   ToolBox.showToast(i18nText('toast.msg461'), 'info');
-  document.getElementById('btnExport').disabled = true;
   exportBusy = true;
+  updateActionButtons();
 
   var offline;
   try {
     offline = new OfflineAudioContext(nch, length, sr);
   } catch (err) {
     ToolBox.showToast(i18nText('toast.msg348'), 'error');
-    document.getElementById('btnExport').disabled = false;
     exportBusy = false;
+    updateActionButtons();
     return;
   }
 
@@ -1015,15 +1028,15 @@ function exportSelection() {
   offline.startRendering().then(function(rendered) {
     var blob = audioBufferToWav(rendered);
     downloadBlob(blob, makeExportName(snapName, snapStart, snapEnd));
-    document.getElementById('btnExport').disabled = false;
     exportBusy = false;
+    updateActionButtons();
     setResult('导出成功！片段 <strong>' + escHtml(snapName) + '</strong> ' + formatTime(snapStart) + ' ~ ' + formatTime(snapEnd) + '（' + formatTime(snapDur) + '，淡变 ' + (snapFade * 1000).toFixed(0) + 'ms），WAV 文件大小 ' + formatSize(blob.size) + '。');
     ToolBox.showToast(i18nText('toast.msg021'), 'success');
     if (typeof __audio_cutExtras === 'function') __audio_cutExtras();
   }).catch(function(err) {
     console.error(err);
-    document.getElementById('btnExport').disabled = false;
     exportBusy = false;
+    updateActionButtons();
     ToolBox.showToast(i18nText('toast.msg138'), 'error');
   });
 }

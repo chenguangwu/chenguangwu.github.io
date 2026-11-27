@@ -460,9 +460,19 @@
   const LETTERS = ['C','D','E','F','G','A','B'];
   const LETTER_PC = [0,2,4,5,7,9,11];
   const STEP_BY_SEMITONE = {0:0,1:1,2:1,3:2,4:2,5:3,6:4,7:4,8:4,9:5,10:6,11:6};
-  function spellFromRoot(rootLetter, rootPc, semitone) {
+  // 和弦功能对应的音级（字母级数）：同一音高类在不同和弦里可能有不同拼写，
+  // 例如 dim7 的第 4 音必须是七度（Bbb），不能按半音数推成六度（A）。
+  const DEGREES_BY_INTERVALS = {
+    '0,4,7':[0,2,4], '0,3,7':[0,2,4], '0,4,8':[0,2,4], '0,3,6':[0,2,4],
+    '0,4,7,11':[0,2,4,6], '0,4,7,10':[0,2,4,6], '0,3,7,10':[0,2,4,6],
+    '0,3,6,9':[0,2,4,6], '0,3,6,10':[0,2,4,6],
+    '0,2,7':[0,1,4], '0,5,7':[0,3,4], '0,2,4,7':[0,1,2,4],
+    '0,4,7,10,14':[0,2,4,6,1], '0,3,7,10,14':[0,2,4,6,1],
+    '0,4,7,9':[0,2,4,5], '0,3,7,9':[0,2,4,5], '0,7':[0,4]
+  };
+  function spellFromRoot(rootLetter, rootPc, semitone, degreeStep) {
     var base = ((semitone % 12) + 12) % 12;
-    var step = STEP_BY_SEMITONE[base];
+    var step = (typeof degreeStep === 'number') ? degreeStep : STEP_BY_SEMITONE[base];
     if (step === undefined) step = 0;
     var li = LETTERS.indexOf(rootLetter);
     var targetLetter = LETTERS[(li + step) % 7];
@@ -483,6 +493,8 @@
   /* 音程名：扩展音按原始半音数映射（>=12 半音为九/十一/十三音），避免 add9/9/m9 的 +2/+14 都误标成「二音」；
      add9 的 +2 约定为「九音」，而挂二和弦(sus2)的 +2 仍标「二音」。 */
   function degreeName(s, type) {
+
+      if ((type === 'dim7' || type === '°7') && (s % 12 === 9)) return '减七';
     var base = ((s % 12) + 12) % 12;
     var oct = Math.floor(s / 12);
     if (oct >= 1) {
@@ -530,6 +542,10 @@
     'm6':       { intervals: [0, 3, 7, 9],     name: '小六和弦' },
     '5':        { intervals: [0, 7],           name: '五度（强力和弦）' }
   };
+
+  Object.keys(CHORD_TYPES).forEach(function(k){
+    CHORD_TYPES[k].degrees = DEGREES_BY_INTERVALS[CHORD_TYPES[k].intervals.join(',')] || null;
+  });
 
   /* 速查表数据 */
   const QUICK_CHORDS = {
@@ -612,7 +628,7 @@
     let matched = null;
     for (const s of suffixes) {
       if (suffix === s) {
-        matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name };
+        matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name, degrees: CHORD_TYPES[s].degrees };
         break;
       }
     }
@@ -627,7 +643,7 @@
         .replace('dom', '');
       for (const s of suffixes) {
         if (normalized === s) {
-          matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name };
+          matched = { type: s, intervals: CHORD_TYPES[s].intervals, name: CHORD_TYPES[s].name, degrees: CHORD_TYPES[s].degrees };
           break;
         }
       }
@@ -636,7 +652,7 @@
     if (!matched) {
       if (suffix === '') {
         /* 仅空前缀（如 "C"）默认大三和弦 */
-        matched = { type: '', intervals: [0, 4, 7], name: '大三和弦' };
+        matched = { type: '', intervals: [0, 4, 7], name: '大三和弦', degrees: [0, 2, 4] };
       } else {
         /* 未知后缀不再静默降级为大三和弦，直接返回无结果（FE-N8 修复） */
         return null;
@@ -644,11 +660,11 @@
     }
 
     /* 计算组成音符 */
-    const notes = matched.intervals.map(semitone => {
+    const notes = matched.intervals.map((semitone, noteIdx) => {
       const noteIndex = (rootIndex + semitone) % 12;
       /* 选择合适的八度显示（第4八度附近） */
       const midi = 60 + rootIndex + semitone;
-      const name = spellFromRoot(rootLetter, rootIndex, semitone);
+      const name = spellFromRoot(rootLetter, rootIndex, semitone, matched.degrees ? matched.degrees[noteIdx] : undefined);
       return {
         name: name,
         pc: ((rootIndex + semitone) % 12 + 12) % 12,

@@ -314,6 +314,8 @@ function clampText(key){
     mid: en?'midpoint ':'中点',
     deviation: en?'Max deviation at the three breakpoints: ':'三个断点的最大偏差：',
     precision: en?' (coefficient precision raised to {d} decimals)':'（系数精度已提升到 {d} 位小数）',
+    tooSmall: en?'Font sizes below 0.000001px cannot be expressed at the supported 8-decimal output precision; increase the size.':'字号小于 0.000001px 时，当前 8 位小数输出精度无法表达；请增大字号。',
+    precisionFail: en?'The endpoints and piecewise line cannot both be represented within the supported precision; increase the size range or reduce the viewport span.':'在支持的精度内无法同时表达端点与折线；请增大字号范围或缩小视口跨度。',
     rule: en?'Minimum at the smallest viewport, preferred at the midpoint, maximum at the largest viewport; the preview and expression share the same polyline.':'最小字号→最小视口，首选字号→视口中点，最大字号→最大视口；预览与表达式共用同一条折线。'
   };
   return m[key]||'';
@@ -331,17 +333,21 @@ function clampConfig(){
   for(var j=0;j<nums.length;j++){if(!isFinite(nums[j])||nums[j]<=0) return {err:clampText('positive')};}
   if(a>=b) return {err:clampText('viewport')};
   if(m>p||p>x) return {err:clampText('range')};
+  if(m<0.000001||x<0.000001) return {err:clampText('tooSmall')};
+  // 校验与预览都以最终序列化后的端点为准：8 位小数会把更小的端点舍成 0。
+  var outM=Number(fmtSize(m)), outX=Number(fmtSize(x));
+  if(outM===0||outX===0) return {err:clampText('tooSmall')};
   var mid=(a+b)/2;
   var single=Math.abs(p-(m+x)/2)<1e-9;
   // 精度阈值按数值量级缩放：0.00004~0.00012px 这种极小区间不能沿用 0.005px 的绝对阈值。
-  var tol=Math.max(1e-9,Math.abs(x-m)*1e-4);
+  var tol=Math.max(1e-9,Math.abs(outX-outM)*1e-4);
   var chosen=null;
   for(var d=3;d<=12;d++){
     var s1,r1,s2,r2,inner,evaluate;
     if(single){
       s1=fmtMathN((x-m)/(b-a)*100,d); r1=fmtMathN(m-s1*a/100,d);
       inner=clampLine(s1,r1,d);
-      evaluate=(function(n1,q1){return function(v){return Math.max(m,Math.min(x,n1*v/100+q1));};})(Number(s1),Number(r1));
+      evaluate=(function(n1,q1){return function(v){return Math.max(outM,Math.min(outX,n1*v/100+q1));};})(Number(s1),Number(r1));
     }else{
       s1=fmtMathN(2*(p-m)/(b-a)*100,d); r1=fmtMathN(m-s1*a/100,d);
       s2=fmtMathN(2*(x-p)/(b-a)*100,d); r2=fmtMathN(p-s2*mid/100,d);
@@ -349,15 +355,17 @@ function clampConfig(){
       inner=join+'('+clampLine(s1,r1,d)+', '+clampLine(s2,r2,d)+')';
       evaluate=(function(n1,q1,n2,q2,j){return function(v){
         var y1=n1*v/100+q1, y2=n2*v/100+q2;
-        return Math.max(m,Math.min(x,j==='min'?Math.min(y1,y2):Math.max(y1,y2)));
+        return Math.max(outM,Math.min(outX,j==='min'?Math.min(y1,y2):Math.max(y1,y2)));
       };})(Number(s1),Number(r1),Number(s2),Number(r2),join);
     }
-    var dev=Math.max(Math.abs(evaluate(a)-m),Math.abs(evaluate(mid)-p),Math.abs(evaluate(b)-x));
-    chosen={min:m,pref:p,max:x,vwMin:a,vwMax:b,mid:mid,inner:inner,
-      expr:'clamp('+fmtSize(m)+'px, '+inner+', '+fmtSize(x)+'px)',evaluate:evaluate,precision:d,maxDev:dev,tolerance:tol};
+    var targetMid=Math.max(outM,Math.min(outX,p));
+    var dev=Math.max(Math.abs(evaluate(a)-outM),Math.abs(evaluate(mid)-targetMid),Math.abs(evaluate(b)-outX));
+    chosen={min:outM,pref:p,max:outX,vwMin:a,vwMax:b,mid:mid,inner:inner,
+      expr:'clamp('+fmtSize(outM)+'px, '+inner+', '+fmtSize(outX)+'px)',evaluate:evaluate,precision:d,maxDev:dev,tolerance:tol};
     // 三位小数通常足够；若断点偏差超过 0.005px，则逐位提高系数精度，避免斜率被舍成 0。
     if(dev<=tol) break;
   }
+  if(chosen && chosen.maxDev>chosen.tolerance) return {err:clampText('precisionFail')};
   return chosen;
 }
 function calc(){
@@ -410,7 +418,7 @@ function slide(){
   var cfg=window.__clampConfig||clampConfig();
   var pv=document.getElementById('preview');
   if(cfg.err||!cfg.evaluate){pv.style.fontSize='';pv.textContent=clampText('previewSize');return;}
-  var size=fmt(cfg.evaluate(w));
+  var size=fmtBound(cfg.evaluate(w));
   pv.style.fontSize=size+'px';
   pv.textContent=clampText('previewSize')+'('+size+'px)';
 }

@@ -8267,6 +8267,13 @@ const CASES = [
     ref: "IT-775 滑块范围：合法最小/最大视口必须同步到 range 与直输框；直输 2000px 后预览字号取同一条折线。默认 375–1440 不命中。"
   },
   {
+    slug: "it/clamp-calculator",
+    inputs: { min: "0.000001", pref: "0.000002", max: "0.000003", vwMin: "320", vwMax: "1200" },
+    clicks: ["calc();var c=window.__clampConfig;var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CLPTINY '+((c&&c.expr.indexOf('0.000001px')>=0&&c.expr.indexOf('0.000003px')>=0&&c.expr.indexOf('0px')<0)?'OK':'BAD '+(c&&c.expr));"],
+    expect: ["CLPTINY OK"],
+    ref: "第1058批：8 位小数输出下 1e-6/3e-6px 端点不能被舍成 0；表达式必须保留真实端点，且校验使用序列化后的端点。默认 16/48px 不命中。"
+  },
+  {
     slug: "it/hypergeometric-distribution",
     inputs: { N: "50", K: "20", n: "10", k: "4" },
     expect: ["28.0059%"],

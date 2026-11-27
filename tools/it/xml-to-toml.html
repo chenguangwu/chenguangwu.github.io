@@ -250,13 +250,35 @@ function xDecode(s){
 }
 function xmlWellFormed(xml){
   var s=String(xml==null?'':xml).replace(/<!--[\s\S]*?-->/g,'').replace(/<!\[CDATA\[[\s\S]*?\]\]>/g,'').replace(/<\?[\s\S]*?\?>/g,'');
-  var re=/<\s*(\/?)\s*([^\s<>/]+)([^>]*?)(\/?)>/g,m,stack=[];
-  while((m=re.exec(s))){
-    if(m[1]){ if(stack.pop()!==m[2]) return false; }
-    else if(m[4]!=='/' && m[2].toLowerCase()!=='!doctype') stack.push(m[2]);
+  // 引号感知的结构扫描：属性值里的 > 不能提前结束标签，同时严格校验闭合标签配对。
+  function tagEnd(start){
+    var quote='';
+    for(var i=start+1;i<s.length;i++){
+      var ch=s.charAt(i);
+      if(quote){ if(ch===quote) quote=''; }
+      else if(ch==='"'||ch==="'") quote=ch;
+      else if(ch==='>') return i;
+    }
+    return -1;
   }
-  if(stack.length) return false;
-  if(s.replace(re,'').indexOf('<')>=0) return false;
+  var i=0,stack=[];
+  while((i=s.indexOf('<',i))>=0){
+    var end=tagEnd(i); if(end<0) return false;
+    var tag=s.slice(i,end+1);
+    var m=/^<\s*(\/?)\s*([^\s<>/]+)([\s\S]*)$/.exec(tag);
+    if(!m) return false;
+    var closing=m[1]==='/', name=m[2], self=/\/\s*>$/.test(tag);
+    if(closing){ if(stack.pop()!==name) return false; }
+    else if(!self && name.toLowerCase()!=='!doctype') stack.push(name);
+    i=end+1;
+  }
+  if(stack.length!==0) return false;
+  if(typeof DOMParser==='function'){
+    try{
+      var doc=new DOMParser().parseFromString(s,'application/xml');
+      return !xmlParseFailed(doc);
+    }catch(e){return false;}
+  }
   return true;
 }
 function xmlParseFailed(doc){

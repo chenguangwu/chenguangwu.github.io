@@ -110,7 +110,7 @@ function batch202StaticChecks(){
   chk('B202 px-to-rem multiply','tools/design/px-to-rem.html',['上表 rem 值直接乘以 1.6']);
   chk('B202 compress min 1px','tools/image/image-compress.html',['Math.max(1, Math.round(s.maxSize/ratio))','Math.max(1, Math.round(s.maxSize*ratio))']);
   chk('B202 resize area cap','tools/image/image-resize.html',['MAX_PIXELS = 16000000','w * h > MAX_PIXELS']);
-  chk('B202 converter token','tools/image/image-converter.html',['__convertToken','if (__token !== __convertToken) return;','源图透明通道原样保留']);
+  chk('B202 converter token','tools/image/image-converter.html',['__convertToken','if (__token !== __convertToken)','URL.revokeObjectURL(myUrl); return;','源图透明通道原样保留']);
   chk('B202 photo one-inch preset','tools/design/photo-print-size.html',['id:[296,414,300]','一寸证件照 296×414']);
   return out;
 }

@@ -234,10 +234,20 @@ function fmt(x){
   return x.toLocaleString(undefined,{maximumFractionDigits:3});
 }
 function __unsafeIntToken(t){
-  if(!/^[+-]?\d+$/.test(t)) return false;
+  var lit=/^([+-]?)(\d+)(?:\.(\d+))?(?:[eE]([+-]?\d+))?$/.exec(String(t).trim());
+  if(!lit) return false;
   var v=Number(t);
-  if(!isFinite(v)||!Number.isSafeInteger(v)) return true;
-  try{return BigInt(t)!==BigInt(v);}catch(e){return false;}
+  if(!isFinite(v)) return true;
+  var digits=(lit[2]+(lit[3]||'')).replace(/^0+/,'');
+  if(digits==='') return false; // 全零
+  if(v===0) return true; // 下溢成 0
+  var sig=digits.replace(/0+$/,'');
+  if(Math.abs(v)>Number.MAX_SAFE_INTEGER){
+    // 无指数或 e0 的整数字面量必须逐位安全；科学计数形式仅在有效数字较少时视为近似值。
+    if(!lit[4]||Number(lit[4])===0) return true;
+    if(Number.isInteger(v)&&sig.length>15) return true;
+  }
+  return false;
 }
 function __stableMean(a){
   var mx=0;
@@ -256,7 +266,7 @@ function parseData(str){
 function calculate(){
   const __parsed=parseData(document.getElementById('data').value);
   if(__parsed.bad.length){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">非法样本：'+__parsed.bad.map(x=>ToolBox.escHtml(x)).join('、')+'。请修正或删除后再计算，非数字项不会被静默丢弃。</p>'; return; }
-  if(__parsed.unsafe.length){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">这些整数样本超出安全整数范围（±(2^53−1)），转换为 Number 会改变数值：'+__parsed.unsafe.map(x=>ToolBox.escHtml(x)).join('、')+'。请改用可精确表示的值或科学记数法。</p>'; return; }
+  if(__parsed.unsafe.length){ document.getElementById('output').innerHTML='<p style="color:var(--danger);">这些样本按字面量超出安全整数范围（±(2^53−1)）或无法被 Number 精确表示（下溢/整数字面量不一致）：'+__parsed.unsafe.map(x=>ToolBox.escHtml(x)).join('、')+'。请改用可精确表示的值或删除该项。</p>'; return; }
   const data=__parsed.data;
   if(data.length<1){ const __h0='<p style="color:var(--danger);">请输入数据</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('output').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('output').innerHTML=__h0; return; }
   const n=data.length;

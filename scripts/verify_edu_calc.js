@@ -1563,8 +1563,7 @@ const CASES = [
   "expect": ["得分：10/10（100%）"],
   "ref": "同 capital-quiz：country-quiz 的 choose(o,el) 比较 o.name === cur.name，逐题传等价选项对象 ⇒ score=10 ⇒ finish 输出「得分：10/10（100%）」。"
        + "默认未开始时输出「根据国旗选择对应的国家 / 得分：0」，零交集。"
-}
-,
+},
 {
   "slug": "edu/country-quiz",
   "clicks": ["(function(){var dfd=[];var oST=setTimeout,oQ=document.querySelectorAll;setTimeout=function(f,ms){dfd.push(f);return dfd.length;};document.querySelectorAll=function(){return [];};try{start();var fe={classList:{add:function(){}},disabled:false,onclick:null};choose(cur,fe);reset();start();var qB=qNo;if(dfd.length)dfd[dfd.length-1]();var qA=qNo;var ok=(qA===qB&&dfd.length>=1);document.getElementById('__tbProbe').textContent='CTRYSTALE '+(ok?'OK':'BAD qB='+qB+' qA='+qA+' n='+dfd.length);}finally{setTimeout=oST;document.querySelectorAll=oQ;}})()"],
@@ -1937,7 +1936,6 @@ const CASES = [
   { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-08" }, expect: ["生日早于春节（2100-02-09），生肖按 2099 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
   { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2100-02-09" }, expect: ["生日晚于或等于春节（2100-02-09），生肖按 2100 年计"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
   { slug: "edu/chinese-zodiac", inputs: { year: "2000", birthDate: "2101-01-01" }, expect: ["出生日期仅支持 1900–2100 年。"], ref: "EL-F18：春节前后及范围边界，1901–2100 数据来自香港天文台逐年公历农历对照表，1900 年为 1 月 31 日。" },
-,
   { slug: "edu/ebbinghaus-curve", inputs: { content: "Infinity NaN", startDate: "2024-06-01", mode: "standard" }, expect: ["Infinity NaN"], ref: "第964批：学习内容含 Infinity/NaN 时计划表原样显示，不再被整段结果守卫误判为无效数值；默认内容不含这两个词 ⇒ 强判别。" },
   { slug: "edu/word-memory", clicks: ["var seq=['Infinity','无穷',''];window.prompt=function(){return seq.shift()||'';};addCustomWord();document.getElementById('wordSearch').value='Infinity';filterWords();"], expect: ["Infinity", "无穷"], ref: "第964批：自定义词条含 Infinity 时可正常添加并在单词本显示，不再被列表守卫替换为错误提示。" },
   { slug: "edu/study-planner", clicks: ["addTask('Infinity NaN',30,'2');"], expect: ["Infinity NaN"], ref: "第964批：任务名称含 Infinity/NaN 时今日计划原样显示，不再触发整份列表错误提示。" }
@@ -1945,6 +1943,12 @@ const CASES = [
 
 async function main() {
   const only = process.argv.slice(2);
+  const badIndex = CASES.findIndex((c) => !c || typeof c.slug !== "string" || !Array.isArray(c.expect));
+  if (badIndex >= 0) {
+    console.error(`❌ 用例集第 ${badIndex + 1} 项为空或格式不合规（缺少 slug/expect），拒绝执行`);
+    process.exitCode = 1;
+    return;
+  }
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   let pass = 0; const fails = [];
   for (const c of cases) {

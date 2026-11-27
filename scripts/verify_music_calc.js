@@ -516,6 +516,12 @@ const CASES = [
   "ref": "C 减三和弦应按音级拼成 C-E♭-G♭，不得写成 C-D#-F#。"
 },
 {
+  "slug": "music/chord-notes",
+  "clicks": ["document.getElementById('chordInput').value='Cdim7';analyzeChord();document.getElementById('__tbProbe').textContent=document.getElementById('notesDisplay').innerText+'|'+document.getElementById('intervalInfo').innerText;"],
+  "expect": ["Bbb", "减七"],
+  "ref": "Cdim7 的第四音是减七度（Bbb），不是大六度（A）；旧实现按半音数把 9 半音映射成六度 ⇒ 显示 A/大六。默认 C 大三和弦不含 Bbb/减七 ⇒ 零逃生。"
+},
+{
   "slug": "music/music-theory",
   "clicks": ["setRoot(0);document.getElementById('scale-type').value='minor';renderScale();document.getElementById('__tbProbe').textContent=document.getElementById('scale-display').innerText;"],
   "expect": ["C - D - Eb - F - G - Ab - Bb"],

@@ -27,10 +27,9 @@
         return true;
       });
     }
-    var occ = Object.create(null);
-    return tokens.map(function (t) {
-      occ[t] = (occ[t] || 0) + 1;
-      return occ[t] > 1 ? t + '#' + occ[t] : t;
+    // 位置模式：每项都带独立序号前缀，任何用户文本都无法与另一项标识冲突。
+    return tokens.map(function (t, i) {
+      return '[' + (i + 1) + '] ' + t;
     });
   }
 

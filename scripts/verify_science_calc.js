@@ -178,6 +178,12 @@ const CASES = [
     ref: "同号大数：1e308+1e308 中间和为 Infinity，旧版整页被无效值守卫拦截；现平均值改用缩放求和得 1e308，总和卡明确标「超出 Number 表示范围」而不掩盖可算的平均值。",
   },
   {
+    slug: "science/mean-calculator",
+    inputs: { data: "9007199254740993e0,2" },
+    expect: ["超出安全整数范围"],
+    ref: "第968批：指数形式写出的 9007199254740993e0 仍超出 2^53−1，不能因带 e0 就放过并静默舍入成 …992；默认 2,4,8 不命中。",
+  },
+  {
     slug: "science/median-calculator",
     inputs: { data: "1e308,1e308" },
     expect: ["中位数 = 1.000000e+308"],
@@ -508,9 +514,9 @@ const CASES = [
   {
     slug: "science/combination-calculator",
     inputs: { elements: "A,A,B", n: "3", r: "2" },
-    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBRAW_'+((h.indexOf('A#2')>=0&&h.indexOf('方案数 3')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__combShowSchemes();var h=String(document.getElementById('combSchemes').innerHTML);document.getElementById('n').value='COMBRAW_'+((h.indexOf('[3] B')>=0&&h.indexOf('方案数 3')>=0)?'OK':'BAD_'+h.slice(0,80));"],
     expect: ["COMBRAW_OK"],
-    ref: "组合方案（按位置）：关闭去重后 A,A,B 的三个位置取 2 个共 C(3,2)=3 种，重复文本以 A#2 区分，与去重态 2 种明确不同；防止把“相同文本同元素”和“不同位置”混为一谈。"
+    ref: "组合方案（按位置）：关闭去重后 A,A,B 的三个位置取 2 个共 C(3,2)=3 种，重复文本以 [序号] 原文（如 [2] A）区分，与去重态 2 种明确不同；防止把“相同文本同元素”和“不同位置”混为一谈。"
   },
   {
     slug: "science/combination-calculator",
@@ -538,9 +544,9 @@ const CASES = [
   {
     slug: "science/permutation-calculator",
     inputs: { elements: "A,A,B", n: "3", r: "2" },
-    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMRAW_'+((h.indexOf('A#2')>=0&&h.indexOf('方案数 6')>=0)?'OK':'BAD_'+h.slice(0,80));"],
+    clicks: ["(new Function(globalThis.__tbFs.readFileSync(process.cwd()+'/js/tools/combinatorics-schemes.js','utf8')))();document.getElementById('elements').value='A,A,B';document.getElementById('r').value='2';document.getElementById('dedupe').checked=false;__permShowSchemes();var h=String(document.getElementById('permSchemes').innerHTML);document.getElementById('n').value='PERMRAW_'+((h.indexOf('[3] B')>=0&&h.indexOf('方案数 6')>=0)?'OK':'BAD_'+h.slice(0,80));"],
     expect: ["PERMRAW_OK"],
-    ref: "排列方案（按位置）：关闭去重后三个位置取 2 个共 P(3,2)=6 条，A/A#2 区分使 AA 出现两次；与去重态 3 条形成互斥回归。"
+    ref: "排列方案（按位置）：关闭去重后三个位置取 2 个共 P(3,2)=6 条，[1] A/[2] A 区分使 AA 出现两次；与去重态 3 条形成互斥回归。"
   },
   {
     slug: "science/permutation-calculator",

@@ -658,6 +658,10 @@ function saveHistory(opName, n, A, B, result, scalarResult){
   localStorage.setItem('matrix_history', JSON.stringify(history));
 }
 
+function __matHistoryText(m){
+  if(!Array.isArray(m)) return '';
+  return m.map(function(row){return '['+row.map(function(v){return String(v);}).join(', ')+']';}).join(' ');
+}
 function showHistory(){
   const history = (function(){try{return JSON.parse(localStorage.getItem('matrix_history')||'[]')}catch(e){try{localStorage.removeItem('matrix_history')}catch(_){}return []}})();
   if(history.length===0){
@@ -666,7 +670,7 @@ function showHistory(){
   }
   let html = '<h3 style="margin-bottom:10px;">📜 历史记录</h3>';
   for(const h of history){
-    const resStr = h.scalarResult !== null ? fmt(h.scalarResult) : (h.result ? '矩阵' : '');
+    const resStr = (h.scalarResult !== null && h.scalarResult !== undefined) ? String(h.scalarResult) : __matHistoryText(h.result);
     html += `<div class="history-item">
       <div class="history-title">${h.op} (${h.size}×${h.size})</div>
       <div class="history-detail">结果: ${resStr}</div>
@@ -796,12 +800,23 @@ function __matrix_calculatorExtras(){
 }
 function __matrix_calculatorExport(){
     if (typeof TBKit === 'undefined') return;
+    var en=(TBKit.util&&TBKit.util.isEn())?true:false;
+    var history=[];
+    try{history=JSON.parse(localStorage.getItem('matrix_history')||'[]')||[];}catch(e){history=[];}
+    if(history.length){
+        var head=[en?'Time':'时间',en?'Operation':'运算',en?'Size':'规模',en?'Matrix A':'矩阵 A',en?'Matrix B':'矩阵 B',en?'Result':'结果',en?'Scalar result':'标量结果'];
+        var rows=history.map(function(h){
+            return [h.time||'',h.op||'',h.size||'',__matHistoryText(h.A),__matHistoryText(h.B),
+                __matHistoryText(h.result),(h.scalarResult===null||h.scalarResult===undefined)?'':String(h.scalarResult)];
+        });
+        TBKit.util.exportCsv('matrix-calculator.csv',[head].concat(rows));
+        return;
+    }
     try{
         var box=document.querySelector('#matrix_calculatorTable');
         if(!box||!box.querySelector('tr')){
             var snap=__matrix_calculatorSnap(); var keys=Object.keys(snap);
             if(keys.length>12) keys=keys.slice(0,12);
-            var en=(TBKit.util&&TBKit.util.isEn())?true:false;
             __matrix_calculatorRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
