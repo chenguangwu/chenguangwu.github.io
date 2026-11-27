@@ -99,6 +99,15 @@ const CASES = [
     "expect": ["90.0 L", "180.0 cm"],
     "ref": "第1098批·快照一致：输入桶口长改为 60 并触发 input 后，输入桶口长改为 60 并触发 input 后，屏幕必须立即从默认 60 L 更新为 90 L；exportCSV 只读 lastCalc 快照，不再按当前输入二次重算。"
   },
+  {
+    "slug": "daily-goods/shoe-size",
+    "inputs": {},
+    "clicks": [
+      "var __toast='',__copied='',__exported=0;window.ToolBox={showToast:function(m){__toast=m;},copyText:function(t){__copied=t;}};ToolBox=window.ToolBox;TBKit={util:{isEn:function(){return false;},exportTable:function(){__exported=1;}}};document.getElementById('footLen').value='100';calc();copyResult();__shoe_sizeExport();document.getElementById('__tbProbe').textContent='SHOEBAD '+((__toast.indexOf('200')>=0&&__copied===''&&__exported===0&&document.getElementById('shoe_sizeTable').textContent==='')?'OK':'BAD');"
+    ],
+    "expect": ["SHOEBAD OK"],
+    "ref": "第1099批·无效输入守卫：脚长 100 越界后复制与导出都必须被拦截，提示包含 200；附表清空，不能复制错误提示或导出上一轮表格。"
+  },
 
 ];
 
