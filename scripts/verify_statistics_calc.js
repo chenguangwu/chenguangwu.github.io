@@ -1660,6 +1660,36 @@ const CASES = [
     expect: ["总体标准差必须大于 0"],
     ref: "负标准差会把 z 方向反转，旧实现仍输出 -1.0000；现阻止。",
   },
+  {
+    slug: "statistics/one-sample-t-test",
+    inputs: { xbar: "1000", mu0: "0", sd: "1", n: "1000" },
+    expect: ["<1e-300 双侧 p 值"],
+    ref: "第1070批：t=31622.78、df=999 时双侧 p 在双精度下下溢为 0；必须显示上限 <1e-300，不能显示 0.0000。",
+  },
+  {
+    slug: "statistics/paired-t-test",
+    inputs: { dbar: "1000", sd: "1", n: "1000" },
+    expect: ["<1e-300 双侧 p 值"],
+    ref: "第1070批：配对 t=31622.78、df=999 的 p 下溢；主结果与明细都必须显示上限，不得显示 0/0.000000。",
+  },
+  {
+    slug: "statistics/independent-t-test",
+    inputs: { m1: "1000", m2: "0", s1: "1", s2: "1", n1: "1000", n2: "1000" },
+    expect: ["<1e-300 双侧 p 值"],
+    ref: "第1070批：合并方差 t=22360.68、df=1998 的 p 下溢；主结果须显示上限。",
+  },
+  {
+    slug: "statistics/one-sample-z-test",
+    inputs: { xbar: "1000", mu0: "0", sigma: "1", n: "100" },
+    expect: ["<1e-300 双侧 p 值"],
+    ref: "第1070批：z=10000 的 p 下溢；主结果与明细都须显示上限而非 0.0000/0.000000。",
+  },
+  {
+    slug: "statistics/one-sample-z-test",
+    inputs: { xbar: "53.9", mu0: "50", sigma: "10", n: "100" },
+    expect: ["9.62e-5 双侧 p 值"],
+    ref: "第1070批：z=3.9 的双侧 p≈9.62e-5，小于四位小数阈值；改用科学计数法，避免显示 0.0001 或 0.0000。",
+  },
 
 ];
 

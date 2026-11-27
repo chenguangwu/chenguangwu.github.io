@@ -251,7 +251,8 @@
 
 <script>
 var __moistureValid=false;
-function __mEn(zh,en){try{return document.documentElement.lang==='en-US'?en:zh;}catch(e){return zh;}}
+function __mIsEn(){try{if(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return true;}catch(e){}return /(^|[?&])lang=en/i.test(location.search)||(document.documentElement.lang||'').toLowerCase().indexOf('en')===0;}
+function __mEn(zh,en){return __mIsEn()?en:zh;}
 function readNum(id){
   var e=document.getElementById(id);if(!e)return NaN;
   var raw=String(e.value==null?'':e.value).trim();
@@ -292,18 +293,18 @@ function calc() {
 
 function copyResult() {
   var v=validateMoisture();
-  if(!v.ok||!__moistureValid){if(ToolBox.showToast)ToolBox.showToast(v.ok?'请先执行有效计算，暂无可复制结果':v.msg,'warning');return;}
+  if(!v.ok||!__moistureValid){if(ToolBox.showToast)ToolBox.showToast(v.ok?__mEn('请先执行有效计算，暂无可复制结果','Run a valid calculation before copying'):v.msg,'warning');return;}
   var wet = v.wet;
   var dry = v.dry;
   var water = wet - dry;
   var wb = (water / wet * 100).toFixed(2);
   var db = (water / dry * 100).toFixed(2);
-  var text = '湿基含水率: ' + wb + '%, 干基含水率: ' + db + '% (湿重' + wet + 'g, 干重' + dry + 'g)';
+  var text = __mEn('湿基含水率: ','Wet-basis moisture: ') + wb + __mEn('%, 干基含水率: ', '%; dry-basis moisture: ') + db + __mEn('% (湿重', '% (wet weight ') + wet + __mEn('g, 干重', 'g, dry weight ') + dry + 'g)';
   ToolBox.copyText(text, i18nText('msg465'));
 }
 
 document.addEventListener('DOMContentLoaded',function(){try{calc();}catch(e){}});
-var refData = [
+var refDataZh = [
   ['新闻纸', '4-8', '易吸水，需控湿'],
   ['胶版纸', '5-8', '印刷适性佳'],
   ['铜版纸', '5-7', '涂层保护'],
@@ -313,9 +314,19 @@ var refData = [
   ['卫生纸', '5-9', '柔软性好'],
   ['特种纸', '4-7', '因纸种而异']
 ];
+var refDataEn = [
+  ['Newsprint', '4-8', 'Absorbs water easily; control humidity'],
+  ['Offset paper', '5-8', 'Good printability'],
+  ['Coated paper', '5-7', 'Coating protection'],
+  ['White card', '6-8', 'Packaging use'],
+  ['Kraft paper', '7-10', 'Higher strength'],
+  ['Corrugating medium', '6-10', 'Moisture protection needed'],
+  ['Tissue paper', '5-9', 'Good softness'],
+  ['Specialty paper', '4-7', 'Varies by grade']
+];
 const __g2=ToolBox.createTable(
-  ['纸种', '标准含水率(%)', '说明'],
-  refData
+  __mIsEn()?['Paper grade','Reference moisture (%)','Notes']:['纸种', '标准含水率(%)', '说明'],
+  __mIsEn()?refDataEn:refDataZh
 );document.getElementById('refTable').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 calc();
 </script>
