@@ -99,6 +99,34 @@ const CASES = [
   "expect": ["YI384 OK"],
   "ref": "第1096批：静态数据完整性检查 64 卦各 6 爻共 384 条、爻题位置字与自下而上顺序一致、文本无重复；防止只补选择器而数据仍为乾卦示例。"
 }
+,
+{
+  "slug": "yi/yi-divination",
+  "inputs": {},
+  "clicks": [
+    "var __lines=[[1,true],[1,true],[1,true],[1,true],[1,true],[1,true]].map(function(x){return {type:x[0],change:x[1]};});var __m=renderGuaVisual(__lines,false),__c=renderGuaVisual(__lines,true);var mi=(__m.match(/y yin/g)||[]).length,ci=(__c.match(/y yin/g)||[]).length,mm=(__m.match(/gua-row changing/g)||[]).length,cm=(__c.match(/gua-row changing/g)||[]).length;document.getElementById('__tbProbe').textContent='YIDRAW-YANG '+((mi===0&&ci===6&&mm===6&&cm===6)?'OK':'BAD mi='+mi+' ci='+ci+' mm='+mm+' cm='+cm);"
+  ],
+  "expect": ["YIDRAW-YANG OK"],
+  "ref": "第1097批：全老阳输入，本卦六爻必须全为阳爻（0 条 yin），变卦六爻必须全为阴爻（6 条 yin）；两栏六个动爻均标 changing。旧逻辑 type:1 被当作 yin，本卦会出现 6 条 yin ⇒ 失败。"
+},
+{
+  "slug": "yi/yi-divination",
+  "inputs": {},
+  "clicks": [
+    "var __lines=[[0,false],[0,false],[1,true],[0,false],[0,false],[0,false]].map(function(x){return {type:x[0],change:x[1]};});var __main=__lines.map(function(l){return effectiveType(l,false);}).join(''),__inv=__lines.map(function(l){return effectiveType(l,true);}).join('');document.getElementById('__tbProbe').textContent='YIDRAW-ONE '+((__main==='001000'&&__inv==='000000')?'OK':'BAD main='+__main+' inv='+__inv);"
+  ],
+  "expect": ["YIDRAW-ONE OK"],
+  "ref": "第1097批：单动爻（第3爻阳变阴）本卦 5 阴 1 阳、变卦 6 阴，两栏仅第3爻标动；验证逐爻反转与动爻标记，不再只绘本卦。"
+},
+{
+  "slug": "yi/yi-divination",
+  "inputs": {},
+  "clicks": [
+    "var __lines=[{type:1,change:false},{type:0,change:false},{type:1,change:false},{type:0,change:false},{type:1,change:false},{type:0,change:false}];var __m=renderGuaVisual(__lines,false);document.getElementById('__tbProbe').textContent='YIDRAW-STATIC '+((__m.indexOf('y yin')>=0&&__m.indexOf('changing')<0)?'OK':'BAD');"
+  ],
+  "expect": ["YIDRAW-STATIC OK"],
+  "ref": "第1097批：静爻不应出现 changing 标记；本卦按 type 原样绘制（阳爻无 yin、阴爻有 yin）。"
+}
 
 ];
 async function main() {
