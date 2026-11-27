@@ -2,86 +2,42 @@
 "use strict";
 const { runCase } = require("./verify_it_calc.js");
 const CASES = [
-  // 注：collectStrings 在剥离 <strong> 标签时会插入空格，故期望值含「： 」后的空格
-  { slug: "martial/breathing-rhythm", inputs: {"breathRate":"30"}, expect: ["呼吸周期： 2.00 秒"], ref: "独立复算：呼吸周期=60÷breathRate=60÷30=2.00 秒；页面默认 breathRate=12 → 5.00 秒，锚点不命中，依赖注入。" },
-  { slug: "martial/kick-height", inputs: {"kickHeight":"200"}, expect: ["高度比（身高）： 117.6%"], ref: "独立复算：高度比（身高）=踢高÷身高=200÷170=117.6%；页面默认 kickHeight=150 → 88.2%，锚点不命中，依赖注入。" },
-  // routine-timer：standardTime 由 loadStandard() 按套路类型重算为区间中值（taijiquan → 360），
-  // 完成耗时由 manualTime 注入（原仅计时器可写，页面加载即 myTime=0 → 速度比率 Infinity%，
-  // 2026-09-23 已补 manualTime 输入 + myTime<=0 守卫）。
-  // 例1 taijiquan 中值 360、耗时 330 → 速度比率 360/330×100 = 109.1%（在 300~420 允许范围内）
-  { slug: "martial/routine-timer", inputs: { "routineType": "taijiquan", "manualTime": "330" }, expect: ["标准： 360 秒", "速度比率： 109.1%"], ref: "独立复算：taijiquan 标准时长由 loadStandard() 取区间中值 360 秒；manualTime=330 → 速度比率=360÷330×100=109.1%；默认 changquan(80)/无耗时 → 两锚均不命中。" },
-  // 例2 changquan 中值 80、耗时 95 → 速度比率 80/95×100 = 84.2%、偏差 +15.0、
-  //     超上限扣分 (95−90)×0.5 = 2.5
-  { slug: "martial/routine-timer", inputs: { "routineType": "changquan", "manualTime": "95" }, expect: ["速度比率： 84.2%", "+15.0"], ref: "独立复算：changquan 标准时长 80 秒；manualTime=95 → 速度比率=80÷95×100=84.2%、偏差=95−80=+15.0；默认 taijiquan(360)/无耗时 → 两锚不命中。" },
-  { slug: "martial/stance-center", inputs: {"frontRatio":"80"}, expect: ["前脚 80%"], ref: "独立复算：前脚承重比直接取注入 frontRatio=80 → 前脚 80%；页面默认 frontRatio=50 → 前脚 50%，锚点不命中，依赖注入。" },
-  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["硬度指数： 119"], ref: "独立复算：trainYears=3→年限系数 1.0、freq=7→频率系数 min(1.5,0.6+7×0.12)=1.44，硬度指数=基础值+(上限−基础值)×1.0×1.44；页面默认 trainYears 与 freq=3 得值不同，锚 119 不命中，依赖注入。" },
+  { slug: "martial/breathing-rhythm", inputs: {"breathRate":"30"}, expect: ["呼吸周期 2.00 秒", "加总 100.0%"], ref: "独立复算：呼吸周期=60÷30=2.00 秒；默认 breathRate=12 → 5.00 秒，锚点不命中，依赖注入。" },
+  { slug: "martial/kick-height", inputs: {"kickHeight":"200"}, expect: ["高度比（身高）： 117.6%"], ref: "独立复算：高度比=踢高÷身高=200÷170=117.6%；默认 kickHeight=150 → 88.2%。" },
+  { slug: "martial/routine-timer", inputs: { "routineType": "taijiquan", "manualTime": "330" }, expect: ["标准： 360 秒", "速度比率： 109.1%"], ref: "独立复算：taijiquan 标准时长取区间中值 360 秒；330 → 速度比率=360÷330×100=109.1%。" },
+  { slug: "martial/routine-timer", inputs: { "routineType": "changquan", "manualTime": "95" }, expect: ["速度比率： 84.2%", "+15.0"], ref: "独立复算：changquan 标准 80 秒；95 → 速度比率=80÷95×100=84.2%、偏差=95−80=+15.0。" },
+  { slug: "martial/stance-center", inputs: {"frontRatio":"80"}, expect: ["前脚 80%"], ref: "独立复算：前脚承重比直接取 80%。0 与空值分别处理，不再用 50% 兜底。" },
+  { slug: "martial/strike-resistance", inputs: {"trainYears":"3","freq":"7"}, expect: ["训练记录示意指数： 119"], ref: "独立复算：年限系数 1.0、频率系数 min(1.5,0.6+7×0.12)=1.44，前臂指数=40+55×1.44=119。" },
   {
     "slug": "martial/breathing-rhythm",
-    "inputs": {
-      "breathRate": "42",
-      "actionType": "throw",
-      "inhaleRatio": "0.5",
-      "level": "1"
-    },
-    "expect": [
-      "分） 呼吸周期： 1.43 秒 （吸0.48s : 呼0.95s） 匹配指数： 34 需调整 ⚠️ 呼吸偏快 ：当前频率高于推荐范围，可能影响发力节奏。建议放慢呼吸，加深吸气"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"breathRate\":\"42\",\"actionType\":\"throw\",\"inhaleRatio\":\"0.5\",\"level\":\"1\"}，输出区含「分） 呼吸周期： 1.43 秒 （吸0.48s : 呼0.95s） 匹配指数： …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["document.getElementById('breathRate').value='30';document.getElementById('inhaleRatio').value='0.5';document.getElementById('holdPct').value='5';calc();"],
+    "expect": ["吸气 0.63s", "屏息 0.10s", "呼气 1.27s", "加总 100.0%"],
+    "ref": "独立复算：周期=60÷30=2.00s；屏息=2.00×5%=0.10s；剩余1.90s按1:2拆为吸0.63s/呼1.27s，加总100%。"
   },
   {
     "slug": "martial/kick-height",
-    "inputs": {
-      "height": "42",
-      "legLen": "42",
-      "kickHeight": "42",
-      "kickType": "side",
-      "level": "1"
-    },
-    "expect": [
-      "估算踢腿角度： 41.8°", "踢腿高度达到身高"
-    ],
-    "ref": "等身高算例：角度 41.8°，踢高等于身高，不应称作超过头顶。"
+    "clicks": ["document.getElementById('height').value='120';document.getElementById('legLen').value='54';document.getElementById('kickHeight').value='120';document.getElementById('kickType').value='side';calc();"],
+    "expect": ["估算踢腿角度： 90.0°", "高度比（腿长）： 222.2%"],
+    "ref": "独立复算：角度=asin(120/(54+60))=asin(1.05) 截断为 90.0°；腿长 54 → 高度比=120÷54=222.2%。"
   },
   {
     "slug": "martial/routine-timer",
-    "inputs": {
-      "standardTime": "42",
-      "tolerance": "42",
-      "manualTime": "42",
-      "routineType": "nanquan"
-    },
-    "expect": [
-      "0 超出范围扣分\nnanquan\n75"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"standardTime\":\"42\",\"tolerance\":\"42\",\"manualTime\":\"42\",\"routineType\":\"nanquan\"}，输出区含「0 超出范围扣分\nnanquan\n75」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["document.getElementById('standardTime').value='42';document.getElementById('tolerance').value='42';document.getElementById('manualTime').value='42';document.getElementById('routineType').value='nanquan';compare();"],
+    "expect": ["完成时长： 42.0 秒", "扣分估算"],
+    "ref": "独立复算：标准42、容差42、耗时42 → 速度100%，nanquan 下限75 非太极 → 扣分(75−42)×0.5=16.5。"
   },
   {
     "slug": "martial/stance-center",
-    "inputs": {
-      "stepWidth": "42",
-      "height": "42",
-      "frontRatio": "42",
-      "squatDepth": "42",
-      "duration": "42",
-      "stanceType": "bow"
-    },
-    "expect": [
-      "） 稳定性指数： 66 耐力评分： 14 需加强 ⚠️ 重心偏差较大 ：承重比与标准弓步相差23%，建议调整姿势以提升稳定性。 ⚠️ 强度较高 ：当前姿势强度大且时长较长，注意适度休息，避免关节损伤"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"stepWidth\":\"42\",\"height\":\"42\",\"frontRatio\":\"42\",\"squatDepth\":\"42\",\"duration\":\"42\",\"stanceType\":\"bow\"}，输出区含「） 稳定性指数： 66 耐力评分： 14 需加强 ⚠️ 重心偏差较大 ：承重比与…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["document.getElementById('stepWidth').value='80';document.getElementById('height').value='170';document.getElementById('frontRatio').value='42';document.getElementById('squatDepth').value='42';document.getElementById('stanceType').value='bow';calc();"],
+    "expect": ["重心水平偏移： 后6.4 cm", "重心高度估算： 51.5 cm"],
+    "ref": "独立复算：偏移=(0.42−0.5)×80=−6.4cm；弓步高度=170×0.55−42=51.5cm。"
   },
   {
     "slug": "martial/strike-resistance",
-    "inputs": {
-      "freq": "42",
-      "trainYears": "1"
-    },
-    "expect": [
-      " -- 硬度指数\n1\n42\n90\n\n86\n\n81\n\n76\n\n83\n\n91\n\n85\n\n38"
-    ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"freq\":\"42\",\"trainYears\":\"1\"}，输出区含「 -- 硬度指数\n1\n42\n90\n\n86\n\n81\n\n76\n\n83\n\n91\n\n85…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "clicks": ["document.getElementById('trainYears').value='1';document.getElementById('freq').value='42';calc();"],
+    "expect": ["训练记录示意指数： 90"],
+    "ref": "独立复算：年限系数0.6、频率系数封顶1.5，前臂=40+55×0.9=89.5→90。"
   }
-
 ];
 async function main() {
   const only = process.argv.slice(2);
