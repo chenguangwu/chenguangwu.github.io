@@ -5988,6 +5988,20 @@ const CASES = [
   },
   {
     slug: "it/text-diff",
+    inputs: { text1: "a\nb", text2: "a\nc" },
+    clicks: ["doDiff();var m=String.fromCharCode(92)+' No newline at end of file';var p=buildUnifiedPatch();document.getElementById('__tbProbe').textContent='TDNL1044 '+((p.split(m).length-1===2&&p.indexOf('-b')>=0&&p.indexOf('+c')>=0&&!currentFinalNewline.old&&!currentFinalNewline.new)?'OK':'BAD');"],
+    expect: ["TDNL1044 OK"],
+    ref: "第1044批：两端都无末尾换行时，统一补丁必须为删除行与新增行各输出一个 `\\ No newline at end of file`，且 finalNewline 状态为 false；旧实现直接丢弃末尾换行信息，patch 应用后文件会被补上换行。",
+  },
+  {
+    slug: "it/text-diff",
+    inputs: { text1: "a\nb", text2: "a\nb\n" },
+    clicks: ["doDiff();var p=buildUnifiedPatch();document.getElementById('__tbProbe').textContent='TDNL1044B '+((p.indexOf('-b')>=0&&p.indexOf('+b')>=0&&p.indexOf('No newline')>=0&&p.indexOf('@@ -1,2 +1,2 @@')>=0)?'OK':'BAD');"],
+    expect: ["TDNL1044B OK"],
+    ref: "第1044批：仅末尾换行不同时，最后一行必须由 same 前移为 modify，补丁同时出现 -b/+b 并只在旧侧标注无末尾换行；旧实现判为 same，补丁无法表达换行差异。",
+  },
+  {
+    slug: "it/text-diff",
     inputs: { text1: "abc", text2: "abd" },
     clicks: ["doDiff()"],
     expect: ["- abc 1 + abd"],

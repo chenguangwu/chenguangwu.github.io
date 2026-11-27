@@ -396,6 +396,8 @@ const MAX_HISTORY = 10;
 
 let currentDiff = null;
 let diffStale = false;
+let currentFinalNewline = { old: false, new: false };
+function tdIsEn() { try { if (typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) return true; } catch (e) {} return /lang=en-US/i.test(location.search); }
 
 function switchView(view, tab) {
   document.querySelectorAll('.view-tab').forEach(t => {
@@ -575,15 +577,27 @@ function charDiffLine(oldLine, newLine) {
   return { oldHtml, newHtml, degraded: false };
 }
 
+function splitInputLines(text) {
+  const t = String(text == null ? '' : text).replace(/\r\n?/g, '\n');
+  const finalNewline = t.endsWith('\n');
+  const lines = t.split('\n');
+  if (finalNewline) lines.pop();
+  return { lines: lines, finalNewline: finalNewline };
+}
+
 function doDiff() {
   const text1 = document.getElementById('text1').value;
   const text2 = document.getElementById('text2').value;
   
   const options = getDiffOptions();
   
-  // 行尾统一为 LF：Windows CRLF 与 Unix LF 的同一文件不应因 \r 被判成每行都修改。
-  const lines1 = String(text1).replace(/\r\n?/g, '\n').split('\n');
-  const lines2 = String(text2).replace(/\r\n?/g, '\n').split('\n');
+  // 行尾统一为 LF；末尾换行单独记录，避免 split 产生的空哨兵干扰补丁。
+  const source1 = String(text1).replace(/\r\n?/g, '\n'), source2 = String(text2).replace(/\r\n?/g, '\n');
+  const info1 = splitInputLines(source1);
+  const info2 = splitInputLines(source2);
+  const lines1 = info1.lines;
+  const lines2 = info2.lines;
+  currentFinalNewline = { old: info1.finalNewline, new: info2.finalNewline };
   
   const norm1 = lines1.map(l => normalizeText(l, options));
   const norm2 = lines2.map(l => normalizeText(l, options));
@@ -592,7 +606,7 @@ function doDiff() {
   let diff;
   if (cells > MAX_DIFF_CELLS) {
     diff = anchoredLineDiff(norm1, norm2, lines1, lines2);
-    showDiffNotice('文本规模超过 400 万单元（约 2000×2000 行），已切换为滑动窗口锚点对齐：在 500 行范围内识别插入/删除，超出窗口的内容仍会降级为按位置比较。');
+    showDiffNotice(tdIsEn() ? 'Large input: over 4 million cells (about 2000×2000 lines). Switched to a sliding-window anchor alignment; inserts/deletes are found within 500 lines, and content beyond that falls back to positional comparison.' : '文本规模超过 400 万单元（约 2000×2000 行），已切换为滑动窗口锚点对齐：在 500 行范围内识别插入/删除，超出窗口的内容仍会降级为按位置比较。');
   } else {
     showDiffNotice('');
     const dp = lcsLength(norm1, norm2);
@@ -634,6 +648,17 @@ function doDiff() {
     }
   }
   
+  // 仅末尾换行不同：最后一行内容相同也必须前移为 modify，否则统一补丁无法表达尾部换行差异。
+  if (info1.finalNewline !== info2.finalNewline && lines1.length && lines2.length) {
+    const lastOld = lines1.length - 1, lastNew = lines2.length - 1;
+    for (let k = result.length - 1; k >= 0; k--) {
+      const ch = result[k];
+      if (ch.type === 'same' && ch.oldIndex === lastOld && ch.newIndex === lastNew) {
+        result[k] = { type: 'modify', oldValue: lines1[lastOld], newValue: lines2[lastNew], oldIndex: lastOld, newIndex: lastNew };
+        break;
+      }
+    }
+  }
   currentDiff = result;
   clearDiffStale();
   renderUnifiedDiff(result, options);
@@ -684,7 +709,7 @@ function renderUnifiedDiff(diff, options) {
     }
   });
   
-  const __h0=html || '<p style="padding:40px;text-align:center;color:var(--text-muted);">两段文本完全相同</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h0;
+  const __h0=html || '<p style="padding:40px;text-align:center;color:var(--text-muted);">两段文本完全相同</p>';container.innerHTML=__h0;
 }
 
 function renderSplitDiff(diff, options) {
@@ -718,8 +743,8 @@ function renderSplitDiff(diff, options) {
     }
   });
   
-  const __h1=leftHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){leftContainer.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}leftContainer.innerHTML=__h1;
-  const __h2=rightHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){rightContainer.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}rightContainer.innerHTML=__h2;
+  const __h1=leftHtml;leftContainer.innerHTML=__h1;
+  const __h2=rightHtml;rightContainer.innerHTML=__h2;
 }
 
 function updateStats(diff) {
@@ -788,14 +813,25 @@ function buildUnifiedPatch() {
   if (!Array.isArray(currentDiff) || currentDiff.length === 0) return '';
   const oldCount = currentDiff.filter(c => c.type === 'same' || c.type === 'remove' || c.type === 'modify').length;
   const newCount = currentDiff.filter(c => c.type === 'same' || c.type === 'add' || c.type === 'modify').length;
+  const oldLast = Math.max(0, oldCount - 1), newLast = Math.max(0, newCount - 1);
+  function line(prefix, value, isLast, finalNewline) {
+    let out = prefix + String(value == null ? '' : value) + '\n';
+    if (isLast && !finalNewline) out += '\\ No newline at end of file\n';
+    return out;
+  }
   let out = '--- a.txt\n+++ b.txt\n@@ -1,' + oldCount + ' +1,' + newCount + ' @@\n';
   currentDiff.forEach(chunk => {
-    if (chunk.type === 'same') out += ' ' + (chunk.newValue != null ? chunk.newValue : (chunk.oldValue || '')) + '\n';
-    else if (chunk.type === 'add') out += '+' + (chunk.newValue || '') + '\n';
-    else if (chunk.type === 'remove') out += '-' + (chunk.oldValue || '') + '\n';
-    else if (chunk.type === 'modify') {
-      out += '-' + (chunk.oldValue || '') + '\n';
-      out += '+' + (chunk.newValue || '') + '\n';
+    if (chunk.type === 'same') {
+      const v = chunk.oldValue != null ? chunk.oldValue : (chunk.newValue || '');
+      const bothLast = chunk.oldIndex === oldLast && chunk.newIndex === newLast;
+      out += line(' ', v, bothLast, currentFinalNewline.old && currentFinalNewline.new);
+    } else if (chunk.type === 'add') {
+      out += line('+', chunk.newValue || '', chunk.newIndex === newLast, currentFinalNewline.new);
+    } else if (chunk.type === 'remove') {
+      out += line('-', chunk.oldValue || '', chunk.oldIndex === oldLast, currentFinalNewline.old);
+    } else if (chunk.type === 'modify') {
+      out += line('-', chunk.oldValue || '', chunk.oldIndex === oldLast, currentFinalNewline.old);
+      out += line('+', chunk.newValue || '', chunk.newIndex === newLast, currentFinalNewline.new);
     }
   });
   return out;
@@ -805,7 +841,7 @@ function copyUnifiedPatch() {
   if (diffStale) { ToolBox.showToast(i18nText('toast.msg696'), 'warning'); return; }
   const opts = getDiffOptions();
   if (opts.ignoreWhitespace || opts.ignoreAllWhitespace || opts.ignoreCase) {
-    const en = typeof TBKit !== 'undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn();
+    const en = tdIsEn();
     ToolBox.showToast(en ? 'Ignore options are on; the generated patch would not apply. Turn them off to copy a unified patch.' : '已启用忽略空白或大小写，生成的补丁无法与原文件上下文对齐；请关闭忽略选项后再复制统一补丁。', 'warning');
     return;
   }
@@ -825,9 +861,9 @@ function swapTexts() {
 function clearAll() {
   document.getElementById('text1').value = '';
   document.getElementById('text2').value = '';
-  const __h3='<p style="padding:40px;text-align:center;color:var(--text-muted);">点击"开始对比"查看差异</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('unifiedDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('unifiedDiff').innerHTML=__h3;
-  const __h4='';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('leftDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('leftDiff').innerHTML=__h4;
-  const __h5='';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('rightDiff').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('rightDiff').innerHTML=__h5;
+  const __h3='<p style="padding:40px;text-align:center;color:var(--text-muted);">点击"开始对比"查看差异</p>';document.getElementById('unifiedDiff').innerHTML=__h3;
+  const __h4='';document.getElementById('leftDiff').innerHTML=__h4;
+  const __h5='';document.getElementById('rightDiff').innerHTML=__h5;
   document.getElementById('stats').style.display = 'none';
   currentDiff = null;
   clearDiffStale();
@@ -878,7 +914,7 @@ function renderHistory() {
   try {
     const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
     if (history.length === 0) {
-      const __h6='<p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>';if((typeof __h6==='number'&&!isFinite(__h6))||/Infinity/.test(String(__h6))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h6)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h6;
+      const __h6='<p style="padding:24px;text-align:center;color:var(--text-muted);">暂无历史记录</p>';list.innerHTML=__h6;
       return;
     }
     const __h7=history.map((item, i) => {
@@ -895,9 +931,9 @@ function renderHistory() {
           </div>
         </button>
       `;
-    }).join('');if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h7;
+    }).join('');list.innerHTML=__h7;
   } catch(e) {
-    const __h8='<p style="padding:24px;text-align:center;color:var(--text-muted);">加载历史记录失败</p>';if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h8;
+    const __h8='<p style="padding:24px;text-align:center;color:var(--text-muted);">加载历史记录失败</p>';list.innerHTML=__h8;
   }
 }
 
@@ -915,7 +951,7 @@ function loadHistory(index) {
         document.getElementById('charDiff').checked = !!opt.charDiff;
       }
       doDiff();
-      ToolBox.showToast(opt ? i18nText() : '旧记录未保存对比选项，已按当前选项重新比较');
+      ToolBox.showToast(opt ? (tdIsEn() ? 'History restored and re-compared with its saved options.' : '已恢复历史记录，并按保存的选项重新对比。') : (tdIsEn() ? 'This old record has no saved options; re-compared with current options.' : '旧记录未保存对比选项，已按当前选项重新比较。'));
     }
   } catch(e) {}
 }
@@ -923,7 +959,7 @@ function loadHistory(index) {
 function clearHistory() {
   localStorage.removeItem(HISTORY_KEY);
   renderHistory();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast(tdIsEn() ? 'History cleared.' : '历史记录已清空。');
 }
 
 renderHistory();
