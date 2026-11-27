@@ -138,7 +138,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按公共能耗总额与建筑面积，把水电燃气费用分摊到户或区域">Allocate common utility costs to units or zones by total cost and floor area</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">分摊金额 = 公共能耗总额 × 本户面积 ÷ 总建筑面积；面积占比 = 本户面积 ÷ 总建筑面积 × 100%；单位面积成本 = 公共能耗总额 ÷ 总建筑面积（元/㎡）。校验：总额与面积均需为正数，本户面积大于总面积时提示核对。</div>
+      <div class="formula-eq">分摊金额 = 公共能耗总额 × 本户面积 ÷ 总建筑面积；面积占比 = 本户面积 ÷ 总建筑面积 × 100%；单位面积成本 = 公共能耗总额 ÷ 总建筑面积（元/㎡）。校验：总额不得为空或负数（0 为合法无费用账期）；总建筑面积必须大于 0；本户面积不得为空或负数，且不得大于总面积。多户核对支持按面积、按户数、自定义比例三种模式，金额以分为单位分配并用最大余数法补齐。假设：面积法仅适用于合同按建筑面积分摊且无独立分表的情形；实际按用量/户数/合同比例时须切换口径。</div>
       <div class="formula-desc">按建筑面积比例分摊公共水电燃气费用，适合写字楼、商场与住宅物业的费用结算；有分表时可改用实际用量法。</div>
     </div>
     <div class="input-row">
@@ -153,6 +153,17 @@
     </div>
     <div class="result-box" id="res"></div> <div id="energyTable"></div> <div id="energyDiff"></div> <div id="energyChart"></div> <div id="energyHist"></div>
     <div class="info-box">💡 分摊金额 = 公共能耗总额 × 本户面积 ÷ 总建筑面积；占比 = 本户面积 ÷ 总建筑面积。</div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>👥 多户分摊核对</h3>
+      <p style="font-size:13px;color:var(--text-muted);">使用上方公共能耗总额；录入多户面积或比例，金额按分分配并核对合计。总面积录入少于总建筑面积时会提示未覆盖部分。</p>
+      <div class="input-row">
+        <div><label for="multiMode">分摊模式</label><select id="multiMode" onchange="calcMulti()"><option value="area">按面积比例</option><option value="count">按户数均摊</option><option value="ratio">自定义比例（%）</option></select></div>
+      </div>
+      <div id="multiRows"></div>
+      <div class="toolbar"><button type="button" class="btn" onclick="addMultiRow()">+ 添加一户</button><button type="button" class="btn primary" onclick="calcMulti()">核对多户分摊</button></div>
+      <div id="multiRes"></div>
+    </div>
 <div class="tool-notes" style="--tool-accent:#B23A08;">
 <div class="card" id="constRefBox">
   <h3 data-zh="📐 公式与标准引据">Formula &amp; Standard References</h3>
@@ -215,6 +226,87 @@ function copyRes(){
   if(!text||text.trim()===''){ToolBox.showToast(i18nText(), 'warning');return;}
   ToolBox.copyText(text);
 }
+function multiRowHtml(name,area,ratio){
+  return '<div class="input-row multi-row">'+
+    '<div><label>户名/区域</label><input type="text" class="m-name" value="'+ToolBox.escHtml(name||'')+'" placeholder="如 1-101"></div>'+
+    '<div><label>面积（㎡）</label><input type="number" class="m-area" min="0" step="0.01" value="'+(area==null?'':area)+'" placeholder="面积模式填写" aria-label="面积模式填写"></div>'+
+    '<div><label>比例（%）</label><input type="number" class="m-ratio" min="0" max="100" step="0.01" value="'+(ratio==null?'':ratio)+'" placeholder="自定义比例填写" aria-label="自定义比例填写"><button type="button" class="btn" style="padding:3px 8px;font-size:11px;margin-top:4px;" onclick="this.closest(\'.multi-row\').remove();calcMulti()">删除</button></div>'+
+  '</div>';
+}
+function addMultiRow(name,area,ratio){
+  var box=document.getElementById('multiRows');if(!box)return;
+  box.insertAdjacentHTML('beforeend',multiRowHtml(name,area,ratio));
+}
+window.addMultiRow=addMultiRow;
+function initMultiRows(){
+  var box=document.getElementById('multiRows');if(!box)return;
+  box.innerHTML=multiRowHtml('1-101',100,null)+multiRowHtml('1-102',100,null)+multiRowHtml('1-103',120,null);
+}
+function collectMulti(){
+  var rows=document.querySelectorAll('#multiRows .multi-row');
+  return Array.prototype.map.call(rows,function(r){
+    var name=r.querySelector('.m-name').value.trim()||'未命名';
+    var areaRaw=String(r.querySelector('.m-area').value).trim();
+    var ratioRaw=String(r.querySelector('.m-ratio').value).trim();
+    return {name:name,areaRaw:areaRaw,area:areaRaw===''?null:parseFloat(areaRaw),ratioRaw:ratioRaw,ratio:ratioRaw===''?null:parseFloat(ratioRaw)};
+  });
+}
+function calcMulti(){
+  var res=document.getElementById('multiRes');
+  var totalRaw=String(document.getElementById('v0').value).trim();
+  if(totalRaw===''){res.innerHTML='<div class="info-box">请先在上方填写公共能耗总额（0 为合法无费用账期）。</div>';return;}
+  var total=parseFloat(totalRaw);
+  if(!isFinite(total)){res.innerHTML='<div class="info-box">公共能耗总额请输入有效数字。</div>';return;}
+  if(total<0){res.innerHTML='<div class="info-box">公共能耗总额不能为负数。</div>';return;}
+  var rows=collectMulti();
+  if(!rows.length){res.innerHTML='<div class="info-box">请至少添加一户。</div>';return;}
+  var mode=document.getElementById('multiMode').value;
+  var weights=[],totalArea=0,ratioSum=0,notes=[];
+  for(var i=0;i<rows.length;i++){
+    var r=rows[i];
+    if(mode==='area'){
+      if(r.areaRaw===''){res.innerHTML='<div class="info-box">第 '+(i+1)+' 户「'+ToolBox.escHtml(r.name)+'」面积未填写。</div>';return;}
+      if(!isFinite(r.area)||r.area<0){res.innerHTML='<div class="info-box">第 '+(i+1)+' 户面积无效（须为非负数）。</div>';return;}
+      totalArea+=r.area;weights.push(r.area);
+    }else if(mode==='count'){
+      weights.push(1);
+    }else{
+      if(r.ratioRaw===''){res.innerHTML='<div class="info-box">第 '+(i+1)+' 户「'+ToolBox.escHtml(r.name)+'」比例未填写。</div>';return;}
+      if(!isFinite(r.ratio)||r.ratio<0||r.ratio>100){res.innerHTML='<div class="info-box">第 '+(i+1)+' 户比例无效（0–100%）。</div>';return;}
+      ratioSum+=r.ratio;weights.push(r.ratio);
+    }
+  }
+  if(mode==='area'&&totalArea<=0){res.innerHTML='<div class="info-box">按面积分摊时各户面积合计必须大于 0。</div>';return;}
+  if(mode==='ratio'&&Math.abs(ratioSum-100)>0.01){res.innerHTML='<div class="info-box">自定义比例合计为 '+ratioSum.toFixed(2)+'%，应等于 100% 后再分配。</div>';return;}
+  var declaredRaw=String(document.getElementById('v1').value).trim();
+  var declared=parseFloat(declaredRaw);
+  if(mode==='area'&&isFinite(declared)&&declared>0){
+    if(totalArea>declared+1e-9){res.innerHTML='<div class="info-box">各户面积合计 '+totalArea.toFixed(2)+' ㎡ 超过总建筑面积 '+declared.toFixed(2)+' ㎡，请核对录入。</div>';return;}
+    if(totalArea<declared-1e-9){var cov=totalArea/declared*100;notes.push('已录入面积 '+totalArea.toFixed(2)+' ㎡，覆盖总建筑面积的 '+cov.toFixed(2)+'%；未覆盖 '+(declared-totalArea).toFixed(2)+' ㎡（'+(100-cov).toFixed(2)+'%），需确认由未列户或公共预留承担。');}
+    else notes.push('已录入面积已覆盖全部总建筑面积。');
+  }
+  var sumW=weights.reduce(function(a,b){return a+b;},0);
+  var totalCents=Math.round(total*100);
+  var exact=weights.map(function(w){return totalCents*w/sumW;});
+  var cents=exact.map(function(x){return Math.floor(x+1e-9);});
+  var used=cents.reduce(function(a,b){return a+b;},0);
+  var rem=totalCents-used;
+  var order=exact.map(function(x,i){return {i:i,frac:x-Math.floor(x+1e-9)};}).sort(function(a,b){return b.frac-a.frac||a.i-b.i;});
+  for(var k=0;k<rem;k++)cents[order[k%order.length].i]+=1;
+  var sumCents=cents.reduce(function(a,b){return a+b;},0);
+  var head=[ '户名/区域', mode==='area'?'面积(㎡)':(mode==='count'?'户数权重':'自定义比例(%)'), '占比', '分摊金额(元)' ];
+  var body=rows.map(function(r,idx){
+    var w=mode==='area'?r.area:(mode==='count'?1:r.ratio);
+    var pct=sumW?w/sumW*100:0;
+    return '<tr><td>'+ToolBox.escHtml(r.name)+'</td><td>'+(mode==='area'?r.area.toFixed(2):(mode==='count'?'1':r.ratio.toFixed(2)))+'</td><td>'+pct.toFixed(2)+'%</td><td>¥'+(cents[idx]/100).toFixed(2)+'</td></tr>';
+  }).join('');
+  var html='<table><thead><tr>'+head.map(function(x){return '<th>'+x+'</th>';}).join('')+'</tr></thead><tbody>'+body+'</tbody></table>';
+  html+='<div class="tip-box tip-info" style="margin-top:10px;">合计 ¥'+(sumCents/100).toFixed(2)+'，与总额差额 ¥'+(((sumCents-totalCents)/100).toFixed(2))+'。以分为单位分配，剩余 '+rem+' 分按小数余数从大到小逐户补足，同余按行序。</div>';
+  if(notes.length)html+='<div class="info-box" style="margin-top:10px;">覆盖核对：'+notes.join(' ')+'</div>';
+  html+='<div class="info-box" style="margin-top:10px;">口径核对：本表只按所选模式计算，不代表合同约定；若合同按用量、分表、公摊系数或特殊比例，请按合同调整后再出账。</div>';
+  res.innerHTML=html;
+}
+window.calcMulti=calcMulti;
 function resetAll(){
   document.getElementById('v0').value=100;
   document.getElementById('v1').value=50;
@@ -286,16 +378,16 @@ document.addEventListener('DOMContentLoaded',function(){
 /* 真实业务计算逻辑（页内独占，覆盖通用两参脚本） */
 function calc(){
   var e0=document.getElementById('v0'),e1=document.getElementById('v1'),e2=document.getElementById('v2');
-  var total=parseFloat(e0?e0.value:''),allArea=parseFloat(e1?e1.value:''),unitArea=parseFloat(e2?e2.value:'');
+  var rawTotal=e0?String(e0.value).trim():'', rawAll=e1?String(e1.value).trim():'', rawUnit=e2?String(e2.value).trim():'';
   var box=document.getElementById('res');
   if(!box)return;
-  if(!isFinite(total)||!isFinite(allArea)||!isFinite(unitArea)||total<=0||allArea<=0||unitArea<=0){
-    box.innerHTML='<div class="info-box">请输入公共能耗总额、总建筑面积与本户面积三个正数后再计算。</div>';
-    return;
-  }
+  if(rawTotal===''||rawAll===''||rawUnit===''){box.innerHTML='<div class="info-box">请填写公共能耗总额、总建筑面积与本户面积（总额 0 为合法无费用账期）。</div>';return;}
+  var total=parseFloat(rawTotal),allArea=parseFloat(rawAll),unitArea=parseFloat(rawUnit);
+  if(!isFinite(total)||!isFinite(allArea)||!isFinite(unitArea)){box.innerHTML='<div class="info-box">三个字段均请输入有效数字。</div>';return;}
+  if(total<0||allArea<=0||unitArea<0){box.innerHTML='<div class="info-box">公共能耗总额不能为负数；总建筑面积须大于 0；本户面积不能为负数。</div>';return;}
   if(unitArea>allArea){box.innerHTML='<div class="info-box">本户面积不能大于总建筑面积，请核对输入。</div>';return;}
   var ratio=unitArea/allArea;
-  var share=total*ratio;
+  var share=Math.round(total*ratio*100)/100;
   var perArea=total/allArea;
   var html='<div class="data-grid">';
   html+='<div class="data-card"><div class="num">¥'+share.toFixed(2)+'</div><div class="label">分摊金额</div></div>';
@@ -303,14 +395,17 @@ function calc(){
   html+='<div class="data-card"><div class="num">¥'+perArea.toFixed(2)+'</div><div class="label">单位面积成本（元/㎡）</div></div>';
   html+='</div>';
   html+='💡 分摊金额 = '+total+' × '+unitArea+' ÷ '+allArea+' = ¥'+share.toFixed(2)+'。';
+  if(total===0)html+='<div class="info-box" style="margin-top:8px;">本账期总额为 0：分摊金额为 0，仍保留面积占比与单位面积成本供核对。</div>';
+  html+='<div class="info-box" style="margin-top:8px;">口径说明：本试算按建筑面积比例分摊，适用于合同约定“按面积”且无独立分表的情形；若合同按用量、户数或自定义比例，请用下方“多户分摊核对”，并注意与账单实际口径一致。</div>';
   box.innerHTML=html;
 }
 function resetAll(){
   var a=document.getElementById('v0'),b=document.getElementById('v1'),c=document.getElementById('v2');
   if(a)a.value='9600';if(b)b.value='10000';if(c)c.value='100';
-  setInvalid(a,false);setInvalid(b,false);setInvalid(c,false);calc();
+  setInvalid(a,false);setInvalid(b,false);setInvalid(c,false);calc();try{initMultiRows();document.getElementById('multiRes').innerHTML='';}catch(e){}
 }
 try{calc();}catch(e){}
+try{initMultiRows();}catch(e){}
 
 var __energy_last=0,__energy_skip=false;
 function __energySnap(){
