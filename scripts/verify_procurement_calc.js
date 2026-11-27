@@ -33,8 +33,70 @@ const CASES = [
     "onTime": "96",
     "coopYears": "3"
   },
-  "expect": ["750\n5\n3\n3\n2000\n45\n3\n120\n3\n98.5\n0.5\n96\n3\n74 准入总分 优选供应商 供应商分级 通过 准入判定 评估维度 得分 明细 状态 企业资质 64 注册资本750万/资质3级/ISO有 良 财务状况 61 营收2000万/负债率45%/信用A 良 生产能力 68 产能满足率120%/设备3级 良 质量体系 94 合格率98.5%/客诉率0.5% 优 供货记录 82 准时率96%/合作3年 优 准入建议： 合格供应商，可扩大采购份额，定期评估绩效表现。"],
+  "expect": ["准入评分（示例模型）", "74", "优选供应商（参考）", "阈值 85/70/60 仅为可配置示例"],
   "ref": "auto-restore"
+},
+
+{
+  "slug": "procurement/rater-price",
+  "inputs": {"wQuality":"40","wPrice":"35","wDelivery":"25"},
+  "clicks": ["var D=[[98.5,100,96],[95,92,0],[99,110,92]];D.forEach(function(a,i){var g=document.querySelectorAll('#supplierRows input[data-field=passRate]')[i];var q=document.querySelectorAll('#supplierRows input[data-field=price]')[i];var d=document.querySelectorAll('#supplierRows input[data-field=onTime]')[i];if(g)g.value=a[0];if(q)q.value=a[1];if(d)d.value=a[2];});calc();"],
+  "expect": ["报价须填大于 0 的数值", "已暂停排名与推荐"],
+  "ref": "第1119批：报价 0 不参与比价，不得让最低价为 0 后仍输出排名与推荐。"
+},
+{
+  "slug": "procurement/stats-on-time-1",
+  "inputs": {"total":"100","ontime":"20","good":"20","both":"30"},
+  "expect": ["交集不成立", "0–20"],
+  "ref": "第1119批：总数100、准时20、合格20时交集只能是0–20；30 须拒绝，旧版会输出负的准时但不良率。"
+},
+{
+  "slug": "procurement/stats-on-time-1",
+  "inputs": {"total":"100","ontime":"20.5","good":"20","both":"10"},
+  "expect": ["批次数须为非负整数"],
+  "ref": "第1119批：批次数不得为小数。"
+},
+{
+  "slug": "procurement/stats-on-time-qualified",
+  "inputs": {"total":"100","ontime":"20","qualified":"20","both":"30"},
+  "expect": ["交集不成立", "0–20"],
+  "ref": "第1119批：实测交集超出可行范围须拒绝，不能当独立估算继续算。"
+},
+{
+  "slug": "procurement/analysis-cost",
+  "inputs": {"Q":"100","oldP":"100","newP":"110","N":"6","inv":"5000"},
+  "expect": ["无法回收", "无正节约"],
+  "ref": "第1119批：新单价高于原单价、且有投入时不得显示 0 次/0 年回收期。"
+},
+{
+  "slug": "procurement/analysis-cost",
+  "inputs": {"Q":"100","oldP":"100","newP":"80","N":"0","inv":"0"},
+  "expect": ["无法按年计算"],
+  "ref": "第1119批：年采购次数为 0 且有单次节约时不得除零或给 0 年回收期。"
+},
+{
+  "slug": "procurement/wuliu-yunshufangshi-yunfei-bidui",
+  "inputs": {"v0":"500","v1":"200","roadRate":"0.5","railRate":"0.25"},
+  "expect": ["50.00", "25.00", "0.5000 元/(t·km)", "0.2500 元/(t·km)"],
+  "ref": "第1119批：500 km、200 kg、0.5/0.25 元每吨公里 ⇒ 公路 50 元、铁路 25 元；单位费率须与总运费分开显示。"
+},
+{
+  "slug": "procurement/assessor-26",
+  "inputs": {"capital":"750","bizYears":"5","revenue":"2000","debtRatio":"","capacity":"120","passRate":"98.5","complaint":"0.5","onTime":"96","coopYears":"3"},
+  "expect": ["待评估", "debtRatio"],
+  "ref": "第1119批：只清空资产负债率也必须待评估，不能当 0 获得低负债满分并输出准入建议。"
+},
+{
+  "slug": "procurement/assessor-26",
+  "inputs": {"capital":"750","bizYears":"5","revenue":"2000","debtRatio":"101","capacity":"120","passRate":"98.5","complaint":"0.5","onTime":"96","coopYears":"3"},
+  "expect": ["须在 0–100%"],
+  "ref": "第1119批：资产负债率超过 100% 须拒绝。"
+},
+{
+  "slug": "procurement/zhaobiao-gongkai-yaoqing-jingzheng-fangshi",
+  "inputs": {"v0":"-1"},
+  "expect": ["项目金额须填写 ≥0 的数值"],
+  "ref": "第1119批：负金额不得进入方式对比或合规结论。"
 },
 {
   "slug": "procurement/eoq",
@@ -71,8 +133,10 @@ const CASES = [
     "wPrice": "35",
     "wDelivery": "25"
   },
+  "clicks": ["var D=[[98.5,100,96],[95,92,98],[99,110,92],[96,100,95]];D.forEach(function(a,i){var g=document.querySelectorAll('#supplierRows input[data-field=passRate]')[i];var q=document.querySelectorAll('#supplierRows input[data-field=price]')[i];var d=document.querySelectorAll('#supplierRows input[data-field=onTime]')[i];if(g)g.value=a[0];if(q)q.value=a[1];if(d)d.value=a[2];});calc();"],
   "expect": [
-    "综合得分97.1分"
+    "推荐供应商",
+    "供应商A"
   ],
   "ref": "auto-restore"
 },
@@ -165,11 +229,13 @@ const CASES = [
       "v1": "42"
     },
     "expect": [
-      "可 合规要求 0.4"
+      "待核对事项",
+      "项目金额（万元，仅记录）",
+      "本页不输出“合规/不合规”"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"v0\":\"42\",\"v1\":\"42\"}，输出区含「可 合规要求 0.4」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "第1119批：移除按金额判定法定程序；42 万元只作记录，输出三方式流程与核对清单。"
   },
-{ slug:"procurement/assessor-26", inputs:{"capital":"","bizYears":"","revenue":"","debtRatio":"","capacity":"","passRate":"","complaint":"","onTime":"","coopYears":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"procurement/assessor-26", inputs:{"capital":"","bizYears":"","revenue":"","debtRatio":"","capacity":"","passRate":"","complaint":"","onTime":"","coopYears":""}, expect:["待评估：请补全全部字段后再评分"], ref:"第1119批：全部字段留空须标待评估，不输出 0 分假结果，也不得把空当 0。" }
 ];
 async function main() {
   const only = process.argv.slice(2);

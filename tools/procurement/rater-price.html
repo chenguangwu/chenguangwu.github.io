@@ -55,7 +55,7 @@
 
 
 <meta name="title-en" content="Supplier Multi-Criteria Scorer">
-<meta name="desc-en" content="The three weights are normalized first, w′ = w ÷ (w_quality+w_price+w_delivery); quality score = min(pass rate %, 100), price score = min(lowest price ÷…">
+<meta name="desc-en" content="Normalize the three weights first: w′ = w ÷ (wQ + wP + wD). Quality score = min(pass rate %, 100); price score = min(lowest price ÷ quote × 100, 100) (lowest…">
 <!-- TOOLBOX-HREFLANG -->
 <link rel="alternate" hreflang="zh-CN" href="https://chenguangwu.github.io/tools/procurement/rater-price.html">
 <link rel="alternate" hreflang="zh-TW" href="https://chenguangwu.github.io/zh-tw/tools/procurement/rater-price.html">
@@ -139,7 +139,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入多个供应商的质量/价格/交期数据，自定义权重，系统自动计算综合评分并排名，辅助采购决策。">Rater Price</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">三项权重先归一化 w′ = w ÷ (w质+w价+w交)；质量分 = min(合格率%, 100)、价格分 = min(最低价 ÷ 报价 × 100, 100)（最低价得 100 封顶）、交期分 = min(准时率%, 100)；综合分 = 质量分×w质′ + 价格分×w价′ + 交期分×w交′，按降序排名。校验：权重和为 0 提示「权重不能全为0」。判据：推荐综合分最高者；与第二名差距 &lt;3 分提示建议综合考虑，否则提示优势明显。</div>
+      <div class="formula-eq">三项权重先归一化 w′ = w ÷ (w质+w价+w交)；质量分 = min(合格率%, 100)、价格分 = min(最低价 ÷ 报价 × 100, 100)（最低价得 100 封顶）、交期分 = min(准时率%, 100)；综合分 = 质量分×w质′ + 价格分×w价′ + 交期分×w交′，按降序排名。校验：权重逐项 0–100、不得全 0，合计按比例归一化；合格率/准时率 0–100，报价须大于 0；任一项缺失或非法即暂停排名与推荐。判据：推荐综合分最高者；与第二名差距 &lt;3 分提示建议综合考虑，否则提示优势明显。</div>
       <p class="formula-desc">输入多个供应商的质量/价格/交期数据，自定义权重，系统自动计算综合评分并排名，辅助采购决策。</p>
     </div>
 
@@ -215,9 +215,9 @@ function renderRows(){
       (supplierData.length>1?'<button type="button" onclick="removeSupplier('+i+')" style="border:none;background:none;color:var(--danger);cursor:pointer;font-size:18px;" aria-label="删除">×</button>':'')+
       '</div>'+
       '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;">'+
-      '<div><label style="font-size:12px;">合格率(%)</label><input type="number" value="'+s.passRate+'" step="0.1" style="font-size:16px;" oninput="supplierData['+i+'].passRate=parseFloat(this.value)||0;calc()" placeholder="如 '+s.passRate+'" aria-label="合格率(%)"></div>'+
-      '<div><label style="font-size:12px;">报价(元)</label><input type="number" value="'+s.price+'" step="1" style="font-size:16px;" oninput="supplierData['+i+'].price=parseFloat(this.value)||0;calc()" placeholder="如 '+s.price+'" aria-label="报价(元)"></div>'+
-      '<div><label style="font-size:12px;">准时率(%)</label><input type="number" value="'+s.onTime+'" step="0.5" style="font-size:16px;" oninput="supplierData['+i+'].onTime=parseFloat(this.value)||0;calc()" placeholder="如 '+s.onTime+'" aria-label="准时率(%)"></div>'+
+      '<div><label style="font-size:12px;">合格率(%)</label><input type="number" value="'+s.passRate+'" step="0.1" style="font-size:16px;" data-sup="'+i+'" data-field="passRate" oninput="supplierData['+i+'].passRate=parseFloat(this.value)||0;calc()" placeholder="如 '+s.passRate+'" aria-label="合格率(%)"></div>'+
+      '<div><label style="font-size:12px;">报价(元)</label><input type="number" value="'+s.price+'" step="1" style="font-size:16px;" data-sup="'+i+'" data-field="price" oninput="supplierData['+i+'].price=parseFloat(this.value)||0;calc()" placeholder="如 '+s.price+'" aria-label="报价(元)"></div>'+
+      '<div><label style="font-size:12px;">准时率(%)</label><input type="number" value="'+s.onTime+'" step="0.5" style="font-size:16px;" data-sup="'+i+'" data-field="onTime" oninput="supplierData['+i+'].onTime=parseFloat(this.value)||0;calc()" placeholder="如 '+s.onTime+'" aria-label="准时率(%)"></div>'+
       '</div>';div.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
     c.appendChild(div);
   });
@@ -233,17 +233,43 @@ function removeSupplier(i){
   renderRows();calc();
 }
 function calc(){
-  var wQ=parseFloat(document.getElementById('wQuality').value)||0;
-  var wP=parseFloat(document.getElementById('wPrice').value)||0;
-  var wD=parseFloat(document.getElementById('wDelivery').value)||0;
+  function raw(id){return String(document.getElementById(id).value||'').trim();}
+  var wRaw=[raw('wQuality'),raw('wPrice'),raw('wDelivery')];
+  var wArr=wRaw.map(Number);
+  var badW=wArr.some(function(v,i){return wRaw[i]===''||!isFinite(v)||v<0||v>100;});
+  var wQ=wArr[0], wP=wArr[1], wD=wArr[2];
   var wSum=wQ+wP+wD;
-  if(wSum===0){document.getElementById('res').innerHTML='<p style="color:var(--danger);">权重不能全为0</p>';return;}
+  if(badW||wSum<=0){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">权重须逐项填写 0–100 的有限数值，且不能全为 0；合计不等于 100 时按比例归一化</p>';
+    ['rater_priceTable','rater_priceDiff','rater_priceChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+    return;
+  }
   /* 归一化权重 */
   wQ=wQ/wSum;wP=wP/wSum;wD=wD/wSum;
+  /* 从输入框读取原始值，区分未填写与 0 */
+  var rows=supplierData.map(function(s,i){
+    var pEl=document.querySelector('#supplierRows input[data-sup="'+i+'"][data-field="passRate"]');
+    var qEl=document.querySelector('#supplierRows input[data-sup="'+i+'"][data-field="price"]');
+    var dEl=document.querySelector('#supplierRows input[data-sup="'+i+'"][data-field="onTime"]');
+    return {name:s.name, passRaw:pEl?String(pEl.value||'').trim():'', priceRaw:qEl?String(qEl.value||'').trim():'', onRaw:dEl?String(dEl.value||'').trim():'', price:Number(qEl?qEl.value:NaN), passRate:Number(pEl?pEl.value:NaN), onTime:Number(dEl?dEl.value:NaN)};
+  });
+  var badRows=[];
+  rows.forEach(function(r,i){
+    var reasons=[];
+    if(r.passRaw===''||!isFinite(r.passRate)||r.passRate<0||r.passRate>100) reasons.push('合格率须填 0–100');
+    if(r.priceRaw===''||!isFinite(r.price)||r.price<=0) reasons.push('报价须填大于 0 的数值（0 元不参与比价）');
+    if(r.onRaw===''||!isFinite(r.onTime)||r.onTime<0||r.onTime>100) reasons.push('准时率须填 0–100');
+    if(reasons.length) badRows.push(r.name+'：'+reasons.join('、'));
+  });
+  if(badRows.length){
+    document.getElementById('res').innerHTML='<p style="color:var(--danger);">数据未通过校验，已暂停排名与推荐：</p><ul style="color:var(--danger);font-size:13px;">'+badRows.map(function(t){return '<li>'+t+'</li>';}).join('')+'</ul><p style="font-size:12px;color:var(--text-muted);">未填写不能当作 0；明确 0% 可填 0。报价 0 会使最低价为 0、所有价格分为 0，故不参与比价。</p>';
+    ['rater_priceTable','rater_priceDiff','rater_priceChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+    return;
+  }
   /* 找最低价 */
-  var minPrice=Math.min.apply(null,supplierData.map(function(s){return s.price;}));
+  var minPrice=Math.min.apply(null,rows.map(function(s){return s.price;}));
   /* 计算各供应商得分 */
-  var results=supplierData.map(function(s){
+  var results=rows.map(function(s){
     var qScore=Math.min(s.passRate,100); /* 合格率直接映射 */
     var pScore=minPrice>0?Math.min(minPrice/s.price*100,100):0; /* 最低价=100 */
     var dScore=Math.min(s.onTime,100); /* 准时率直接映射 */
@@ -318,11 +344,11 @@ calc();
 <h2>📚 深度解析：供应商综合评分对比</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>三家供应商比选：填各自合格率、报价、准时率，设质量/价格/交期权重，自动加权排名并推荐第一名。</li>
-<li>招标定标：将商务评标中质量分、报价分、交期分代入，按既定权重得出综合分辅助定标。</li>
-<li>价格权重敏感性分析：调高价格权重看排名是否反转，验证选型对价格的依赖程度。</li>
+<li>权重逐项 0–100、不得全 0，合计不等于 100 时按比例归一化；合格率/准时率 0–100，报价须大于 0。</li>
+<li>任一供应商字段留空或非法即暂停排名与推荐；清空的报价不再按 0 变成最低价。</li>
+<li>报价 0 元不参与比价（最低价为 0 会让所有价格分为 0）；免费样品另附说明。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">以「A/B/C 三家，权重 质量40/价格30/交期30」为例</div><div class="dd-ex-body">数据：A(合格率98.5,报价100,准时96)、B(95,92,98)、C(99,110,92)。权重归一化后质量0.4/价格0.3/交期0.3，最低价=92 作为价格满分基准。得分：A=98.5×0.4+min(92/100,1)×100×0.3+96×0.3=39.4+27.6+28.8=95.8；B=95×0.4+100×0.3+98×0.3=97.4；C=99×0.4+(92/110×100)×0.3+92×0.3≈92.3。排名：B(97.4) &gt; A(95.8) &gt; C(92.3)，推荐供应商 B。</div></div>
+<div class="dd-example"><div class="dd-ex-title">以「A/B/C 三家，权重 质量40/价格30/交期30」为例</div><div class="dd-ex-body">三家权重 40/35/25，A(98.5,100,96)、B(95,92,98)、C(99,110,92)：归一化 0.4/0.35/0.25，最低价 92。A 综合 95.60、B 97.50、C 91.87，B 最高；B 与 A 差 2.50 分（&lt;3 分），页面提示建议综合考虑。若把 B 报价清空，页面提示「报价须填大于 0」并暂停排名，不输出推荐。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么「最低价=100 分」？</dt><dd>价格维度采用相对最低价映射：以参评供应商中的最低报价为满分基准，其余按 最低价/自身报价×100 折算，避免「报价越高质量分越低」的不合理陡降，同时保持价格优势可得满分。若某家报价高于最低价，价格分按比值递减。</dd>
@@ -344,12 +370,12 @@ calc();
     </a>
     
     <a href="zhaobiao-gongkai-yaoqing-jingzheng-fangshi.html" class="related-tool-card">
-      <span class="rt-icon">🛒</span>
-      <span class="rt-info"><span class="rt-name">招标（公开/邀请/竞争）方式</span><span class="rt-desc">招标方式对比工具对比公开招标、邀请招标与竞争性谈判等采购方式的适用情形与流程要点，辅助合规采购决策</span></span>
+      <span class="rt-icon">⚖️</span>
+      <span class="rt-info"><span class="rt-name">招标方式对比与核对清单</span><span class="rt-desc">对比公开招标、邀请招标与竞争性谈判的常见适用情形和流程要点，并提供待核对清单；金额仅记录，不判定合规</span></span>
     </a>
     <a href="wuliu-yunshufangshi-yunfei-bidui.html" class="related-tool-card">
-      <span class="rt-icon">🚚</span>
-      <span class="rt-info"><span class="rt-name">物流（运输方式/运费）比对</span><span class="rt-desc">物流运输方式与运费比对工具按输入参数对比快递、零担、整车等方案的运费与时效，辅助采购与分销的物流选型</span></span>
+      <span class="rt-icon">🚆</span>
+      <span class="rt-info"><span class="rt-name">公路/铁路参考运费估算</span><span class="rt-desc">按距离、重量与公路/铁路单价估算参考运费，并展示单位费率；</span></span>
     </a>
     <a href="eoq.html" class="related-tool-card">
       <span class="rt-icon">🛒</span>
