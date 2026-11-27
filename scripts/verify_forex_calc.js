@@ -43,7 +43,26 @@ const CASES = [
   "expect": ["$60.00 点差成本", "总交易成本 = $60.00"],
   "ref": "注入非默认（默认 EURUSD / lots=1 / days=0）：⚠ 选 pair 会联动改写 ask/bid（GBP/USD 的 data 报价 1.2752/1.275）⇒ 不手工注入 ask/bid（注入也会被覆盖，真机同样）。点差 = 0.00020 ⇒ 2.0 点；每手每点 = 100000×0.0001÷1 = $10 ⇒ 点差成本 = 3×2.0×10 = $60.00；佣金 = 3×7 = $21.00；隔夜 = 3×(−3.5)×2 = −$21.00 ⇒ 总成本 = 60+21−21 = $60.00。默认态点差成本 $20.00 / 总成本 $27.00，两串均不出现。"
 },
-{ slug:"forex/pip-calc", inputs:{"rate":"","quoteUsdRate":"","pips":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" }
+{ slug:"forex/pip-calc", inputs:{"rate":"","quoteUsdRate":"","pips":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{
+  "slug": "forex/pip-calc",
+  "inputs": { "pair": "USDCHF", "lotSize": "1", "pips": "10", "accountCcy": "USD", "quoteUsdRate": "0.885" },
+  "expect": ["$11.30 每点价值", "波动10点盈亏 = +$112.99"],
+  "ref": "第1064批：USD/CHF 报价货币 CHF，1 手 1 点=10 CHF，按 1 USD=0.885 CHF 换算为 $11.30；10 点 $112.99。旧默认 1.13 会得到 $8.85，方向不一致。"
+},
+{
+  "slug": "forex/lot-size",
+  "inputs": { "balance": "10000", "riskPct": "2", "stopPips": "50", "pair": "USDCHF", "maxLots": "10", "quoteUsdRate": "0.885" },
+  "expect": ["0.35 建议手数", "$200.00 实际亏损"],
+  "ref": "第1064批：USD/CHF 每手每点=$11.2994，50 点风险=$564.97，$200 风险对应 0.35 手；旧 1.13 会低估每点价值并给出偏小手数。"
+},
+{
+  "slug": "forex/spread-cost",
+  "inputs": { "pair": "USDCHF", "lots": "1", "days": "0", "quoteUsdRate": "0.885" },
+  "expect": ["$22.60 点差成本", "$29.60 总交易成本"],
+  "ref": "第1064批：USD/CHF 点差 2 点，每点 $11.2994 ⇒ 点差成本 $22.60，加佣金 $7 得 $29.60；旧 1.13 会得到 $17.70/$24.70。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
