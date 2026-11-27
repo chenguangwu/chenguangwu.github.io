@@ -147,7 +147,7 @@
 
     <div class="input-row">
       <div>
-        <label for="data">数据（逗号分隔）</label>
+        <label for="data">数据（逗号、空格、分号均可）</label>
         <input type="text" inputmode="text" data-list="1" id="data" value="60,40,30" step="1">
       </div>
     </div>
@@ -307,17 +307,30 @@ function __tbInputGuardCore(_ids,_labels){
 function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __hmMsg(zh,en){try{if(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return en;}catch(e){}return /(^|[?&])lang=en/i.test(location.search)||(document.documentElement.lang||'').toLowerCase().indexOf('en')===0?en:zh;}
+function fmtMean(v){
+  if(!isFinite(v)) return '—';
+  if(v!==0 && Math.abs(v)<0.0001) return v.toExponential(2);
+  return v.toFixed(4);
+}
+var __hmOk=false;
+function __hmClearAux(){
+  ['hmTable','hmMatrix','hmCmp','hmDiff','hmChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+}
 function calcTool(){
-const __p=__hmParse(document.getElementById('data').value);
-            if(__p.error){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__p.error+'</p>');return;}
-            const arr=__p.vals, n=arr.length;
-            const H = n / arr.reduce((a,b)=>a+1/b,0);
-            const __g2=dataGrid([
-                [H.toFixed(4), '调和平均 H'],
-                [n, '有效样本数 n'],
-                [(arr.reduce((a,b)=>a+b,0)/n).toFixed(4), '算术平均（对比）']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  __hmOk=false; __hmClearAux();
+  const __p=__hmParse(document.getElementById('data').value);
+  if(__p.error){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__p.error+'</p>');return;}
+  const arr=__p.vals, n=arr.length;
+  const H = n / arr.reduce((a,b)=>a+1/b,0);
+  if(!isFinite(H)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 计算结果超出数值范围，请检查输入。</p>');return;}
+  __hmOk=true;
+  const __g2=dataGrid([
+    [fmtMean(H), '调和平均 H'],
+    [n, '有效样本数 n'],
+    [fmtMean(arr.reduce((a,b)=>a+b,0)/n), '算术平均（对比）']
+  ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+}
 function resetForm(){document.getElementById('data').value = '60,40,30';
       calcTool();}
 calcTool();
@@ -340,7 +353,7 @@ function __hmNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.valu
 function __hmExtras(){
     if (typeof TBKit === 'undefined') return;
     var raw=document.getElementById('data').value;
-    var __p=__hmParse(raw); if(__p.error){var __t=document.getElementById('hmTable');if(__t)__t.innerHTML='';return;} var arr=__p.vals;
+    var __p=__hmParse(raw); if(__p.error){__hmClearAux();return;} var arr=__p.vals;
     var n=arr.length; if(!n) return;
     var en=TBKit.util.isEn();
     var inv=arr.map(function(v){return 1/v;});
@@ -350,7 +363,7 @@ function __hmExtras(){
     var G=Math.exp(arr.reduce(function(a,b){return a+Math.log(b);},0)/n);
     var rows=[];
     arr.forEach(function(v,i){
-        rows.push([String(i+1), String(v), inv[i].toFixed(6), (inv[i]/sumInv*100).toFixed(2)+'%']);
+        rows.push([String(i+1), String(v), fmtMean(inv[i]), fmtMean(inv[i]/sumInv*100)+'%']);
     });
     TBKit.matrix.table('#hmTable',{
         head: en?['#','Value','1 / x','Weight']:['#','数值','1 / x','倒数权重'],
@@ -360,7 +373,7 @@ function __hmExtras(){
     scen.forEach(function(c){
         var v1=c[0],v2=c[1];
         var ha=2/(1/v1+1/v2), ar=(v1+v2)/2;
-        mrows.push([v1+' / '+v2, ha.toFixed(2), ar.toFixed(2), (ar-ha).toFixed(2)]);
+        mrows.push([v1+' / '+v2, fmtMean(ha), fmtMean(ar), fmtMean(ar-ha)]);
     });
     TBKit.matrix.table('#hmMatrix',{
         head: en?['Round trip speeds','True mean (H)','Arithmetic mean','Overestimate']:['往返速度 km/h','真实平均速度（调和）','算术平均','高估量'],
@@ -369,16 +382,16 @@ function __hmExtras(){
     TBKit.matrix.table('#hmCmp',{
         head: en?['Mean','Value','Use for']:['平均类型','数值','适用口径'],
         rows: en?[
-            ['Harmonic', H.toFixed(5), 'equal-distance speeds, rates'],
-            ['Arithmetic', A.toFixed(5), 'equal-time averages'],
-            ['Geometric', G.toFixed(5), 'growth chains']
+            ['Harmonic', fmtMean(H), 'equal-distance speeds, rates'],
+            ['Arithmetic', fmtMean(A), 'equal-time averages'],
+            ['Geometric', fmtMean(G), 'growth chains']
         ]:[
-            ['调和平均', H.toFixed(5), '等距离速度、速率平均'],
-            ['算术平均', A.toFixed(5), '等时间平均'],
-            ['几何平均', G.toFixed(5), '增长率连乘']
+            ['调和平均', fmtMean(H), '等距离速度、速率平均'],
+            ['算术平均', fmtMean(A), '等时间平均'],
+            ['几何平均', fmtMean(G), '增长率连乘']
         ]
     });
-    TBKit.history.record({data:raw,h:Number(H.toFixed(5))});
+    TBKit.history.record({data:raw,h:H});
     TBKit.util.diffBox('#hmDiff',['h']);
     TBKit.history.mount('#hmHist',function(v){
         if(v.data!=null)document.getElementById('data').value=v.data;
@@ -387,6 +400,7 @@ function __hmExtras(){
 }
 function __hmExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__hmOk){try{ToolBox.showToast(__hmMsg('请先执行有效计算，暂无可导出数据','Run a valid calculation before exporting'),'warning');}catch(e){}return;}
     try { TBKit.util.exportTable('#hmTable','harmonic-mean.csv'); } catch (e) {}
 }
 function __hmPresets(){
@@ -450,13 +464,13 @@ else document.addEventListener("DOMContentLoaded", __hmBoot);
 function __hmChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   var el=document.getElementById('data'); if(!el)return;
-  var arr=el.value.split(',').map(function(s){return parseFloat(s.trim());}).filter(function(v){return v>0&&isFinite(v);});
+  var __p=__hmParse(el.value); if(__p.error){var __c=document.getElementById('hmChart');if(__c)__c.innerHTML='';return;} var arr=__p.vals;
   if(!arr.length)return;
   var n=arr.length;
   var H=n/arr.reduce(function(a,b){return a+1/b;},0);
   var A=arr.reduce(function(a,b){return a+b;},0)/n;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.bar('#hmChart',{title:en?'Harmonic vs Arithmetic Mean (H <= A)':'调和平均 vs 算术平均（H ≤ A）',labels:en?['Harmonic H','Arithmetic A']:['调和平均 H','算术平均 A'],series:[{name:en?'Mean':'平均值',data:[Math.round(H*10000)/10000,Math.round(A*10000)/10000]}]});
+  TBKit.chart.bar('#hmChart',{title:en?'Harmonic vs Arithmetic Mean (H <= A)':'调和平均 vs 算术平均（H ≤ A）',labels:en?['Harmonic H','Arithmetic A']:['调和平均 H','算术平均 A'],series:[{name:en?'Mean':'平均值',data:[H,A]}]});
 }
 var __hmFn=calcTool;calcTool=function(){try{__hmFn();}catch(e){}try{__hmChart();}catch(e){}};
 document.addEventListener('toolbox:langchange',function(){try{__hmChart();}catch(e){}});
@@ -545,8 +559,9 @@ document.addEventListener('toolbox:langchange',function(){try{__hmChart();}catch
   function __stHm(){
     var e = document.getElementById('data');
     if (!e) return null;
-    var xs = String(e.value || '').split(/[\s,]+/).map(function(s){ return parseFloat(s); })
-               .filter(function(v){ return isFinite(v); });
+    var __p = __hmParse(e.value);
+    if (__p.error) return null;
+    var xs = __p.vals;
     var n = xs.length;
     if (n < 1) return null;
     var i, sumInv = 0, sum = 0, prod = 1, hasNonPos = false;
@@ -595,10 +610,10 @@ document.addEventListener('toolbox:langchange',function(){try{__hmChart();}catch
     }
     var gap = m.am - m.hm;
     if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#0d9488';
-      badge.textContent = (en ? 'HM = ' : 'HM = ') + m.hm.toFixed(4); }
-    if (val) val.textContent = (en ? 'Harmonic mean = ' : '调和平均 = ') + m.hm.toFixed(4)
-      + (en ? '   vs arithmetic ' : '   算术平均 ') + m.am.toFixed(4)
-      + (en ? ' and geometric ' : '，几何平均 ') + m.gm.toFixed(4);
+      badge.textContent = (en ? 'HM = ' : 'HM = ') + fmtMean(m.hm); }
+    if (val) val.textContent = (en ? 'Harmonic mean = ' : '调和平均 = ') + fmtMean(m.hm)
+      + (en ? '   vs arithmetic ' : '   算术平均 ') + fmtMean(m.am)
+      + (en ? ' and geometric ' : '，几何平均 ') + fmtMean(m.gm);
 
     var rows = '';
     // 经典陷阱：往返平均速度
@@ -620,19 +635,19 @@ document.addEventListener('toolbox:langchange',function(){try{__hmChart();}catch
     rows += __stRow(en ? 'The three averages' : '三个平均数的关系',
       (en ? 'For positive numbers the ordering is always arithmetic >= geometric >= harmonic: here '
         : '对正数而言恒有 算术 ≥ 几何 ≥ 调和：此处 ')
-      + m.am.toFixed(4) + ' >= ' + m.gm.toFixed(4) + ' >= ' + m.hm.toFixed(4)
+      + fmtMean(m.am) + ' >= ' + fmtMean(m.gm) + ' >= ' + fmtMean(m.hm)
       + (en ? '. They coincide only when every value is identical; the wider the spread, the further apart they sit.'
         : '。只有当所有数值相同时三者才相等；离散越大，它们相差越远。'));
 
     rows += __stRow(en ? 'It is dominated by small values' : '它受小值主导',
-      (en ? 'The smallest value here is ' : '此处最小值为 ') + m.min.toFixed(4)
+      (en ? 'The smallest value here is ' : '此处最小值为 ') + fmtMean(m.min)
       + (en ? '. Because the harmonic mean works on reciprocals, one very small value pulls it down hard - '
              + 'much harder than it pulls down the arithmetic mean. Check for a genuine zero or a data-entry slip before trusting it.'
         : '。由于调和平均作用于倒数，一个很小的值会把它拉得很低 —— 远比它对算术平均的影响大。'
           + '采信之前请确认是否真有 0 或录入错误。'));
 
     rows += __stRow(en ? 'What the gap tells you' : '两者之差说明什么',
-      (en ? 'Arithmetic minus harmonic here is ' : '此处算术平均减调和平均 = ') + gap.toFixed(4)
+      (en ? 'Arithmetic minus harmonic here is ' : '此处算术平均减调和平均 = ') + fmtMean(gap)
       + (gap > 0
           ? (en ? ', a sign the values are spread out: the closer the two averages, the more uniform the data.'
             : '，说明数值比较分散：两个平均数越接近，数据越均匀。')
@@ -642,7 +657,7 @@ document.addEventListener('toolbox:langchange',function(){try{__hmChart();}catch
     if (bar){
       bar.innerHTML = __stBar(m.am > 0 ? m.hm / m.am : 0, '#0d9488')
         + '<div style="font-size:12px;color:var(--text-muted);">'
-        + (en ? 'HM / AM = ' : 'HM / AM = ') + (m.am > 0 ? (m.hm / m.am).toFixed(4) : '-')
+        + (en ? 'HM / AM = ' : 'HM / AM = ') + (m.am > 0 ? fmtMean(m.hm / m.am) : '-')
         + (en ? '  (1 means all values are equal)' : '（为 1 表示所有数值相同）')
         + '</div>';
     }
