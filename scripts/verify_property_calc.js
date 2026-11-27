@@ -264,6 +264,13 @@ const CASES = [
     "ref": "保洁人数卡片直读 staffCount：注入 2 ⇒ 结果区「2 保洁人数」；页面默认 4 ⇒「4 保洁人数」，不含「2 保洁人数」⇒ 注入失败必 FAIL。动态任务行在桩内未登记（querySelectorAll 取不到 .task-row），故断言只锚定人数分支，不伪造工作量数值。"
   },
   {
+    "slug": "property/cleaning-allocation",
+    "inputs": { "staffCount": "0" },
+    "dynDom": true,
+    "expect": ["保洁人数：必须大于 0"],
+    "ref": "人数 0 不再被 max(1,输入) 静默兜底为 1；结果区必须点名「保洁人数：必须大于 0」且不生成分配。"
+  },
+  {
     "slug": "property/irrigation-schedule",
     "inputs": { "days": "10", "seed": "7", "rainProb": "80" },
     "dynDom": true,
