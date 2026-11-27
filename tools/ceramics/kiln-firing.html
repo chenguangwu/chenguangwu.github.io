@@ -131,7 +131,9 @@
     </div>
 
     <div class="toolbar" style="margin:12px 0;">
-      <button type="button" class="btn" onclick="window.__kfExport()">⬇️ 导出烧成曲线 CSV</button>
+      <button type="button" class="btn primary" onclick="window.__kfExport('cur')">⬇️ 导出当前标签 CSV</button>
+      <button type="button" class="btn" onclick="window.__kfExport('all')">导出全部类型 CSV</button>
+      <span style="font-size:12px;color:var(--text-muted);align-self:center;">“当前标签”只导出正在查看的曲线；“全部类型”会逐类导出并加类型列。</span>
     </div>
 
     <div id="schedWrap"></div>
@@ -177,7 +179,7 @@
 <li>还原焰（瓷）曲线：高温段（约 950–1050℃ 起）通入还原气氛，使铁呈青色，需控制还原时机与结束后的氧化保温。</li>
 <li>素烧与釉烧分段：素烧低温排塑定形、釉烧高温成瓷，两段分别规划可提升成品率与釉面质量。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">炻器釉烧曲线演练</div><div class="dd-ex-body">输入炻器坯+透明釉，工具给出曲线：室温→300℃ 缓升排湿→300–950℃ 中速→950–1230℃ 升到保温 30min→自然冷却，总时长约 8–10h。</div></div>
+<div class="dd-example"><div class="dd-ex-title">炻器釉烧曲线演练</div><div class="dd-ex-body">输入炻器坯+透明釉，工具给出曲线：室温→150℃ 慢升排湿→150–600℃ 中速排结构水→600–950℃ 氧化→950–1060℃ 可选还原→1060–1260℃ 烧结→1260℃ 保温 30–60min→自然冷却，总时长约 11–13h（不含自然冷却）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>升温速率为何前期慢、后期快？</dt><dd>低温段泥料含水与有机质排出需缓升防爆裂；中高温坯体已定型可加快；接近保温再控速以利釉熔与排气均匀。</dd>
@@ -330,8 +332,9 @@ function __kfTr(v,en){
   for(var i=0;i<pairs.length;i++) t=t.split(pairs[i][0]).join(pairs[i][1]);
   return t.replace(/\s+/g,' ').trim();
 }
-function __kfExport(){
+function __kfExport(scope){
   if(typeof TBKit==='undefined')return;
+  scope=scope||'cur';
   var en=TBKit.util.isEn();
   var tbody=document.querySelector('#kfHidden tbody');
   tbody.innerHTML='';
@@ -339,13 +342,17 @@ function __kfExport(){
   var ths=document.querySelectorAll('#kfHidden thead th');
   for(var hi=0;hi<ths.length&&hi<heads.length;hi++) ths[hi].textContent=heads[hi];
   function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
-  for(var key in SCHED){
-    var s=SCHED[key];
+  var keys=scope==='all'?Object.keys(SCHED):[cur];
+  keys.forEach(function(key){
+    var s=SCHED[key];if(!s)return;
     s.stages.forEach(function(st){
       row([__kfName(s.name,en), __kfTr(st[1],en), __kfTr(st[2],en), __kfTr(st[3],en), __kfTr(st[4],en)]);
     });
-  }
-  TBKit.util.exportTable('#kfHidden', en?'kiln-firing-schedule.csv':'窑炉烧成曲线.csv');
+  });
+  var file;
+  if(scope==='all') file=en?'kiln-firing-all-types.csv':'窑炉烧成曲线-全部类型.csv';
+  else file=en?'kiln-firing-'+cur+'.csv':'窑炉烧成曲线-'+SCHED[cur].name.replace(/[（）]/g,'')+'.csv';
+  TBKit.util.exportTable('#kfHidden', file);
 }
 
 render();

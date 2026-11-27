@@ -34,10 +34,11 @@ const CASES = [
   "inputs": {
     "totalW": "1500"
   },
+  "clicks": ["calc();"],
   "expect": [
     "375.0"
   ],
-  "ref": "auto-restore"
+  "ref": "1500g × 石英 25% = 375.0g；strict 默认口径合计 100% 不触发归一化提示。"
 },
 {
   "slug": "ceramics/clay-shrinkage",
@@ -85,9 +86,15 @@ const CASES = [
 ,
 {
   "slug": "ceramics/glaze-ratio",
-  "clicks": ["MATS.forEach(function(m){m.pct=0;});MATS[0].pct=90;calc();var h=String(document.getElementById('result').innerHTML);var w=document.getElementById('w_0');document.getElementById('__tbProbe').textContent='TB828G '+((h.indexOf('低于 100%')>=0&&h.indexOf('不再用输入总重估算加水')>=0&&h.indexOf('需加水量')<0&&w&&w.value==='—')?'OK':'BAD');"],
+  "clicks": ["MATS.forEach(function(m){m.pct=0;});MATS[0].pct=90;calc();var h=String(document.getElementById('result').innerHTML);var w=document.getElementById('w_0');document.getElementById('__tbProbe').textContent='TB828G '+((h.indexOf('严格口径要求配方合计')>=0&&h.indexOf('按比例归一化')>=0&&h.indexOf('需加水量')<0&&w&&w.value==='—')?'OK':'BAD');"],
   "expect": ["TB828G OK"],
-  "ref": "第828批：配方合计 90% 时旧实现仍按输入总重算加水与釉浆。现在 |sum−100|>0.5 即停算，列出补足/扣减百分点表并把称量输入置 —，不输出需加水量。"
+  "ref": "strict 口径下合计 90%：停算并提示切「按比例归一化」，列出补足/扣减表，称量输入置 —，不输出需加水量。"
+},
+{
+  "slug": "ceramics/glaze-ratio",
+  "clicks": ["document.getElementById('sumMode').value='normalize';document.getElementById('totalW').value='1000';MATS.forEach(function(m){m.pct=0;});MATS[0].pct=99.6;renderMats();calc();var h=String(document.getElementById('result').innerHTML);var w=document.getElementById('w_0').value;document.getElementById('__tbProbe').textContent='GNORM '+((h.indexOf('原始配方合计 99.6%')>=0&&h.indexOf('最大单料调整 0.40')>=0&&w==='1000.0 g')?'OK':'BAD');"],
+  "expect": ["GNORM OK"],
+  "ref": "用户切到 normalize 并确认：99.6% 饱和配方按比例缩放到 100%，单料 1000g，显示原始合计与最大调整 0.40 个百分点。"
 },
 {
   "slug": "ceramics/wheel-speed",
@@ -148,7 +155,51 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/clay-shrinkage.html','utf8');var i=h.indexOf('data-related-tools');var seg=h.slice(i,i+1500);var n=seg.split('related-tool-card').length-1;var biz=seg.indexOf('../biz')>=0;document.getElementById('__tbProbe').textContent='CREL '+((n>=4&&!biz)?'OK':'BAD');"],
   "expect": ["CREL OK"],
   "ref": "相关工具改为陶瓷工序同类工具（泥料/釉料/拉坯/窑炉/烧成），不再推荐演讲计时、Markdown、Zalgo 等无关工具。"
-}
+},
+{
+  "slug": "ceramics/ceramic-firing",
+  "clicks": ["document.getElementById('fireType').value='glaze';renderCurve();var a=__cfStageLines();document.getElementById('fireType').value='bisque';renderCurve();var b=__cfStageLines();document.getElementById('__tbProbe').textContent='CF573 '+((a.indexOf('300→573°C')>=0&&a.indexOf('573→600°C')>=0&&b.indexOf('300→573°C')>=0&&b.indexOf('573→600°C')>=0)?'OK':'BAD');"],
+  "expect": ["CF573 OK"],
+  "ref": "素烧/釉烧都把原 300→600 拆成 300→573 与 573→600 两段，600→800 明确写在石英转变之后；此前 573 转变点被压在一段内、文字位置错。"
+},
+{
+  "slug": "ceramics/ceramic-firing",
+  "clicks": ["var cap='';ToolBox.copyText=function(t){cap=String(t);};i18nText=function(){return '';};renderCurve();copyResult();document.getElementById('__tbProbe').textContent='CFCOPY '+((cap.indexOf('各阶段参数')>=0&&cap.indexOf('300→573°C')>=0&&cap.indexOf('573→600°C')>=0&&cap.indexOf('速率')>=0&&cap.indexOf('时长')>=0)?'OK':'BAD');"],
+  "expect": ["CFCOPY OK"],
+  "ref": "复制方案必须逐段含起止温度、速率、时长与说明，不能只复制峰值与合计。"
+},
+{
+  "slug": "ceramics/ceramic-firing",
+  "clicks": ["var csv='';ToolBox.downloadText=function(n,c){csv=String(c);};__cfExportCsv();document.getElementById('__tbProbe').textContent='CFCSV '+((csv.indexOf('300→573°C')>=0&&csv.indexOf('573→600°C')>=0&&csv.indexOf('起止温度')>=0&&csv.indexOf('速率')>=0&&csv.indexOf('时长')>=0)?'OK':'BAD');"],
+  "expect": ["CFCSV OK"],
+  "ref": "CSV 导出当前泥料/烧制类型的结构化阶段，含起止温度/速率/时长/说明与工艺示例备注。"
+},
+{
+  "slug": "ceramics/kiln-firing",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/kiln-firing.html','utf8');var i=h.indexOf('function __kfExport');var seg=h.slice(i,i+1400);document.getElementById('__tbProbe').textContent='KFSCOPE '+((seg.indexOf('[cur]')>=0&&seg.indexOf('Object.keys(SCHED)')>=0&&seg.indexOf('kiln-firing-all-types.csv')>=0&&seg.indexOf('窑炉烧成曲线-全部类型.csv')>=0&&seg.indexOf('窑炉烧成曲线-\\'+SCHED[cur].name')>=0&&seg.indexOf('__kfName(s.name,en)')>=0)?'OK':'BAD');"],
+  "expect": ["KFSCOPE OK"],
+  "ref": "导出范围与按钮标签一致：cur 只取 [cur] 且文件名含当前类型；all 取 Object.keys(SCHED)、文件名含全部类型、每行带类型列。"
+},
+{
+  "slug": "ceramics/glaze-temp",
+  "clicks": ["document.getElementById('search').value='低温';renderTable();var n1=__coneFilterList().length;var h1=document.getElementById('refTable').innerHTML;document.getElementById('search').value='low';renderTable();var n2=__coneFilterList().length;var src=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/ceramics/glaze-temp.html','utf8');var seg=src.slice(src.indexOf('window.__coneExport'),src.indexOf('renderTable();'));document.getElementById('__tbProbe').textContent='GTSCOPE '+((n1===22&&n2===22&&h1.indexOf('低温')>=0&&seg.indexOf('var list=__coneFilterList()')>=0)?'OK':'BAD '+n1+' '+n2);"],
+  "expect": ["GTSCOPE OK"],
+  "ref": "搜索低温/英文 low 都命中 22 个低温锥；导出与表格共用 __coneFilterList()，不再只匹配锥号+温度。"
+},
+{
+  "slug": "ceramics/wheel-speed",
+  "inputs": {"diameter":"23","minRpm":"30","maxRpm":"60"},
+  "clicks": ["calc();"],
+  "expect": ["超过设备最高 60 rpm", "实际线速度比目标低 33%"],
+  "ref": "23cm 理论约 90rpm 被最高 60rpm 压低，实际线速度应低于目标 33%；旧文案反写「比目标高」。"
+},
+{
+  "slug": "ceramics/wheel-speed",
+  "inputs": {"diameter":"40","minRpm":"120","maxRpm":"320"},
+  "clicks": ["calc();"],
+  "expect": ["低于设备最低 120 rpm", "实际线速度比目标高 132%"],
+  "ref": "40cm 理论约 52rpm 被最低 120rpm 抬高，实际线速度应高于目标 132%；旧文案反写「比目标低」。"
+},
 ];
 async function main() {
   const only = process.argv.slice(2);

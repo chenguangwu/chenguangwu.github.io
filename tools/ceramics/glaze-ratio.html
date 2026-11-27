@@ -113,11 +113,17 @@
     <h2 data-zh="🏺 釉料配比计算">Glaze Ratio</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="按釉料配方百分比计算各原料称量，并估算调配釉浆所需加水量（浸釉/淋釉/喷釉）。">Glaze Ratio</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">釉料配方计算与釉浆调配<br>各原料称量 = 干釉料总重 × 该原料百分比 ÷ 100<br>配方合计 = Σ各原料百分比（应 = 100%）<br>加水量 = 干釉料总重 × 水釉比<br>釉浆总重 = 干釉料重 + 水量<br>釉浆体积 ≈ (干釉料重 + 水量) ÷ 1.55（浸釉比重 mL）<br>同时输出 g 与 kg 两种单位称量表<br>配方合计偏离 100% 超过 0.5% 判「待校」<br>分步输出：称量 → 加水 → 配浆三步骤</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(total+water)÷1.55；total×m.pct÷100">Key formulas: (total+water)÷1.55; total×m.pct÷100</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">釉料配方计算与釉浆调配<br>各原料称量 = 干釉料总重 × 该原料百分比 ÷ 100<br>配方合计 = Σ各原料百分比（应 = 100%）<br>加水量 = 干釉料总重 × 水釉比<br>釉浆总重 = 干釉料重 + 水量<br>釉浆体积 ≈ (干釉料重 + 水量) ÷ 1.55（浸釉比重 mL）<br>同时输出 g 与 kg 两种单位称量表<br>口径：严格模式要求配方合计 = 100%；归一化模式先按原始合计等比缩放到 100%，再用输入总重称量，并显示原始合计与最大单料调整<br>分步输出：称量 → 加水 → 配浆三步骤</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(total+water)÷1.55；total×m.pct÷100；归一化模式 total×m.pct÷sum">Key formulas: (total+water)÷1.55; total×m.pct÷100; normalized total×m.pct÷sum</p>
     </div>
     <div class="input-row">
       <div><label for="totalW">干釉料总重 (g)</label><input type="number" id="totalW" value="1000" min="0" step="10" oninput="calc()" placeholder="如 1000"></div>
+      <div><label for="sumMode">配方合计口径</label>
+        <select id="sumMode" onchange="calc()">
+          <option value="strict" selected>严格要求合计 = 100%</option>
+          <option value="normalize">按比例归一化（用户确认）</option>
+        </select>
+      </div>
       <div><label for="method">施釉方式（水釉比）</label>
         <select id="method" onchange="calc()">
           <option value="0.6">浸釉（水:釉 ≈ 0.6）</option>
@@ -269,56 +275,73 @@ function calc(){
     MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
     out.innerHTML='<p style="color:var(--danger)">请输入有效干釉料总重</p>';return;
   }
+  var mode=document.getElementById('sumMode').value;
   var sum=0,items=[],errs=[];
   MATS.forEach(function(m,idx){
     var raw=String(m.pct==null?'':m.pct).trim();
     if(raw===''){errs.push('第 '+(idx+1)+' 项「'+m.name+'」比例为必填');return;}
     var pct=Number(raw);
     if(!isFinite(pct)||pct<0||pct>100){errs.push('第 '+(idx+1)+' 项「'+m.name+'」比例须为 0–100 的有限数（当前 '+raw+'）');return;}
-    sum+=pct; items.push({name:m.name,pct:pct,w:total*pct/100});
+    sum+=pct; items.push({name:m.name,pct:pct,effPct:pct,w:total*pct/100});
   });
   if(errs.length){
     MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
     out.innerHTML='<p style="color:var(--danger)">⚠ 请先修正以下比例，未生成称量表：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;margin-left:18px;">'+errs.map(function(e){return '<li>'+escMat(e)+'</li>';}).join('')+'</ul>';
     return;
   }
-  if(Math.abs(sum-100)>0.5){
-    MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
-    var rows=items.map(function(it){return '<tr><td>'+escMat(it.name)+'</td><td>'+it.pct+'</td></tr>';}).join('');
-    out.innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 配方百分比合计 '+sum.toFixed(1)+'%，'+(sum<100?'低于':'高于')+' 100%（允许 ±0.5% 舍入）。</p>'+
-      '<p style="color:var(--danger);">请先'+(sum<100?'补足':'扣减')+' '+(Math.abs(100-sum)).toFixed(1)+' 个百分点后再计算。合计不为 100% 时，各原料称量实际干重不等于输入总重，本页不再用输入总重估算加水与釉浆量。</p>'+
-      '<table><thead><tr><th>原料</th><th>当前百分比(%)</th></tr></thead><tbody>'+rows+'</tbody></table>';
-    return;
+  var normMsg='', maxDelta=0;
+  if(mode==='strict'){
+    if(Math.abs(sum-100)>1e-6){
+      MATS.forEach(function(m,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value='—';});
+      var rows=items.map(function(it){return '<tr><td>'+escMat(it.name)+'</td><td>'+it.pct+'</td></tr>';}).join('');
+      out.innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 严格口径要求配方合计 = 100%，当前合计 '+sum.toFixed(1)+'%。</p>'+
+        '<p style="color:var(--danger);">请先'+(sum<100?'补足':'扣减')+' '+(Math.abs(100-sum)).toFixed(1)+' 个百分点；或在“配方合计口径”中选择“按比例归一化（用户确认）”，让工具先按原比例缩放到 100%，再用输入总重称量，并显示原始合计与调整量。</p>'+
+        '<table><thead><tr><th>原料</th><th>当前百分比(%)</th></tr></thead><tbody>'+rows+'</tbody></table>';
+      return;
+    }
+    normMsg='严格口径：配方合计 100.0%，未做归一化。';
+  } else {
+    if(!(sum>0)){out.innerHTML='<p style="color:var(--danger)">归一化模式要求配方合计 &gt; 0；请先填写各原料比例。</p>';return;}
+    items.forEach(function(it){
+      it.effPct=it.pct/sum*100;
+      it.w=total*it.effPct/100;
+      if(Math.abs(it.effPct-it.pct)>maxDelta) maxDelta=Math.abs(it.effPct-it.pct);
+    });
+    normMsg='原始配方合计 '+sum.toFixed(1)+'%，已按比例归一化到 100.0%；最大单料调整 '+maxDelta.toFixed(2)+' 个百分点。称量、干重、加水与釉浆均按归一化后的同一口径计算。';
   }
   items.forEach(function(it,idx){var wEl=document.getElementById('w_'+idx);if(wEl)wEl.value=it.w.toFixed(1)+' g';});
+  var dispSum=items.reduce(function(a,it){return a+Number(it.w.toFixed(1));},0);
+  var dispDiff=dispSum-total;
   var water=total*ratio;
   var slipVol=(total+water)/1.55; // 估算釉浆体积 mL (浸釉比重~1.55)
-  var sumGrade=Math.abs(sum-100)<0.5?'grade-excellent':'grade-pass';
-  var sumMsg=Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确（允许 ±0.5% 舍入）':(sum<100?'配方百分比合计 '+sum.toFixed(1)+'%，低于 100%，请补足':'配方百分比合计 '+sum.toFixed(1)+'%，高于 100%，请扣减');
-  var html='<div class="big-result">干釉料总重 '+total.toFixed(0)+' g（配方合计 '+sum.toFixed(1)+'%）</div>';
+  var sumGrade=mode==='normalize'||Math.abs(sum-100)<1e-6?'grade-excellent':'grade-pass';
+  var sumMsg=normMsg;
+  var html='<div class="big-result">干釉料总重 '+total.toFixed(0)+' g（'+sumMsg+'）</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+sum.toFixed(1)+'%</div><div class="lbl">配方合计</div></div>';
   html+='<div class="stat-card"><div class="val">'+water.toFixed(0)+' g</div><div class="lbl">需加水量</div></div>';
   html+='<div class="stat-card"><div class="val">'+(total+water).toFixed(0)+' g</div><div class="lbl">釉浆总重</div></div>';
+  html+='<div class="stat-card"><div class="val">'+dispSum.toFixed(1)+' g</div><div class="lbl">称量合计（0.1g 显示）</div></div>';
   html+='</div>';
-  html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--result-bg);border-radius:10px;margin:6px 0;border-left:4px solid '+(Math.abs(sum-100)<0.5?'var(--success)':'var(--warning)')+';"><div style="flex:1;font-size:13px;">'+(Math.abs(sum-100)<0.5?'配方百分比合计为 100%，比例正确（允许 ±0.5% 舍入）':(sum<100?'配方百分比合计 '+sum.toFixed(1)+'%，低于 100%，请补足':'配方百分比合计 '+sum.toFixed(1)+'%，高于 100%，请扣减'))+'</div><span class="grade-tag '+sumGrade+'">'+(Math.abs(sum-100)<0.5?'合格':'待校')+'</span></div>';
+  html+='<div style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:var(--result-bg);border-radius:10px;margin:6px 0;border-left:4px solid '+(sumGrade==='grade-excellent'?'var(--success)':'var(--warning)')+';"><div style="flex:1;font-size:13px;">'+sumMsg+'</div><span class="grade-tag '+sumGrade+'">'+(sumGrade==='grade-excellent'?'口径一致':'待校')+'</span></div>';
   html+='<h3 style="margin-top:14px;">原料称量表</h3>';
-  html+='<table><thead><tr><th>原料</th><th>百分比(%)</th><th>称量(g)</th><th>称量(kg)</th></tr></thead><tbody>';
+  html+='<table><thead><tr><th>原料</th><th>输入的百分比(%)</th><th>称量口径(%)</th><th>称量(g)</th><th>称量(kg)</th></tr></thead><tbody>';
   items.forEach(function(it){
-    html+='<tr><td>'+escMat(it.name)+'</td><td>'+it.pct+'</td><td><strong>'+it.w.toFixed(1)+'</strong></td><td>'+(it.w/1000).toFixed(3)+'</td></tr>';
+    html+='<tr><td>'+escMat(it.name)+'</td><td>'+it.pct+'</td><td>'+it.effPct.toFixed(2)+'</td><td><strong>'+it.w.toFixed(1)+'</strong></td><td>'+(it.w/1000).toFixed(3)+'</td></tr>';
   });
   html+='</tbody></table>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin:6px 0 0;">称量表逐项按 0.1 g 四舍五入显示，显示合计 '+dispSum.toFixed(1)+' g，与干料总重 '+total.toFixed(0)+' g 相差 '+(dispDiff>=0?'+':'')+dispDiff.toFixed(1)+' g；称量时以总重为准，可按最后一项找平（该找平量不超过逐项舍入误差）。</p>';
   html+='<h3 style="margin-top:14px;">分步计算</h3>';
-  html+='<div class="step-line"><strong>步骤1</strong>　各原料称量 = 总重 × 百分比 / 100（见上表）</div>';
+  html+='<div class="step-line"><strong>步骤1</strong>　各原料称量 = 总重 × 称量口径百分比 / 100（见上表）</div>';
   html+='<div class="step-line"><strong>步骤2</strong>　加水量 = 干釉料 × 水釉比 = '+total.toFixed(0)+' × '+ratio+' = '+water.toFixed(0)+' g</div>';
   html+='<div class="step-line"><strong>步骤3</strong>　釉浆总重 = '+total.toFixed(0)+' + '+water.toFixed(0)+' = '+(total+water).toFixed(0)+' g，估算体积约 '+slipVol.toFixed(0)+' mL（比重≈1.55）</div>';
   html+='<div class="step-line" style="border-color:var(--success);background:rgba(16,185,129,0.08);"><strong>结论</strong>　'+total.toFixed(0)+'g 干釉料按配方称量各原料，加 '+water.toFixed(0)+'g 水调配釉浆（'+(Math.abs(sum-100)<0.5?'配方合计 100%':'配方合计 '+sum.toFixed(1)+'%，需校准')+'）。</div>';
   const __g3=html;out.innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 }
 function copyResult(){
-  var r=document.querySelector('#result .big-result');
-  if(!r){ToolBox.showToast('当前没有有效称量结果，请先修正输入','warn');return;}
-  ToolBox.copyText(r.textContent, i18nText('tool.copy_ok'));
+  var r=document.getElementById('result');
+  if(!r||!r.querySelector('.big-result')){ToolBox.showToast('当前没有有效称量结果，请先修正输入','warn');return;}
+  ToolBox.copyText(r.innerText, i18nText('tool.copy_ok'));
 }
 renderMats();
 calc();
