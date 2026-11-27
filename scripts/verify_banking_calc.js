@@ -482,6 +482,46 @@ const CASES = [
     inputs: { nom: "", infl: "2" },
     expect: ["请填写名义利率与通胀率后再计算。"],
     ref: "名义利率留空：旧代码按 0% 输出实际利率约 −1.96%，把缺项当成零利率；新增守卫后须提示。" },
+{
+  "slug": "banking/loan-to-value",
+  "inputs": { "loan": "800000", "val": "0" },
+  "clicks": ["var tb=document.getElementById('loan_to_valueTable'),ch=document.getElementById('ltvChart');document.getElementById('__tbProbe').textContent='TB '+(tb&&tb.textContent.trim()?'STALE':'EMPTY')+' CH '+(ch&&ch.textContent.trim()?'STALE':'EMPTY');"],
+  "expect": ["贷款额与抵押物价值均须大于 0", "TB EMPTY CH EMPTY"],
+  "ref": "第1065批：抵押物价值为 0 时主结果拒绝，附表也必须清空；旧 Extras 仅检查 isFinite，仍按 val=0 写 LTV Infinity/历史。探针明确要求表格为空。"
+},
+{
+  "slug": "banking/loan-total-interest",
+  "inputs": { "p": "600000", "r": "4.9", "y": "1.2" },
+  "clicks": ["var tb=document.getElementById('loan_total_interestTable'),ch=document.getElementById('ltiChart');document.getElementById('__tbProbe').textContent='TB '+(tb&&tb.textContent.trim()?'STALE':'EMPTY')+' CH '+(ch&&ch.textContent.trim()?'STALE':'EMPTY');"],
+  "expect": ["年限必须为正且换算后为整数个月", "TB EMPTY CH EMPTY"],
+  "ref": "第1065批：年限 1.2 年不是整数月，主结果拒绝时附表不得仍按 18 个月生成；旧 Extras 只检查 isFinite。"
+},
+{
+  "slug": "banking/loan-remaining-balance",
+  "inputs": { "p": "600000", "r": "4.9", "y": "1", "k": "13" },
+  "clicks": ["var tb=document.getElementById('loan_remaining_balanceTable'),ch=document.getElementById('lrbChart');document.getElementById('__tbProbe').textContent='TB '+(tb&&tb.textContent.trim()?'STALE':'EMPTY')+' CH '+(ch&&ch.textContent.trim()?'STALE':'EMPTY');"],
+  "expect": ["已还期数必须是 0 ~ 12 之间的整数", "TB EMPTY CH EMPTY"],
+  "ref": "第1065批：1 年期贷款已还 13 期越界，主结果拒绝时附表/历史必须停止；旧 Export 仍可从旧表导出。"
+}
+,
+{
+  "slug": "banking/present-value-annuity-due",
+  "inputs": { "PMT": "1000", "r": "1e-17", "n": "12" },
+  "expect": ["12000.00 现值 PV (元)", "12000.00 期末年金现值（对比）(元)"],
+  "ref": "第1066批：每期 1000、利率 1e-17、12 期的合理极限为 12000；旧式 (1-(1+r)^-n)/r 因舍入归零输出 0。两项均要求 12000.00，避免只修主结果。"
+},
+{
+  "slug": "banking/future-value-annuity-due",
+  "inputs": { "PMT": "1000", "r": "1e-17", "n": "12" },
+  "expect": ["12000.00 终值 FV (元)", "12000.00 期末年金终值（对比）(元)"],
+  "ref": "第1066批：每期 1000、利率 1e-17、12 期终值极限 12000；旧式 (1+r)^n-1 归零。两项均要求 12000.00。"
+},
+{
+  "slug": "banking/emi-loan",
+  "inputs": { "p": "500000", "r": "1e-14", "y": "30" },
+  "expect": ["1388.89 月供 EMI", "500000.00 还款总额"],
+  "ref": "第1066批：本金 50 万、年利率 1e-14%、30 年的极限月供=500000/360=1388.89；旧式分子分母同归零会得 Infinity/NaN。与 r=0 的既有 1388.89 用例连续。"
+}
 
 ];
 async function main() {

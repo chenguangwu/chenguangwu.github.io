@@ -273,11 +273,15 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var __loan_total_interestOk=false;
 function calcTool(){
-              var __ig=__tbInputGuard(['p', 'r', 'y'],["贷款本金 P", "年利率 r (%)", "年限 y"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
+__loan_total_interestOk=false;
+function __loan_total_interestClearDyn(){var tb=document.getElementById('loan_total_interestTable'); if(tb) tb.innerHTML=''; var ch=document.getElementById('ltiChart'); if(ch) ch.innerHTML='';}
+              var __ig=__tbInputGuard(['p', 'r', 'y'],["贷款本金 P", "年利率 r (%)", "年限 y"]);if(__ig){__loan_total_interestClearDyn();const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 const __rawR=String(document.getElementById('r').value).trim(), __rawY=String(document.getElementById('y').value).trim(); const __rPct=__rawR===''?NaN:parseFloat(__rawR); const __yrs=__rawY===''?NaN:parseFloat(__rawY); const __Nchk=__yrs*12;
-            if(!(__rPct>=0)||!(__yrs>0)||Math.abs(__Nchk-Math.round(__Nchk))>1e-9){ToolBox.setResult('result','<p style="color:var(--danger)">利率不得为负，年限必须为正且换算后为整数个月。</p>');return;}
+            if(!(__rPct>=0)||!(__yrs>0)||Math.abs(__Nchk-Math.round(__Nchk))>1e-9){__loan_total_interestClearDyn();ToolBox.setResult('result','<p style="color:var(--danger)">利率不得为负，年限必须为正且换算后为整数个月。</p>');return;}
             const P = num('p'), r = num('r') / 100 / 12, N = Math.round(__yrs * 12);
+            __loan_total_interestOk=true;
             const emi = r > 0 ? P * r * Math.pow(1 + r, N) / (Math.pow(1 + r, N) - 1) : (N > 0 ? P / N : NaN);
             const total = emi * N - P;
             const __g2=dataGrid([
@@ -336,6 +340,7 @@ calcTool();
 <script>
 function __loan_total_interestNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __loan_total_interestExtras(){
+    if(!__loan_total_interestOk) return;
     function __loan_total_interestRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var P = num('p'), r = num('r') / 100 / 12, N = num('y') * 12;
@@ -356,6 +361,7 @@ function __loan_total_interestExtras(){
     TBKit.util.diffBox('#loan_total_interestDiff',['P']);
 }
 function __loan_total_interestExport(){
+    if(!__loan_total_interestOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try { TBKit.util.exportTable('#loan_total_interestTable','loan-total-interest.csv'); } catch(e){}
 }
@@ -391,6 +397,7 @@ function __ltiSweep(){
   return {labels:labels,dInt:dInt,dEmi:dEmi,rows:rows};
 }
 function __ltiChart(){
+  if(!__loan_total_interestOk) return;
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
   var s=__ltiSweep(); if(!s)return;
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
