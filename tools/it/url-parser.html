@@ -140,6 +140,7 @@
       <div class="toolbar" style="align-items:center;flex-wrap:wrap;">
         <label style="font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="saveFullUrl"> 保存完整地址（含凭据/令牌，仅存本机）</label>
         <button type="button" class="btn primary" onclick="parseUrl()">🔍 解析</button>
+        <label style="font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="optIncludeCreds"> 复制JSON时包含用户名/密码</label>
         <button type="button" class="btn" id="copyJsonBtn" onclick="copyJson()">📋 复制JSON</button>
         <button type="button" class="btn" id="saveHistoryBtn" onclick="saveToHistory()">💾 保存</button>
         <button type="button" class="btn" onclick="loadExample()">📝 示例</button>
@@ -327,7 +328,7 @@ function parseUrl() {
   const urlStr = document.getElementById('urlInput').value.trim();
   if (!urlStr) {
     parsed = {}; setParseState(false);
-    const __h0=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter URL</p>":"<p>请输入URL</p>");if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h0;
+    document.getElementById('result').innerHTML=((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"<p>Enter URL</p>":"<p>请输入URL</p>");
     return;
   }
 
@@ -359,14 +360,16 @@ function parseUrl() {
     parsed.paramRows = [];
     setParseState(true);
 
-    let html = '<h3 style="margin-bottom:12px;">解析结果</h3>';
+    const en = __parserEn();
+    let html = '<h3 style="margin-bottom:12px;">' + (en?'Parse result':'解析结果') + '</h3>';
     const fields = [
-      ['完整URL', 'href'], ['协议', 'protocol'], ['源(Origin)', 'origin'],
-      ['域名', 'hostname'], ['端口', 'port'], ['主机', 'host'],
-      ['路径', 'pathname'], ['查询字符串', 'search'], ['哈希', 'hash']
+      [en?'Full URL':'完整URL', 'href'], [en?'Protocol':'协议', 'protocol'], [en?'Origin':'源(Origin)', 'origin'],
+      [en?'Username':'用户名', 'username'], [en?'Password':'密码', 'password'],
+      [en?'Hostname':'域名', 'hostname'], [en?'Port':'端口', 'port'], [en?'Host':'主机', 'host'],
+      [en?'Path':'路径', 'pathname'], [en?'Query string':'查询字符串', 'search'], [en?'Hash':'哈希', 'hash']
     ];
     fields.forEach(([label, key]) => {
-      const val = parsed[key] || ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"(empty)":"(空)");
+      const val = parsed[key] || '—';
       html += `<div style="padding:8px;border-bottom:1px solid var(--border);">
         <div class="field-copy">
           <span style="font-weight:bold;width:100px;display:inline-block;font-size:13px;">${esc(label)}</span>
@@ -387,10 +390,10 @@ function parseUrl() {
       parsed.paramRows = paramRows;
     }
 
-    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h1;
+    document.getElementById('result').innerHTML=html;
   } catch (e) {
     parsed = {}; setParseState(false);
-    const __h2=`<div class="tip-box tip-warn"><strong>⚠️ URL解析失败</strong><br>${esc(e.message)}<br><br>提示：URL需要包含协议（如 https://）</div>`;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('result').innerHTML=__h2;
+    document.getElementById('result').innerHTML=`<div class="tip-box tip-warn"><strong>⚠️ URL解析失败</strong><br>${esc(e.message)}<br><br>提示：URL需要包含协议（如 https://）</div>`;
   }
 }
 
@@ -403,8 +406,12 @@ function copyField(key){
   if(parsed[key])ToolBox.copyText(parsed[key],'tool.copy_ok');
 }
 function copyJson(){
-  if(!parsed.href){ToolBox.showToast(__parserEn()?'Parse a valid URL first':'请先解析有效 URL','warning');return;}
-  ToolBox.copyText(JSON.stringify(parsed, null, 2),'JSON已复制');
+  const en=__parserEn();
+  if(!parsed.href){ToolBox.showToast(en?'Parse a valid URL first':'请先解析有效 URL','warning');return;}
+  const withCred=document.getElementById('optIncludeCreds')&&document.getElementById('optIncludeCreds').checked;
+  const out=Object.assign({},parsed);
+  if(!withCred){delete out.username;delete out.password;}
+  ToolBox.copyText(JSON.stringify(out, null, 2), withCred ? (en?'JSON copied (includes username/password)':'JSON已复制（含用户名/密码）') : (en?'JSON copied (username/password omitted)':'JSON已复制（已省略用户名/密码）'));
 }
 function loadExample(){
   document.getElementById('urlInput').value='https://www.example.com:8080/path/to/page?query=value&foo=bar#hash';
@@ -418,13 +425,13 @@ function useExample(url){
 
 function renderParams(){
   const c=document.getElementById('paramsList');
-  const __h3=buildParams.map((p,i)=>`
+  c.innerHTML=buildParams.map((p,i)=>`
     <div class="param-row">
       <input type="text" placeholder="参数名" value="${esc(p.key)}" oninput="buildParams[${i}].key=this.value;buildUrl()" style="flex:1;" aria-label="参数名">
       <input type="text" placeholder="值" value="${esc(p.value)}" oninput="buildParams[${i}].value=this.value;buildUrl()" style="flex:2;" aria-label="值">
       <button type="button" class="btn btn-remove danger" onclick="removeParam(${i})" aria-label="删除">×</button>
     </div>
-  `).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){c.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}c.innerHTML=__h3;
+  `).join('');
 }
 function addParam(){buildParams.push({key:'',value:''});renderParams();buildUrl();}
 function removeParam(i){buildParams.splice(i,1);renderParams();buildUrl();}
@@ -454,7 +461,11 @@ function buildUrl(){
     url=new URL(proto+'//'+host+(port?':'+port:''));
     url.pathname=(rawPath.startsWith('/')?rawPath:'/'+rawPath);
     const searchParams=new URLSearchParams();
-    buildParams.forEach(p=>{if(p.key)searchParams.append(p.key,p.value);});
+    buildParams.forEach(p=>{
+      // 仅完全空白的占位行忽略；参数名留空、值非空时保留为 `?=值`（URLSearchParams 原生支持）。
+      if(p.key==='' && p.value==='') return;
+      searchParams.append(p.key,p.value);
+    });
     url.search=searchParams.toString();
     url.hash=rawHash.replace(/^#/,'');
     url=url.href;
@@ -509,8 +520,8 @@ function getHistory(){
 function renderHistory(){
   const h=getHistory();
   const l=document.getElementById('historyList');
-  if(h.length===0){const __h4='<div class="history-empty">暂无记录</div>';if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h4;return;}
-  const __h5=h.map((r,i)=>`<div class="history-item" onclick="loadHistoryItem(${i})"><div class="time">${esc(r.time)}</div><div class="summary" style="font-family:monospace;font-size:12px;word-break:break-all;">${esc(r.url)}</div><div class="detail">${esc(r.host)}${esc(r.path)} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`).join('');if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){l.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}l.innerHTML=__h5;
+  if(h.length===0){l.innerHTML='<div class="history-empty">暂无记录</div>';return;}
+  l.innerHTML=h.map((r,i)=>`<div class="history-item" onclick="loadHistoryItem(${i})"><div class="time">${esc(r.time)}</div><div class="summary" style="font-family:monospace;font-size:12px;word-break:break-all;">${esc(r.url)}</div><div class="detail">${esc(r.host)}${esc(r.path)} <button onclick="event.stopPropagation();delHistory(${i})" style="float:right;color:var(--danger);background:none;border:none;cursor:pointer;font-size:12px;">删除</button></div></div>`).join('');
 }
 function loadHistoryItem(i){
   const h=getHistory();if(!h[i])return;

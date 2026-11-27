@@ -221,6 +221,7 @@
         <button type="button" class="btn primary" onclick="parseUrl()">解析 URL</button>
         <button type="button" class="btn success" onclick="copyParseResult()">复制结果</button>
         <button type="button" class="btn" onclick="clearParser()">清空</button>
+        <label style="font-size:12px;color:var(--text-muted);display:inline-flex;align-items:center;gap:6px;"><input type="checkbox" id="copyCreds"> 复制结果包含用户名/密码</label>
       </div>
       
       <div id="parseResult" style="display:none;margin-top:12px;">
@@ -471,7 +472,7 @@
     var list = document.getElementById('historyList');
     var history = getHistory();
     if(history.length === 0){
-      const __h0='<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">暂无历史记录</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h0;
+      list.innerHTML='<p style="text-align:center;color:var(--text-muted);font-size:13px;padding:20px;">暂无历史记录</p>';
       return;
     }
     var html = '';
@@ -483,7 +484,7 @@
       html += '<span class="h-meta"><span class="tag">' + (item.action === 'encode' ? '编码' : '解码') + '</span>' + timeStr + '</span>';
       html += '</div>';
     });
-    const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h1;
+    list.innerHTML=html;
   }
 
   function loadHistory(idx){
@@ -614,7 +615,7 @@
       html += '<button type="button" class="btn danger" onclick="removeParam(' + i + ')">删除</button>';
       html += '</div>';
     });
-    const __h2=html;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){list.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}list.innerHTML=__h2;
+    list.innerHTML=html;
   }
 
   function addParam(){
@@ -700,7 +701,7 @@
         count++;
       }
       if(count === 0) paramsHtml = '<p style="color:var(--text-muted);font-size:13px;">无查询参数</p>';
-      const __h3=paramsHtml;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){paramsList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}paramsList.innerHTML=__h3;
+      paramsList.innerHTML=paramsHtml;
       
       document.getElementById('parseResult').style.display = 'block';
     }catch(e){
@@ -716,17 +717,24 @@
     if(!urlStr) return ToolBox.showToast(i18nText('toast.msg669'), 'warning');
     try{
       var url = new URL(urlStr);
-      var text = '协议: ' + url.protocol + '\n' +
-                 '主机: ' + url.host + '\n' +
-                 '端口: ' + (url.port || '默认') + '\n' +
-                 '路径: ' + url.pathname + '\n' +
-                 '搜索: ' + (url.search || '-') + '\n' +
-                 '哈希: ' + (url.hash || '-') + '\n' +
-                 '查询参数:\n';
+      var en = __urlEn();
+      var withCred = document.getElementById('copyCreds') && document.getElementById('copyCreds').checked;
+      var text = (en?'Protocol: ':'协议: ') + url.protocol + '\n' +
+                 'Origin: ' + url.origin + '\n' +
+                 (withCred ? (en?'Username: ':'用户名: ') + (url.username || '-') + '\n' + (en?'Password: ':'密码: ') + (url.password || '-') + '\n' : '') +
+                 (en?'Host: ':'主机: ') + url.host + '\n' +
+                 (en?'Port: ':'端口: ') + (url.port || (en?'(default)':'默认')) + '\n' +
+                 (en?'Path: ':'路径: ') + url.pathname + '\n' +
+                 (en?'Search: ':'搜索: ') + (url.search || '-') + '\n' +
+                 (en?'Hash: ':'哈希: ') + (url.hash || '-') + '\n' +
+                 (en?'Query parameters:\n':'查询参数:\n');
       for(var pair of url.searchParams.entries()){
         text += '  ' + pair[0] + ' = ' + pair[1] + '\n';
       }
-      ToolBox.copyText(text);
+      if(!withCred && (url.username || url.password)){
+        text += (en?'\n(Username/password omitted by default; enable \"include credentials\" to copy them.)':'\n（用户名/密码默认已省略；勾选“复制结果包含用户名/密码”可一并复制。）');
+      }
+      ToolBox.copyText(text, withCred ? undefined : (en?'Copied (credentials omitted)':'已复制（已省略用户名/密码）'));
     }catch(e){
       document.getElementById('parseResult').style.display = 'none';
       ToolBox.showToast(i18nText('toast.msg400'), 'error');
@@ -773,7 +781,7 @@
       rows.push([ch, i, '0x' + hex, encoded, cat]);
     }
     
-    const __h4=ToolBox.createTable(headers, rows);if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){container.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}container.innerHTML=__h4;
+    container.innerHTML=ToolBox.createTable(headers, rows);
     window._asciiBuilt = true;
   }
 

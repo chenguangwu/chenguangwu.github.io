@@ -14791,6 +14791,39 @@ const CASES = [
     ref: "IT-N12 引号：参数值含单引号时统一转义为 &#39;，不再拼进 onclick 属性（复制按钮改事件委托）；默认示例值不含引号。",
   },
   {
+    "slug": "it/url-parser",
+    "inputs": { "urlInput": "https://example.com/Infinity?value=NaN" },
+    "clicks": ["parseUrl()"],
+    "expect": ["源(Origin) 复制 https://example.com", "value NaN"],
+    "ref": "第1055批：路径/查询参数里的 Infinity、NaN 是合法 URL 文本，解析结果不得再按数值守卫折叠成「无效值」；注入后必须同时显示两个原词且无无效值提示。默认示例不含这两个词 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/url-parser",
+    "clicks": ["buildParams=[{key:'',value:'abc'},{key:'',value:''}];document.getElementById('b-hostname').value='x.test';var u=buildUrl();document.getElementById('__tbProbe').textContent='URLBLANK '+((u==='https://x.test/?=abc')?'OK':'BAD:'+u);"],
+    "expect": ["URLBLANK OK"],
+    "ref": "第1055批：参数名留空、值非空的合法行必须保留为 `?=abc`；仅完全空白的占位行忽略。旧实现 `if(p.key)` 直接丢掉空名行 ⇒ BAD。"
+  },
+  {
+    "slug": "it/url-parser",
+    "clicks": ["var cap='',o=ToolBox.copyText;ToolBox.copyText=function(t){cap=t};document.getElementById('urlInput').value='https://user:pw@x.test/p';parseUrl();document.getElementById('optIncludeCreds').checked=false;copyJson();var off=(cap.indexOf('\"username\"')<0&&cap.indexOf('\"password\"')<0&&cap.indexOf('\"origin\"')>=0);document.getElementById('optIncludeCreds').checked=true;copyJson();var on=(cap.indexOf('\"username\"')>=0&&cap.indexOf('\"password\"')>=0&&cap.indexOf('\"origin\"')>=0);ToolBox.copyText=o;document.getElementById('__tbProbe').textContent='URLCRED '+((off&&on)?'OK':'BAD off='+off+' on='+on+' '+cap.slice(0,80));"],
+    "expect": ["URLCRED OK"],
+    "ref": "第1055批：复制 JSON 默认排除 user/password 但保留 origin；勾选「复制JSON时包含用户名/密码」后才带出。旧实现无条件导出全部字段，敏感凭据静默进剪贴板 ⇒ BAD。"
+  },
+  {
+    "slug": "it/url-encode",
+    "inputs": { "parseInput": "https://u:p@x.test/Infinity?q=NaN" },
+    "clicks": ["parseUrl()"],
+    "expect": ["q NaN"],
+    "ref": "第1055批：解码页查询参数含 NaN/Infinity 时不得触发数值守卫；parseResult 必须显示且参数原样保留。默认输入不含这两个词 ⇒ 旧实现转红。"
+  },
+  {
+    "slug": "it/url-encode",
+    "inputs": { "parseInput": "https://user:pw@x.test/p" },
+    "clicks": ["var cap='',o=ToolBox.copyText;ToolBox.copyText=function(t){cap=t};parseUrl();document.getElementById('copyCreds').checked=false;copyParseResult();var off=((cap.indexOf('Origin:')>=0||cap.indexOf('源地址')>=0)&&cap.indexOf('user')<0&&cap.indexOf('pw')<0&&cap.indexOf('用户名:')<0&&cap.indexOf('密码:')<0);document.getElementById('copyCreds').checked=true;copyParseResult();var on=(cap.indexOf('user')>=0&&cap.indexOf('pw')>=0);ToolBox.copyText=o;document.getElementById('__tbProbe').textContent='URLECRED '+((off&&on)?'OK':'BAD off='+off+' on='+on+' '+cap.slice(0,100));"],
+    "expect": ["URLECRED OK"],
+    "ref": "第1055批：解码页复制结果必须补 Origin，默认省略用户名/密码并提示；勾选后才包含。旧实现缺 origin 且永远不带凭据，复制与展示不一致 ⇒ BAD。"
+  },
+  {
     slug: "it/curl-parser",
     inputs: { cmd: "curl -d '{\"a\":1}' https://api.example.com/x" },
     expect: ["方法： POST URL： https://api.example.com/x"],
