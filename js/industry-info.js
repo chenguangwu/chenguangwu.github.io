@@ -136,7 +136,7 @@ window.INDUSTRY_INFO = {
   'paper'                : { name: '造纸印刷', icon: '📄', hot: 106765 },
   'sales'                : { name: '销售管理', icon: '📈', hot: 102469 },
   'fire'                 : { name: '消防安全', icon: '🚒', hot: 96736 },
-  'startup'              : { name: '创业孵化', icon: '🚀', hot: 95773 },
+  'startup'              : { name: '创业孵化', icon: '🚀', hot: 95778 },
   'baking'               : { name: '烘焙甜点', icon: '🧁', hot: 93232 },
   'security'             : { name: '网络安全', icon: '🔒', hot: 88226 },
   'forex'                : { name: '外汇交易', icon: '💱', hot: 87767 },

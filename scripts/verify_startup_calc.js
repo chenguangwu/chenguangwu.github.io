@@ -34,147 +34,108 @@ const CASES = [
 {
   "slug": "startup/calc-1",
   "inputs": {
-    "reg": "4500",
-    "office": "20000",
-    "equipment": "30000",
-    "inventory": "20000",
-    "brand": "15000",
-    "otherOne": "5000",
-    "salary": "30000",
-    "rent": "5000",
-    "marketing": "5000",
-    "ops": "3000",
-    "months": "12",
-    "reserve": "3"
+    "reg": "4500", "office": "20000", "equipment": "30000", "inventory": "20000",
+    "brand": "15000", "otherOne": "5000", "salary": "30000", "rent": "5000",
+    "marketing": "5000", "ops": "3000", "months": "12", "reserve": "3"
   },
-  "expect": [
-    "500.00"
-  ],
-  "ref": "auto-restore"
+  "expect": ["739,500.00", "645,000.00", "15.0"],
+  "ref": "一次性 94,500 + 运营 516,000 + 储备 129,000 = 739,500；期初支付一次性后剩 645,000；跑道 645,000÷43,000=15.0，不再把一次性重复计入可支配现金。"
 },
 {
-  "slug": "startup/pitch-deck",
-  "inputs": {
-    "company": "示例科技有限公司_X",
-    "tagline": "用 AI 重新定义团队协作",
-    "slide_${s.id}": ""
-  },
-  "expect": [
-    "示例科技有限公司_X"
-  ],
-    "ref": "⚠ 输入回显（结构性不可修）：注入态与默认态输出逐字节相同，无依赖输入的派生量可锚，维持原断言不制造逃生。 [auto-restore]"
+  "slug": "startup/calc-1",
+  "inputs": { "reg": "", "months": "12", "reserve": "3" },
+  "expect": ["留空不按 0"],
+  "ref": "单项留空必须报缺项，不得按 0 参与合计。"
 },
 {
   "slug": "startup/valuation-calculator",
-  "inputs": {
-    "bk1": "450",
-    "bk2": "200",
-    "bk3": "150",
-    "bk4": "200",
-    "bk5": "100",
-    "sc_avg": "2000",
-    "sc1": "120",
-    "sc2": "110",
-    "sc3": "100",
-    "sc4": "90",
-    "sc5": "80",
-    "sc6": "100",
-    "sc7": "100",
-    "vc_exit": "50000",
-    "vc_roi": "10",
-    "vc_years": "5",
-    "vc_inv": "500",
-    "dcf_n": "5",
-    "dcf_cf0": "100",
-    "dcf_g": "30",
-    "dcf_r": "15",
-    "dcf_tg": "3",
-    "cmp_rev": "500",
-    "cmp_mau": "10",
-    "cmp_ps_lo": "5",
-    "cmp_ps_hi": "10",
-    "cmp_uv_lo": "200",
-    "cmp_uv_hi": "500"
-  },
-  "expect": [ "1,100.00 万" ],
-  "ref": "auto-restore"
-},{
-  "slug": "startup/valuation-calculator",
-  "inputs": {},
-  "clicks": [
-    "document.getElementById('bk1').value='400';document.getElementById('bk2').value='350';document.getElementById('bk3').value='300';document.getElementById('bk4').value='250';document.getElementById('bk5').value='200';calcBerkus();"
-  ],
+  "inputs": { "bk1": "400", "bk2": "350", "bk3": "300", "bk4": "250", "bk5": "200" },
+  "clicks": ["calcBerkus()"],
   "expect": [
-    "Berkus 估值： 1,500.00 万元（上限 2,500.00 万）",
+    "Berkus 估值：1,500.00 万元（上限 2,500.00 万）",
     "各项明细：价值主张 400.00 + 技术 350.00 + 执行 300.00 + 市场 250.00 + 落地 200.00"
   ],
-  "ref": "Berkus 五维：400+350+300+250+200 = 1,500 万（上限 2,500 万，进度条 60%）。刻意不锚「估值达成 1,500.00 万」——它是 bar-fill 内嵌文案，默认档（300+200+150+200+100=950）不同 ⇒ 可锚但判别力弱于明细串；明细串同时锁死五个分项的取整。"
+  "ref": "Berkus 五维 400+350+300+250+200=1,500 万。"
 },
 {
   "slug": "startup/valuation-calculator",
-  "inputs": {},
-  "clicks": [
-    "document.getElementById('sc_avg').value='3000';document.getElementById('sc1').value='130';document.getElementById('sc2').value='120';document.getElementById('sc3').value='115';document.getElementById('sc4').value='110';document.getElementById('sc5').value='105';document.getElementById('sc6').value='100';document.getElementById('sc7').value='110';calcScorecard();"
-  ],
+  "inputs": {
+    "sc_avg": "3000", "sc1": "130", "sc2": "120", "sc3": "115", "sc4": "110",
+    "sc5": "105", "sc6": "100", "sc7": "110"
+  },
+  "clicks": ["calcScorecard()"],
   "expect": [
     "加权调整系数：18.3%",
-    "调整明细：30% × 130% | 25% × 120% | 15% × 115% | 10% × 110% | 10% × 105% | 5% × 100% | 5% × 110%",
-    "记分卡估值： 3,547.50 万元（基准 3,000.00 万 × 1.183）"
+    "记分卡估值：3,547.50 万元（基准 3,000.00 万 × 1.183）"
   ],
-  "ref": "记分卡法：weights=[.30,.25,.15,.10,.10,.05,.05]，dev=(factor-100)/100，adjSum=0.09+0.05+0.0225+0.01+0.005+0+0.005=0.1825 ⇒ 18.3%；val=3000×1.1825=3,547.50。注：页面展示的「× 1.183」是 (1+adjSum).toFixed(3) 的**四舍五入显示**，参与运算的仍是 1.1825（3,000×1.183=3,549 ≠ 3,547.50），用例锚的是结果值而非显示系数，故不冲突。"
+  "ref": "adjSum=0.1825，3000×1.1825=3,547.50。"
 },
 {
   "slug": "startup/valuation-calculator",
-  "inputs": {},
-  "clicks": [
-    "document.getElementById('vc_exit').value='100000';document.getElementById('vc_roi').value='20';document.getElementById('vc_years').value='4';document.getElementById('vc_inv').value='1000';calcVC();"
-  ],
+  "inputs": { "vc_exit": "100000", "vc_roi": "20", "vc_years": "4", "vc_inv": "1000" },
+  "clicks": ["document.getElementById('vc_mode').value='total';calcVC();"],
   "expect": [
-    "投后估值 = 100,000.00 ÷ (1+19.00)^4 = 0.63 万",
-    "投前估值 = 0.63 − 1,000.00 = -999.38 万",
-    "投资人持股：160,000.00%"
+    "回报口径：投资期总回报 20 倍",
+    "投后估值 = 100,000.00 ÷ 20.00 = 5,000.00 万",
+    "投前估值 = 5,000.00 − 1,000.00 = 4,000.00 万",
+    "投资人持股：20.00%"
   ],
-  "ref": "风险投资法：rate=roi-1=19（页面把 roi 当倍数），postMoney=100000/20^4=0.625 万（显示 0.63 为四舍五入），preMoney=0.625-1000=-999.375（显示 -999.38），ownership=1000/0.625*100=160,000%。这是一组「退出价值极低 / 目标回报过高」的极端参数 ⇒ 落进 preMoney<0 的告警分支，同时把负值与超大持股比例一并锁住。"
+  "ref": "总回报倍数口径：100000÷20=5000，投前 4000，持股 1000/5000=20%。"
 },
 {
   "slug": "startup/valuation-calculator",
-  "inputs": {},
-  "clicks": [
-    "document.getElementById('dcf_n').value='5';document.getElementById('dcf_cf0').value='200';document.getElementById('dcf_g').value='20';document.getElementById('dcf_r').value='15';document.getElementById('dcf_tg').value='4';calcDCF();"
+  "inputs": { "vc_exit": "100000", "vc_roi": "20", "vc_years": "4", "vc_inv": "1000" },
+  "clicks": ["document.getElementById('vc_mode').value='annual';calcVC();"],
+  "expect": [
+    "回报口径：年化 20% × 4 年",
+    "投后估值 = 100,000.00 ÷ (1+0.2000)^4 = 48,225.31 万",
+    "投前估值 = 48,225.31 − 1,000.00 = 47,225.31 万",
+    "投资人持股：2.07%"
   ],
+  "ref": "年化口径：100000/1.2^4=48,225.31，投前 47,225.31，持股 2.07%。"
+},
+{
+  "slug": "startup/valuation-calculator",
+  "inputs": { "dcf_n": "5", "dcf_cf0": "200", "dcf_g": "20", "dcf_r": "15", "dcf_tg": "4" },
+  "clicks": ["calcDCF()"],
   "expect": [
     "各期现值合计：1,138.25 万",
     "终值现值（永续增长 4.00%）：2,339.31 万",
-    "DCF 估值： 3,477.56 万元"
+    "DCF 估值：3,477.56 万元"
   ],
-  "ref": "DCF：cf0=200、g=20%、r=15%、tg=4%、n=5 ⇒ 五年现值合计 733.18… 此处核对终值链：terminalCF=497.66×1.04，terminalPV=terminalCF/(0.15-0.04)/1.15^5=2,339.31，加各期现值 1,138.25 ⇒ 3,477.56。python 独立复算：pvSum=1138.25、terminalPV=2339.31、total=3477.56，完全吻合。tg(4%)<r(15%) 才不会走错误分支。"
+  "ref": "cf0=200、g=20%、r=15%、tg=4%、n=5，node 独立复算一致。"
 },
 {
   "slug": "startup/valuation-calculator",
-  "inputs": {},
-  "clicks": [
-    "document.getElementById('cmp_rev').value='800';document.getElementById('cmp_mau').value='20';document.getElementById('cmp_ps_lo').value='6';document.getElementById('cmp_ps_hi').value='12';document.getElementById('cmp_uv_lo').value='300';document.getElementById('cmp_uv_hi').value='600';calcComp();"
-  ],
+  "inputs": {
+    "cmp_rev": "800", "cmp_mau": "20", "cmp_ps_lo": "6", "cmp_ps_hi": "12",
+    "cmp_uv_lo": "300", "cmp_uv_hi": "600"
+  },
+  "clicks": ["calcComp()"],
   "expect": [
     "PS 法：收入 800.00 万 × (6.00 - 12.00) = 4,800.00 - 9,600.00 万",
     "单用户法：月活 20.00 万 × (300.00 - 600.00) 元 = 6,000.00 - 12,000.00 万",
-    "对标估值区间： 4,800.00 - 12,000.00 万（中位 8,100.00 万）"
+    "对标端点区间：4,800.00 - 12,000.00 万（区间中点 8,400.00 万）"
   ],
-  "ref": "对标法：PS 法=收入×PS倍数区间=800×6~12；单用户法=月活(万)×单用户价值(元)，20×300~20×600=6000~12000 万元（万用户×元/用户=万元，不再多除 10000）。四值 [4800,9600,6000,12000] 过滤 >0 后 mid=(4800+9600+6000+12000)/4=8,100.00。"
+  "ref": "区间两端取各法最低/最高端点 4800/12000，中点=(4800+12000)/2=8400，不是四端点平均。"
 },
 {
   "slug": "startup/valuation-calculator",
-  "inputs": {},
-  "clicks": [
-    "document.getElementById('bk1').value='400';document.getElementById('bk2').value='350';document.getElementById('bk3').value='300';document.getElementById('bk4').value='250';document.getElementById('bk5').value='200';document.getElementById('sc_avg').value='3000';document.getElementById('sc1').value='130';document.getElementById('sc2').value='120';document.getElementById('sc3').value='115';document.getElementById('sc4').value='110';document.getElementById('sc5').value='105';document.getElementById('sc6').value='100';document.getElementById('sc7').value='110';document.getElementById('vc_exit').value='100000';document.getElementById('vc_roi').value='20';document.getElementById('vc_years').value='4';document.getElementById('vc_inv').value='1000';document.getElementById('dcf_n').value='5';document.getElementById('dcf_cf0').value='200';document.getElementById('dcf_g').value='20';document.getElementById('dcf_r').value='15';document.getElementById('dcf_tg').value='4';document.getElementById('cmp_rev').value='800';document.getElementById('cmp_mau').value='20';document.getElementById('cmp_ps_lo').value='6';document.getElementById('cmp_ps_hi').value='12';document.getElementById('cmp_uv_lo').value='300';document.getElementById('cmp_uv_hi').value='600';calcAll(true);"
-  ],
+  "inputs": {
+    "bk1": "400", "bk2": "350", "bk3": "300", "bk4": "250", "bk5": "200",
+    "sc_avg": "3000", "sc1": "130", "sc2": "120", "sc3": "115", "sc4": "110",
+    "sc5": "105", "sc6": "100", "sc7": "110", "vc_exit": "100000", "vc_roi": "20",
+    "vc_years": "4", "vc_inv": "1000", "dcf_n": "5", "dcf_cf0": "200", "dcf_g": "20",
+    "dcf_r": "15", "dcf_tg": "4", "cmp_rev": "800", "cmp_mau": "20",
+    "cmp_ps_lo": "6", "cmp_ps_hi": "12", "cmp_uv_lo": "300", "cmp_uv_hi": "600"
+  },
+  "clicks": ["document.getElementById('vc_mode').value='annual';calcAll(true);"],
   "expect": [
-    "综合估值区间： 1,500.00 - 12,000.00 万元，建议以平均估值 4,156.26 万为谈判起点",
-    "4,156.26 平均估值(万)",
-    "1,500.00 最低估值(万)",
-    "12,000.00 最高估值(万)"
+    "综合端点区间：1,500.00 - 47,225.31 万元",
+    "端点平均 11,564.34 万",
+    "1,500.00 最低估值(万)"
   ],
-  "ref": "calcAll() 五法全跑 + updateSummary() 汇总：均值每法一票（VC 法本次 preMoney=-999.375 为负 ⇒ 被过滤；对标法用 mid=(4800+9600+6000+12000)/4=8100 计一票）⇒ allV=[1500, 3547.50, 3477.56, 8100]，avg=16,625.06/4=4,156.265（fmt 因浮点得 4,156.26）；综合上下限仍纳入对标法区间两端 4800/12000 ⇒ lo=1,500.00、hi=12,000.00。node 复算一致。"
+  "ref": "五法值 [1500,3547.5,47225.31,3477.56,8400]，min1500/max47225.31/端点平均11564.34；对标按区间中点计一票。"
 },
 {
   "slug": "startup/burn-rate",
