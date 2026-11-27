@@ -220,15 +220,26 @@ function __svReq(id,label,minN){
   return '<p style="color:var(--danger)">⚠ '+(en?'Please fill in "'+label+'" before calculating.':'请填写「'+label+'」后再计算。')+'</p>';
 }
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+var __leqOk=false;
+function __leqClear(){['leqChart','leqTable','lift_equationTable','lift_equationDiff'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});}
 function calcTool(){
+            __leqOk=false; __leqClear();
             var __bad=__svReq('A','机翼面积 A (米²)') || __svReq('CL','升力系数 C_L') || __svReq('rho','空气密度 ρ (kg/m³)') || __svReq('v','速度 v (米/秒)');
             if(__bad){ToolBox.setResult('result',__bad);return;}
             const rho=num('rho'),v=num('v'),CL=num('CL'),A=num('A');
+            if(!isFinite(rho)||rho<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 空气密度 ρ 须大于 0</p>');return;}
+            if(!isFinite(v)||v<0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 速度 v 须为非负值（负速度无物理意义）</p>');return;}
+            if(!isFinite(A)||A<=0){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 机翼面积 A 须大于 0</p>');return;}
+            if(!isFinite(CL)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 升力系数 C_L 须为有效数值（可为负有向下的负升力）</p>');return;}
             const L=0.5*rho*v*v*CL*A;
+            if(!isFinite(L)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 计算结果超出数值范围，请降低输入规模</p>');return;}
+            __leqOk=true;
+            var __leqEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())||/[?&]lang=en/i.test(location.search);
             const __g1=dataGrid([
                 [L.toFixed(2),'升力 L (N)'],
                 [(0.5*rho*v*v).toFixed(1), '动压 q = ½ρv² (Pa)'],
-                [(L/9.80665).toFixed(2), '升力 (kgf)']
+                [(L/9.80665).toFixed(2), '升力 (kgf)'],
+                [CL<0?(__leqEn?'Downward (negative lift)':'向下（负升力）'):(__leqEn?'Upward':'向上'),__leqEn?'Lift direction':'升力方向']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('rho').value = '1.225';
@@ -304,6 +315,7 @@ calcTool();
 <script>
 function __lift_equationNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __lift_equationExtras(){
+    if(!__leqOk){__leqClear();return;}
     function __lift_equationRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
     var rho=num('rho'),v=num('v'),CL=num('CL'),A=num('A');
@@ -325,6 +337,7 @@ function __lift_equationExtras(){
 }
 function __lift_equationExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__leqOk){try{ToolBox.showToast('请先执行有效计算，暂无可导出数据','warning');}catch(e){}return;}
     try { TBKit.util.exportTable('#lift_equationTable','lift-equation.csv'); } catch(e){}
 }
 function __lift_equationPresets(){
@@ -344,7 +357,7 @@ else document.addEventListener('DOMContentLoaded', __lift_equationBoot);
 <script>
 function __leqSweep(){
   var rho=num('rho'), v=num('v'), CL=num('CL'), A=num('A');
-  if(!isFinite(rho)||!isFinite(v)||!isFinite(CL)||!isFinite(A))return null;
+  if(!__leqOk||!isFinite(rho)||!isFinite(v)||!isFinite(CL)||!isFinite(A)||rho<=0||v<0||A<=0)return null;
   var labels=[],data=[],rows=[];
   var cls=[0.2,0.5,0.8,1,1.2,1.5,2];
   for(var i=0;i<cls.length;i++){
@@ -357,13 +370,13 @@ function __leqSweep(){
 }
 function __leqChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var s=__leqSweep(); if(!s)return;
+  var s=__leqSweep(); if(!s){var ce=document.getElementById('leqChart'),te=document.getElementById('leqTable');if(ce)ce.innerHTML='';if(te)te.innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#leqChart',{title:en?'Lift vs Lift Coefficient (L = ½ρv²C_L·A)':'升力随升力系数变化 (L = ½ρv²C_L·A)',labels:s.labels,series:[{name:en?'Lift L (N)':'升力 L (N)',data:s.data}]});
 }
 function __leqTable(){
   if(typeof TBKit==='undefined'||!TBKit.matrix||!TBKit.matrix.table)return;
-  var s=__leqSweep(); if(!s)return;
+  var s=__leqSweep(); if(!s){var te=document.getElementById('leqTable');if(te)te.innerHTML='';return;}
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.matrix.table('#leqTable',{head:en?['Lift coefficient C_L','Lift L (N)','Lift (kgf)']:['升力系数 C_L','升力 L (N)','升力 (kgf)'],rows:s.rows});
 }

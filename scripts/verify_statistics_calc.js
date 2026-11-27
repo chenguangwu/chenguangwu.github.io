@@ -1720,7 +1720,26 @@ const CASES = [
     inputs: { data: "1,0,3" },
     expect: ["第 2 项「0」必须大于 0"],
     ref: "第1071批：非法项必须按位置明确报错，不能被过滤后按 1、3 计算。",
-  }
+  },
+
+  {
+    slug: "statistics/one-sample-t-test",
+    inputs: { xbar: "52", mu0: "50", sd: "10", n: "2.5" },
+    expect: ["样本量 n 须为 ≥ 2 的整数"],
+    ref: "第1073批：t 检验自由度 df=n−1，n=2.5 会产生非整数自由度；主算与附加明细必须用同一整数校验并停止。",
+  },
+  {
+    slug: "statistics/one-sample-z-test",
+    inputs: { xbar: "52", mu0: "50", sigma: "0", n: "100" },
+    expect: ["「总体标准差 σ」是本计算的分母，不能为 0"],
+    ref: "第1073批：σ=0 时 z 分母为 0；主算必须明确报错，不能输出 Infinity/NaN 或保留旧明细。",
+  },
+  {
+    slug: "statistics/one-sample-z-test",
+    inputs: { xbar: "52", mu0: "50", sigma: "10", n: "2.5" },
+    expect: ["样本量 n 须为正整数"],
+    ref: "第1073批：样本量必须为正整数，避免附加明细按小数 n 继续生成。",
+  },
 
 ];
 
