@@ -29,9 +29,11 @@
 [data-theme="dark"] .result-display{background:var(--result-bg);}
 .result-main{font-size:36px;font-weight:700;color:var(--primary);}
 .result-sub{font-size:14px;color:var(--text-secondary);margin-top:6px;}
-.factor-card{background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;}
+.factor-card{position:relative;display:block;background:var(--result-bg);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all 0.2s;}
 .factor-card:hover{border-color:var(--primary);}
 .factor-card.active{border-color:var(--primary);background:rgba(255,107,53,0.06);}
+.factor-card:focus-within{outline:2px solid var(--primary);outline-offset:2px;}
+.factor-card input[type=radio]{position:absolute;top:10px;right:10px;margin:0;accent-color:var(--primary);}
 .factor-card .fname{font-size:13px;font-weight:600;color:var(--heading);}
 .factor-card .fdesc{font-size:11px;color:var(--text-muted);margin-top:4px;}
 .factor-card .fval{font-size:12px;color:var(--primary);font-weight:600;margin-top:4px;}
@@ -114,6 +116,14 @@
         "@type": "Answer",
         "text": "气候按当年花期天气（干旱/多雨会显著降低泌蜜）取 0.6–1.2，经验按养蜂人管理水平取 0.7–1.2；不确定时取 1.0 作基准，再按实际调整。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "售价和成本怎么填？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "售价填当地预计收购价或自售价（元/kg），成本填饲料、运输、人工、蜂具折旧等合计（元）。工具只做假设测算，不提供实时价格；改价后收入与利润会同步重算。"
+      }
     }
   ]
 }
@@ -150,8 +160,8 @@
     <h2 data-zh="🔮 养蜂采蜜量估算">Honey Estimator</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据蜂箱数量、花源面积和蜜源类型估算年度产蜜量">Honey Estimator</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">需求花源 = 蜂群数 × 4 亩/群；总产蜜 = 蜜源基数 × 群数 × 气候系数 × 经验系数 × 面积因子；面积因子 = min(1, 花源 ÷ 需求花源)，达到需求后不再额外加成</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：totalHoney × 2；totalHoney × 40；hives × 4">Key formulas: totalHoney × 2; totalHoney × 40; hives × 4</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">需求花源 = 蜂群数 × 4 亩/群；总产蜜 = 蜜源基数 × 群数 × 气候系数 × 经验系数 × 面积因子；面积因子 = min(1, 花源 ÷ 需求花源)，达到需求后不再额外加成；销售收入 = 总产蜜 × 本地售价；估算利润 = 销售收入 − 总成本</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：totalHoney × 2；totalHoney × 本地售价；销售收入 − 总成本；hives × 4">Key formulas: totalHoney × 2; totalHoney × local price; revenue − total cost; hives × 4</p>
     </div>
 
     <div class="input-row">
@@ -176,6 +186,16 @@
     </div>
 
     <div class="input-row">
+      <label for="price">本地预计售价（元/kg）</label>
+      <input type="number" id="price" value="40" min="0.01" max="10000" step="0.1" oninput="calc()" placeholder="如 40">
+    </div>
+
+    <div class="input-row">
+      <label for="cost">预计总成本（元，留空按 0）</label>
+      <input type="number" id="cost" value="0" min="0" max="10000000" step="10" oninput="calc()" placeholder="饲料、运输、人工等合计">
+    </div>
+
+    <div class="input-row">
       <label for="experience">养殖经验</label>
       <select id="experience" onchange="calc()">
         <option value="0.7">新手（1年以下）</option>
@@ -189,7 +209,7 @@
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;" id="sourceGrid"></div>
 
     <div class="toolbar">
-      <div id="honey_estimatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算产蜜量</button><button class="btn" type="button" onclick="__honey_estimatorExport()">导出明细 CSV</button>
+      <div id="honey_estimatorPresets"></div><button type="button" class="btn primary" onclick="calc()">计算产蜜量</button><button class="btn" type="button" onclick="__honeyCsv()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
     </div>
 
@@ -213,6 +233,7 @@
     <div class="result-box">
       <p>• <strong>蜜源植物</strong>：不同花种产蜜差异大，油菜、椴树、荔枝为高产蜜源</p>
       <p>• <strong>花源面积</strong>：一般3-5亩花源供养1群蜂，面积过小蜂群采蜜不足</p>
+      <p>• <strong>售价与成本</strong>：本地售价、总成本均为用户填写的假设值，工具不提供实时行情；成本宜包含饲料、运输、人工与蜂具折旧。</p>
       <p>• <strong>气候条件</strong>：晴朗温暖、微风天气利于采蜜，阴雨低温影响严重</p>
       <p>• <strong>蜂群强弱</strong>：强群产蜜量可达弱群的3-5倍，春繁管理至关重要</p>
       <p>• <strong>管理技术</strong>：适时取蜜、防治病虫害、合理分蜂可提升产量</p>
@@ -243,14 +264,15 @@
 <ul class="dd-list">
 <li>按蜂群数、蜜源种类、花源面积、气候与经验系数估算年度产蜜量，用于养蜂计划与收益测算。</li>
 <li>反推所需花源面积（每群约 4 亩），判断放蜂场地承载力是否匹配蜂群规模。</li>
-<li>按蜂蜜市价折算预估收入，比较不同蜜源品种的经济性。</li>
+<li>按用户填写的本地预计售价与总成本，分别估算销售收入和利润；产量、价格均为假设，不提供实时行情。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">产量模型</div><div class="dd-ex-body">建议花源面积 = 蜂群数 × 4（亩）；面积系数：花源不足时 = 实际面积 ÷ 建议面积（按比例折减），超过建议面积 3 倍时取 1.1，否则 1.0；总产蜜(kg) = 蜜源基础产量 × 群数 × 气候系数 × 经验系数 × 面积系数；总斤数 = kg × 2；预估收入 = kg × 40 元。基础产量(kg/群)：椴树 60、龙眼 48、荔枝 50、油菜 45、枣花 42、洋槐 40、向日葵 38、混合花源 35。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">椴树蜜源 20 群、花源 100 亩、气候 1.0、经验 1.0：建议面积 = 20×4 = 80 亩，100 亩未超 240 亩故系数 1.0；总产蜜 = 60×20×1×1×1 = 1200 kg（2400 斤），收入约 1200×40 = 48,000 元。若花源仅 40 亩，系数 = 40/80 = 0.5，产量降至 600 kg。</div></div>
+<div class="dd-example"><div class="dd-ex-title">产量模型</div><div class="dd-ex-body">建议花源面积 = 蜂群数 × 4（亩）；面积系数 = min(1, 实际面积 ÷ 建议面积)：花源不足时按比例折减，达到或超过建议面积后固定为 1.0，不再额外加成；总产蜜(kg) = 蜜源基础产量 × 群数 × 气候系数 × 经验系数 × 面积系数；总斤数 = kg × 2；预估销售收入 = kg × 本地预计售价；估算利润 = 销售收入 − 预计总成本。基础产量(kg/群)：椴树 60、龙眼 48、荔枝 50、油菜 45、枣花 42、洋槐 40、向日葵 38、混合花源 35。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">椴树蜜源 20 群、花源 100 亩、气候 1.0、经验 1.0：建议面积 = 20×4 = 80 亩，100 亩未超 240 亩故系数 1.0；总产蜜 = 60×20×1×1×1 = 1200 kg（2400 斤）；按本地售价 40 元/kg、总成本 0 元计，销售收入 48,000 元、估算利润 48,000 元。若花源仅 40 亩，系数 = 40/80 = 0.5，产量降至 600 kg。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么要按每群 4 亩算花源？</dt><dd>蜂群采集半径内需要足够的蜜源植物支撑，花源不足时采集效率下降、产量按面积比例折减，甚至需外源饲喂。</dd>
 <dt>气候与经验系数怎么取？</dt><dd>气候按当年花期天气（干旱/多雨会显著降低泌蜜）取 0.6–1.2，经验按养蜂人管理水平取 0.7–1.2；不确定时取 1.0 作基准，再按实际调整。</dd>
+<dt>售价和成本怎么填？</dt><dd>售价填当地预计收购价或自售价（元/kg），成本填饲料、运输、人工、蜂具折旧等合计（元）。工具只做假设测算，不提供实时价格；改价后收入与利润会同步重算。</dd>
 </dl>
 </div>
 </section>
@@ -269,7 +291,7 @@
         </tr>
         <tr>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="面积折减">Area factor</td>
-          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="花源不足按比例折减；达到需求后为 1.0">areaFactor = area/need (short); 1.1 (ample)</td>
+          <td style="padding:6px 8px;border-bottom:1px solid var(--border);" data-zh="花源不足按比例折减；达到需求后为 1.0">areaFactor = min(1, area/need); 1.0 once adequate</td>
           <td style="padding:6px 8px;border-bottom:1px solid var(--border);">Colony management guideline</td>
         </tr>
         <tr>
@@ -310,17 +332,23 @@ let selectedSource = 'mixed';
 function renderSources(){
   const grid = document.getElementById('sourceGrid');
   const __g0=HONEY_SOURCES.map(s => `
-    <div class="factor-card ${s.id === selectedSource ? 'active' : ''}" onclick="selectSource('${s.id}')">
+    <label class="factor-card ${s.id === selectedSource ? 'active' : ''}">
+      <input type="radio" name="honeySource" id="src_${s.id}" value="${s.id}" ${s.id === selectedSource ? 'checked' : ''} onchange="selectSource('${s.id}')">
       <div class="fname">${s.icon} ${s.name}</div>
       <div class="fdesc">${s.desc}</div>
       <div class="fval">基准 ${s.base}kg/群</div>
-    </div>
+    </label>
   `).join('');grid.innerHTML=(typeof __g0==='number'?(isFinite(__g0)?__g0:'—'):String(__g0).replace(/Infinity|NaN/g,'—'));
 }
 
 function selectSource(id){
   selectedSource = id;
-  renderSources();
+  document.querySelectorAll('.factor-card').forEach(function(card){
+    const input = card.querySelector('input[type=radio]');
+    const active = !!input && input.value === id;
+    card.classList.toggle('active', active);
+    if(input) input.checked = active;
+  });
   calc();
 }
 
@@ -339,19 +367,29 @@ function calc(){
   const area = areaRaw === '' ? NaN : parseFloat(areaRaw);
   const climate = parseFloat(document.getElementById('climate').value);
   const exp = parseFloat(document.getElementById('experience').value);
+  const priceEl = document.getElementById('price');
+  const costEl = document.getElementById('cost');
+  const priceRaw = priceEl.value.trim();
+  const costRaw = costEl.value.trim();
+  const price = priceRaw === '' ? NaN : parseFloat(priceRaw);
+  const cost = costRaw === '' ? 0 : parseFloat(costRaw);
   const source = HONEY_SOURCES.find(s => s.id === selectedSource);
 
   const hivesOk = isFinite(hives) && hives > 0 && hives <= 1000 && Math.abs(hives-Math.round(hives)) < 1e-9;
   const areaOk = isFinite(area) && area > 0 && area <= 10000;
+  const priceOk = isFinite(price) && price > 0 && price <= 10000;
+  const costOk = isFinite(cost) && cost >= 0 && cost <= 10000000;
   setInvalid(hivesEl, !hivesOk);
   setInvalid(areaEl, !areaOk);
+  setInvalid(priceEl, !priceOk);
+  setInvalid(costEl, !costOk);
 
-  if(!hivesOk || !areaOk){
+  if(!hivesOk || !areaOk || !priceOk || !costOk){
     window.__honeyInvalid = true;
     window.__honeyLast = null;
     document.getElementById('honeyResult').textContent = '--';
     document.getElementById('honeyStats').innerHTML = '';
-    document.getElementById('honeyDesc').textContent = '请输入有效参数：蜂箱数量须为 1–1000 的整数群，花源面积须大于 0 且不超过 10000 亩';
+    document.getElementById('honeyDesc').textContent = '请输入有效参数：蜂箱数量须为 1–1000 的整数群，花源面积须大于 0 且不超过 10000 亩，本地售价须为 0.01–10000 元/kg，预计总成本须为 0–10000000 元';
     return;
   }
   window.__honeyInvalid = false;
@@ -362,15 +400,16 @@ function calc(){
   if(area < needArea){
     areaFactor = area / needArea; // 花源不足，按比例折减
   }
-  // 面积达到经验需求后不再加成，避免「刚好 3 倍」阈值附近产量突然跳增。
+  // 面积达到经验需求后固定为 1.0，不再额外加成。
 
   const totalHoney = source.base * hives * climate * exp * areaFactor;
-  window.__honeyLast = {hives:hives,area:area,source:source.name,totalHoney:totalHoney};
   const perHive = totalHoney / hives;
   const jinTotal = totalHoney * 2; // 斤
 
-  // 收入估算（蜂蜜均价约40元/kg）
-  const income = totalHoney * 40;
+  // 收入估算：使用用户填写的本地预计售价，不再硬编码 40 元/kg
+  const income = totalHoney * price;
+  const profit = income - cost;
+  window.__honeyLast = {hives:hives,area:area,source:source.name,totalHoney:totalHoney,price:price,cost:cost,income:income,profit:profit};
 
   const __g3=totalHoney.toFixed(1) + ' kg';document.getElementById('honeyResult').textContent=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
   const __g4=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）`;document.getElementById('honeyDesc').textContent=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
@@ -380,11 +419,24 @@ function calc(){
   const __g5=`
     <div class="stat-card"><div class="val">${perHive.toFixed(1)}</div><div class="lbl">单群产蜜(kg)</div></div>
     <div class="stat-card"><div class="val">${jinTotal.toFixed(0)}</div><div class="lbl">总产量(斤)</div></div>
-    <div class="stat-card"><div class="val">¥${income.toFixed(0)}</div><div class="lbl">预估收入(40元/kg)</div></div>
+    <div class="stat-card"><div class="val">¥${income.toFixed(0)}</div><div class="lbl">预估销售收入(${price}元/kg)</div></div>
+    <div class="stat-card"><div class="val">¥${profit.toFixed(0)}</div><div class="lbl">估算利润(收入−成本)</div></div>
     <div class="stat-card"><div class="val">${needArea}</div><div class="lbl">建议花源(亩)</div></div>
   `;document.getElementById('honeyStats').innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
 
-  const __g6=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）· ${areaNote}。假设：蜜源基础产量与气候/经验系数固定，未计病虫害、盗蜂、极端天气与市场价格波动。`;document.getElementById('honeyDesc').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+  const __g6=`预估年度产蜜量（约${jinTotal.toFixed(0)}斤）· ${areaNote}。按本地售价 ${price} 元/kg、总成本 ${cost} 元估算收入与利润；产量和价格均为假设，未计病虫害、盗蜂、极端天气与实际价格波动，不提供实时行情。`;document.getElementById('honeyDesc').textContent=(typeof __g6==='number'?(isFinite(__g6)?__g6:'—'):String(__g6).replace(/Infinity|NaN/g,'—'));
+}
+
+function __honeyCsv(){
+  if(window.__honeyInvalid || !window.__honeyLast){
+    ToolBox.showToast('请先补全有效参数后再导出；无效输入不会导出 0 产量。', 'warning');
+    return;
+  }
+  const d=window.__honeyLast;
+  const rows=[['项目','数值','单位'],['蜂箱数量',d.hives,'群'],['花源面积',d.area,'亩'],['蜜源类型',d.source,''],['预估年产蜜量',d.totalHoney.toFixed(1),'kg'],['折合',(d.totalHoney*2).toFixed(0),'斤'],['本地预计售价',d.price,'元/kg'],['预计总成本',d.cost,'元'],['预估销售收入',d.income.toFixed(0),'元'],['估算利润',d.profit.toFixed(0),'元'],['建议花源',d.hives*4,'亩'],['说明','产量与价格均为假设，不代表保证','']];
+  const csv='\ufeff'+rows.map(r=>r.map(x=>'"'+String(x).replace(/"/g,'""')+'"').join(',')).join('\n');
+  if(window.ToolBox&&typeof ToolBox.downloadText==='function'){ToolBox.downloadText('honey-estimator.csv',csv);return;}
+  try{const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='honey-estimator.csv';a.click();URL.revokeObjectURL(a.href);}catch(e){}
 }
 
 function copyResult(){
@@ -393,7 +445,7 @@ function copyResult(){
     return;
   }
   const d=window.__honeyLast;
-  const text = `养蜂产蜜估算：${d.hives}群蜂 / ${d.area}亩花源 / ${d.source}\n预估年产蜜量：${d.totalHoney.toFixed(1)}kg（约${(d.totalHoney*2).toFixed(0)}斤）\n说明：按蜜源基础产量、气候/经验系数与花源承载假设估算，不代表产量保证。`;
+  const text = `养蜂产蜜估算：${d.hives}群蜂 / ${d.area}亩花源 / ${d.source}\n预估年产蜜量：${d.totalHoney.toFixed(1)}kg（约${(d.totalHoney*2).toFixed(0)}斤）\n本地售价：${d.price}元/kg；预计总成本：${d.cost}元\n预估销售收入：${d.income.toFixed(0)}元；估算利润：${d.profit.toFixed(0)}元\n说明：按蜜源基础产量、气候/经验系数与花源承载假设估算，产量和价格均为假设，不代表产量或收益保证。`;
   ToolBox.copyText(text, i18nText('msg137'));
 }
 

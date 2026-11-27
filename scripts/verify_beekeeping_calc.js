@@ -33,7 +33,7 @@ const CASES = [
     "expect": [
       "350.0 kg"
     ],
-    "ref": "花源充足(>3倍需求)加成1.1"
+    "ref": "花源充足：达到需求后面积系数固定 1.0，不再额外加成"
   },
   {
     "slug": "beekeeping/honey-estimator",
@@ -115,6 +115,33 @@ const CASES = [
     "clicks": ["var cap=null;var old=__wsCsvDownload;__wsCsvDownload=function(n,rows){cap=rows;};exportCSV();__wsCsvDownload=old;var t=cap?cap.map(function(r){return r.join('|');}).join(' / '):'';document.getElementById('__tbProbe').textContent='WCSV '+((t.indexOf('每日消耗|0.50')>=0&&t.indexOf('计划天数|10')>=0&&t.indexOf('计划期需糖浆|5.0')>=0&&t.indexOf('计划期缺口（每群）|-1.00 L')>=0&&t.indexOf('计划期缺口（合计）|-5.00 L')>=0)?'OK':'BAD:'+t);"],
     "expect": ["WCSV OK"],
     "ref": "复核失败重做·导出复用差额：5 群、4 L/群、0.5 L/天、10 天 ⇒ 计划需 5 L/群，缺口 1.00 L/群、合计 5.00 L；CSV 必须同时含每日消耗、计划天数、计划期需糖浆与每群/合计缺口。旧导出只有预计饲喂天数。"
+  }
+,
+  {
+    "slug": "beekeeping/honey-estimator",
+    "inputs": {"hives":"10","area":"40"},
+    "clicks": ["document.getElementById('price').value='60';document.getElementById('cost').value='2000';calc();"],
+    "expect": ["¥21000","¥19000","预估销售收入(60元/kg)"],
+    "ref": "第1109批：收入改用本地售价 60 元/kg → 350×60=21000 元；总成本 2000 元 ⇒ 利润 19000 元。旧实现固定 40 元/kg、无利润项。"
+  },
+  {
+    "slug": "beekeeping/honey-estimator",
+    "inputs": {"hives":"10","area":"40"},
+    "clicks": ["document.getElementById('price').value='';calc();var c=0;var old=ToolBox.copyText;ToolBox.copyText=function(){c++;};copyResult();ToolBox.copyText=old;document.getElementById('__tbProbe').textContent='HPRICE '+((document.getElementById('honeyResult').textContent.trim()==='--'&&c===0)?'OK':'BAD');"],
+    "expect": ["HPRICE OK"],
+    "ref": "第1109批：售价为空时结果置 --、__honeyLast 清空，复制被拦截；不再把空售价当 0 或沿用旧 40 元。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"101","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "expect": ["每群补饲量 0.001–100 L"],
+    "ref": "第1109批：输入框标注 0.001–100 L，calcData 旧实现只查下限；101 L 现直接拒绝，不计算、不写历史、不导出。"
+  },
+  {
+    "slug": "beekeeping/winter-feed-syrup",
+    "inputs": { "n":"5","vol":"100","ratio":"2","price":"5","daily":"0.5","days":"10" },
+    "expect": ["500.0 L","所需白糖"],
+    "ref": "第1109批：上限 100 L 本身合法，5 群×100 L=500 L 糖浆并正常输出白糖；与 101 L 形成边界对照。"
   }
 
 ];

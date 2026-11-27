@@ -120,14 +120,14 @@
     </div>
 
     <div class="input-row">
-      <div><label for="n">蜂群数量 (群)</label><input type="number" id="n" value="10" step="1" min="0"></div>
-      <div><label for="vol">每群补饲糖浆 (L)</label><input type="number" min="0.001" max="100" id="vol" value="6" step="0.5"></div>
-      <div><label for="ratio">糖水重量比 (糖:水)</label><input type="number" id="ratio" value="2" step="0.1" min="0.5" max="3"></div>
+      <div><label for="n">蜂群数量 (群)</label><input type="number" id="n" value="10" step="1" min="0" oninput="calcTool({saveHistory:false})"></div>
+      <div><label for="vol">每群补饲糖浆 (L)</label><input type="number" min="0.001" max="100" id="vol" value="6" step="0.5" oninput="calcTool({saveHistory:false})"></div>
+      <div><label for="ratio">糖水重量比 (糖:水)</label><input type="number" id="ratio" value="2" step="0.1" min="0.5" max="3" oninput="calcTool({saveHistory:false})"></div>
     </div>
     <div class="input-row">
-      <div><label for="price">白糖单价 (元/kg)</label><input type="number" id="price" value="6" step="0.1" min="0"></div>
-      <div><label for="daily">每群每日消耗 (L)</label><input type="number" id="daily" value="0.4" step="0.05" min="0.05"></div>
-      <div><label for="days">计划饲喂天数 (天)</label><input type="number" id="days" value="7" step="1" min="1" max="30"></div>
+      <div><label for="price">白糖单价 (元/kg)</label><input type="number" id="price" value="6" step="0.1" min="0" oninput="calcTool({saveHistory:false})"></div>
+      <div><label for="daily">每群每日消耗 (L)</label><input type="number" id="daily" value="0.4" step="0.05" min="0.05" oninput="calcTool({saveHistory:false})"></div>
+      <div><label for="days">计划饲喂天数 (天)</label><input type="number" id="days" value="7" step="1" min="1" max="30" oninput="calcTool({saveHistory:false})"></div>
     </div>
 
     <div class="toolbar">
@@ -140,6 +140,7 @@
     </div>
 
     <div class="result-box" id="result"></div>
+    <div class="info-box" id="calcModeNote" style="margin-top:8px;"></div>
     <div class="card" style="margin-top:14px;">
       <h3 data-zh="白糖与加水用量对比">白糖与加水用量对比</h3>
       <canvas id="fitChart" width="620" height="220" style="width:100%;max-width:620px;height:auto;"></canvas>
@@ -218,7 +219,7 @@ function calcData(){
   var raw={};['n','vol','ratio','price','daily','days'].forEach(function(id){raw[id]=document.getElementById(id).value.trim();});
   if(Object.keys(raw).some(function(id){return raw[id]==='';})) return {valid:false,msg:'请完整填写蜂群数量、每群补饲量、糖水比、白糖单价、每日消耗与计划天数'};
   const n=num('n'),vol=num('vol'),ratio=num('ratio'),price=num('price'),daily=num('daily'),days=num('days');
-  if(![n,vol,ratio,price,daily,days].every(isFinite)||!Number.isInteger(n)||n<=0||vol<0.001||ratio<0.5||ratio>3||price<0||daily<0.05||!Number.isInteger(days)||days<1||days>30){
+  if(![n,vol,ratio,price,daily,days].every(isFinite)||!Number.isInteger(n)||n<=0||vol<0.001||vol>100||ratio<0.5||ratio>3||price<0||daily<0.05||!Number.isInteger(days)||days<1||days>30){
     return {valid:false,msg:'参数无效：蜂群数量须为正整数，每群补饲量 0.001–100 L，糖水比 0.5–3，白糖单价≥0，每日消耗≥0.05 L，计划天数须为 1–30 的整数'};
   }
   const f=ratio/(ratio+1),rho=densityFor(f),totalL=n*vol,totalKg=totalL*rho,sugar=totalKg*f,water=totalKg-sugar,cost=sugar*price;
@@ -243,9 +244,12 @@ function clearChart(){
   ctx.clearRect(0,0,cv.width,cv.height);
 }
 function exportCSV(){const d=calcData();if(!d.valid){alert(d.msg);return;}const gapLabel=d.gapPer>0?'计划期缺口':(d.gapPer<0?'计划期剩余':'计划期差额（持平）');const gapPerText=d.gapPer>0?'-'+fmtL(d.gapPer):(d.gapPer<0?'+'+fmtL(Math.abs(d.gapPer)):fmtL(0));const gapTotalText=d.gapPer>0?'-'+fmtL(d.gapTotal):(d.gapPer<0?'+'+fmtL(Math.abs(d.gapTotal)):fmtL(0));__wsCsvDownload('winter-feed-syrup.csv',[['项目','数值','单位'],['蜂群数量',d.n,'群'],['每群补饲',fmtL(d.vol),''],['每日消耗',d.daily.toFixed(2),'L/群/天'],['计划天数',d.days,'天'],['计划期需糖浆',d.planNeed.toFixed(1),'L/群'],['糖水比',d.ratio+':1',''],['糖质量分数',(d.f*100).toFixed(1),'%'],['糖浆密度',d.rho.toFixed(2),'kg/L'],['总糖浆体积',fmtL(d.totalL),''],['总糖浆重量',fmtKg(d.totalKg),''],['白糖',fmtKg(d.sugar),''],['加水',fmtKg(d.water),''],['成本',fmtMoney(d.cost),''],['预计饲喂天数',d.feedDays.toFixed(1),'天'],[gapLabel+'（每群）',gapPerText,''],[gapLabel+'（合计）',gapTotalText,'']]);}
-function calcTool(){
+function calcTool(opts){
+  const save = !(opts && opts.saveHistory === false);
+  const sample = !!(opts && opts.sample);
   const d=calcData();
-  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
+  const mode=document.getElementById('calcModeNote');
+  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();if(mode)mode.textContent='参数无效，未写入历史。请修正后点击「计算」确认。';return;}
   const rows=[[fmtL(d.totalL),'总糖浆体积'],[fmtKg(d.sugar),'所需白糖'],[fmtKg(d.water),'需加水'],[fmtKg(d.totalKg),'糖浆总重量'],[fmtMoney(d.cost),'白糖成本'],[d.feedDays.toFixed(1)+' 天','预计饲喂天数'],[fmtKg(d.perColonySugar),'每群糖量']];
   let html=__wsDataGrid(rows);
   if(d.ratio>2.5)html+='<div class="info-box" style="margin-top:12px;">⚠️ 糖水比 '+d.ratio+':1 偏浓，冷却后易结晶，建议控制在 2.5:1 以内并分次饲喂。</div>';
@@ -262,10 +266,15 @@ function calcTool(){
   html+='<div class="info-box" style="margin-top:8px;">「预计消耗天数」按每日消耗恒定估算；「计划天数」是您打算投喂的周期，两者不是同一口径。按计划 '+d.days+' 天摊薄，平均每天约需白糖 '+fmtKg(d.perDaySugar)+'；建议分 2–3 次投喂，并观察采食与结晶情况。</div>';
   document.getElementById('result').innerHTML=html;
   __wsDrawChart(d);
-  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.n+' 群 / '+d.vol+' L → 白糖 '+fmtKg(d.sugar));
+  if(mode){
+    if(sample) mode.textContent='当前为示例参数，未写入历史；点击「计算」才会记录本次结果。';
+    else if(save) mode.textContent='本次结果已记录到历史（'+new Date().toLocaleTimeString()+'）。屏幕、图表与导出均使用同一份参数。';
+    else mode.textContent='参数已自动重算，尚未写入历史；点击「计算」确认并记录。';
+  }
+  if(save) saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.n+' 群 / '+d.vol+' L → 白糖 '+fmtKg(d.sugar));
 }
-function resetForm(){['n','vol','ratio','price','daily','days'].forEach((id,i)=>document.getElementById(id).value=[10,6,2,6,0.4,7][i]);calcTool();}
-fillRatioTable();renderHist(HIST_KEY);calcTool();
+function resetForm(){['n','vol','ratio','price','daily','days'].forEach((id,i)=>document.getElementById(id).value=[10,6,2,6,0.4,7][i]);calcTool({saveHistory:false,sample:true});}
+fillRatioTable();renderHist(HIST_KEY);calcTool({saveHistory:false,sample:true});
 </script>
 
 <section class="deep-dive" data-deep-dive="1">
