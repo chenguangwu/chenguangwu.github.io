@@ -30,7 +30,7 @@
     <meta name="twitter:description" content="超规格概率计算器是一款免费的在线过程控制工具，在正态假设下求超出上规格限的概率，输入均值、标准差与 USL 输出缺陷率，适合过程风险控制。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"超规格概率计算器","url":"https://chenguangwu.github.io/tools/process/defect-probability.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"超规格概率计算器是一款免费的在线过程控制工具，在正态假设下求超出上规格限的概率，输入均值、标准差与 USL 输出缺陷率，适合过程风险控制。假设质量特性服从正态分布时，估算单侧（仅上规格或仅下规格）超界的概率与对应 DPMO，把能力指数翻译成直观的『不良率』。","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"超规格概率计算器","url":"https://chenguangwu.github.io/tools/process/defect-probability.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"超规格概率计算器是一款免费的在线过程控制工具，在正态假设下求超出上规格限的概率，输入均值、标准差与 USL 输出缺陷率，适合过程风险控制。假设质量特性服从正态分布时，估算单侧（上规格）超界的上尾概率与对应 DPMO，把能力参数翻译成直观的尾概率。","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -90,6 +90,14 @@
     },
     {
       "@type": "Question",
+      "name": "为什么极小概率不显示为 0？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "四舍五入到固定小数位会把 10⁻⁷ 级概率写成 0.0000%，误导为「不会发生」。工具改用 erfc 数值稳定的上尾算法，并以科学计数或足够有效数字显示；只有超出双精度可表示范围时才标注「低于可表示范围」，仍不代表零风险。"
+      }
+    },
+    {
+      "@type": "Question",
       "name": "正态分布假设不成立怎么办？",
       "acceptedAnswer": {
         "@type": "Answer",
@@ -129,11 +137,11 @@
 <div class="container" role="main">
   <div class="card">
     <h2 data-zh="超规格概率计算器">Out-of-Spec Probability</h2>
-    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="正态假设下超出上规格限的概率。">Defect Probability</p>
+    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="正态假设下超出上规格限的尾概率；极小概率用科学计数显示，不会因四舍五入显示为零。">Defect Probability</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
       <div class="formula-eq">z = (USL − μ) / σ；p = 1 − Φ(z)；例 z=5 → p≈2.87e-7。对称时总缺陷为两侧之和。</div>
-      <p class="formula-desc">正态假设下超出上规格限的概率。</p>
+      <p class="formula-desc">正态假设下超出上规格限的尾概率；极小概率用科学计数显示，不会因四舍五入显示为零。</p>
     </div>
 
     <div class="input-row">
@@ -292,6 +300,14 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __dpErfc(x){var z=Math.abs(x);var t=1/(1+0.5*z);var r=t*Math.exp(-z*z-1.26551223+t*(1.00002368+t*(0.37409196+t*(0.09678418+t*(-0.18628806+t*(0.27886807+t*(-1.13520398+t*(1.48851587+t*(-0.82215223+t*0.17087277)))))))));return x>=0?r:2-r;}
+function __dpFormat(p){
+  if(!(p>0)) return {p:"低于双精度可表示范围（约 >38σ），非实际零", dpmo:"低于可表示范围"};
+  var pct=p*100;
+  var pTxt=(pct<1e-4?pct.toExponential(3):pct.toFixed(6))+"%";
+  var dTxt=(p*1e6<1?(p*1e6).toPrecision(3):(p*1e6).toFixed(1));
+  return {p:pTxt, dpmo:dTxt};
+}
 function calcTool(){
               var __ig=__tbInputGuard(['usl', 'mu', 'sigma'],["上规格限 USL", "过程均值 μ", "过程标准差 σ"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
 function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
@@ -300,10 +316,12 @@ function erf(x){const s=x<0?-1:1;x=Math.abs(x);const t=1/(1+0.3275911*x);
             const usl=num('usl'),m=num('mu'),s=num('sigma');
             if(!(s>0)){document.getElementById('result').innerHTML='<p style="color:var(--danger);">请检查输入：过程标准差 σ 必须大于 0</p>';return;}
             const z=(usl-m)/s;
-            const p=1-0.5*(1+erf(z/Math.SQRT2));
+            const p=0.5*__dpErfc(z/Math.SQRT2);
+            const f=__dpFormat(p);
             const __g2=dataGrid([
-                [(p*100).toFixed(4),'超上规格概率 (%)'],
-                [(p*1e6).toFixed(1),'对应 DPMO']
+                [f.p,'超上规格概率（上尾）'],
+                [f.dpmo,'对应 DPMO'],
+                [z.toFixed(3),'标准正态分位 z']
             ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
         }
 function resetForm(){document.getElementById('usl').value = '10.05';
@@ -321,15 +339,16 @@ function __defect_probabilityExtras(){
     return s*y;}
     var usl=num('usl'),m=num('mu'),s=num('sigma');
     var z=(usl-m)/s;
-    var p=1-0.5*(1+erf(z/Math.SQRT2));
     if (!isFinite(__defect_probabilityNum('usl')) || !isFinite(__defect_probabilityNum('mu')) || !isFinite(__defect_probabilityNum('sigma'))) return;
     if(__defect_probabilityNum('sigma')<=0){var __tbEl=document.getElementById('defect_probabilityTable');if(__tbEl)__tbEl.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>';return;}
+    var p=0.5*__dpErfc(z/Math.SQRT2); var f=__dpFormat(p);
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#defect_probabilityTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['超上规格概率 (%)', (p*100).toFixed(4)],
-            ['对应 DPMO', (p*1e6).toFixed(1)],
+            ['超上规格概率（上尾）', f.p],
+            ['对应 DPMO', f.dpmo],
+            ['标准正态分位 z', z.toFixed(3)],
         ]
     });
     TBKit.history.record({usl:__defect_probabilityRaw('usl'), mu:__defect_probabilityRaw('mu'), sigma:__defect_probabilityRaw('sigma'), z:z});
@@ -382,15 +401,16 @@ else document.addEventListener('DOMContentLoaded', __defect_probabilityBoot);
 <h2>📚 深度解析：超规格概率计算器</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>假设质量特性服从<a class="term-link" href="/tools/it/normal-distribution.html">正态分布</a>时，估算单侧（仅上规格或仅下规格）超界的概率与对应 <a class="term-link" href="/tools/process/dpmo-calc.html">DPMO</a>，把能力指数翻译成直观的『不良率』。</li>
-<li>客户要求用『百万缺陷机会数』沟通时，由概率换算成 DPMO 便于横向对标。</li>
-<li>给定规格与过程参数，反推当前 σ 水平下的尾概率，判断是否需要加严控制。</li>
+<li>假设质量特性服从<a class="term-link" href="/tools/it/normal-distribution.html">正态分布</a>时，估算单侧（上规格）超界的上尾概率与对应 <a class="term-link" href="/tools/process/dpmo-calc.html">DPMO</a>，把能力参数翻译成直观的尾概率。</li>
+<li>客户要求用百万机会数沟通时，由概率换算成 DPMO 便于横向对标。</li>
+<li>给定规格与过程参数，反推当前 Z 下的尾概率；极小概率用科学计数显示，避免舍入零被误读为实际零。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">单侧（上规格）超界概率 P = 1 − Φ(z)，其中 z = (USL − μ)/σ，Φ 为标准正态分布累积分布函数；对应 DPMO = P × 10⁶。同样方法可算下规格 P = Φ((μ − LSL)/σ)。本工具以上规格为例。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">轴径 USL=10.05、μ=10.0、σ=0.02：z = (10.05−10.0)/0.02 = 2.50；P = 1 − Φ(2.5) = 1 − 0.99379 = 0.6210%；对应 DPMO ≈ 6209.7。若把 σ 从 0.02 收到 0.01，则 z=5、P≈0.00003%、DPMO≈0.3，几乎零缺陷——可见压缩离散度对降低尾概率有指数级收益。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">单侧（上规格）超界概率 P = 1 − Φ(z) = 0.5·erfc(z/√2)，其中 z=(USL−μ)/σ；DPMO=P×10⁶。同样方法可算下规格 P=Φ((μ−LSL)/σ)。本工具以上规格为例。极小概率以科学计数显示；若低于双精度可表示范围，标注为「低于可表示范围」而非零风险。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">轴径 USL=10.05、μ=10.0、σ=0.02：z=2.50；P≈0.6210%；DPMO≈6209.7。若 σ 收到 0.01，则 z=5、P≈2.87×10⁻⁷（0.0000287%）、DPMO≈0.287；工具以科学计数显示，不会写成 0.0000%。z=6 时 DPMO≈0.001，仍非实际零。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么是单侧？</dt><dd>本工具按上规格（USL）计算超出上限的尾概率；若关心低于下限，应改用下规格公式 Φ((μ−LSL)/σ)。双侧同时超界且规格远离均值时，两端尾概率可近似相加，但更严谨应直接算规格区间外的总概率。</dd>
+<dt>为什么极小概率不显示为 0？</dt><dd>四舍五入到固定小数位会把 10⁻⁷ 级概率写成 0.0000%，误导为「不会发生」。工具改用 erfc 数值稳定的上尾算法，并以科学计数或足够<a class="term-link" href="/tools/science/significant-figures.html">有效数字</a>显示；只有超出双精度可表示范围时才标注「低于可表示范围」，仍不代表零风险。</dd>
 <dt>正态分布假设不成立怎么办？</dt><dd>实际特性常非严格正态（偏态、厚尾）。此时用正态近似会低估尾概率（厚尾更危险），应做正态性检验（如 Anderson-Darling）或改用非参数方法 / Box-Cox 变换后再评估。</dd>
 </dl>
 </div>

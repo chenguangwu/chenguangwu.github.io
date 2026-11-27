@@ -100,8 +100,8 @@ const CASES = [
     "mu": "10.0",
     "sigma": "0.01"
   },
-  "expect": [ "0.0 对应" ],
-  "ref": "auto-restore"
+  "expect": [ "低于双精度可表示范围" ],
+  "ref": "z=505 远超双精度可表示范围：修复前以 toFixed(4) 显示 0.0000% 和 0.0 DPMO，把极小概率误报为零；现明确标注低于可表示范围，并非实际零。"
 },
 {
   "slug": "process/dpmo-calc",
@@ -135,9 +135,9 @@ const CASES = [
     "opp": "10"
   },
   "expect": [
-    "缺陷数须 ≥0"
+    "缺陷数须为非负整数"
   ],
-  "ref": "负缺陷数：旧实现输出 -250.0 DPMO；现要求 ≥0。"
+  "ref": "负缺陷数：旧实现输出 -250.0 DPMO；现要求非负整数。"
 },
 {
   "slug": "process/first-pass-yield",
@@ -157,9 +157,9 @@ const CASES = [
     "total": "1000"
   },
   "expect": [
-    "良品数不能大于投入数"
+    "首次合格数不能大于投入数"
   ],
-  "ref": "修复前 1100/1000 输出 110% 与 -100 不良；现字段级拒绝"
+  "ref": "修复前 1100/1000 输出 110% 与 -100 不良；现按「首次合格数」字段拒绝"
 },
 {
   "slug": "process/pp-index",
@@ -291,8 +291,8 @@ const CASES = [
 {
   "slug": "process/rolled-throughput-yield",
   "inputs": { "y1": "120" },
-  "expect": ["工序良率不能超过 100%"],
-  "ref": "越界防护（2026-11-05）：良率 >100% 时不再输出 764.46% 这类伪结果，只提示并清空结果表；默认 98/97/99 不出现该提示。"
+  "expect": ["每道工序的一次通过率须为 0–100%"],
+  "ref": "越界防护：一次通过率 >100% 时不再输出 764.46% 这类伪结果，只提示并清空结果表；默认 98/97/99 不出现该提示。"
 },
 {
   "slug": "process/sigma-level",
@@ -307,8 +307,8 @@ const CASES = [
 {
   "slug": "process/sigma-level",
   "inputs": { "dpmo": "0" },
-  "expect": [ "DPMO = 0：理想无缺陷" ],
-  "ref": "DPMO=0 代表无缺陷理想工况（y=1−0/1e6=1，invNorm(1)=∞），应显示「西格玛水平 ≥ 6σ」而非被判为分母为 0 或全零无意义。修复前 __D 把 dpmo 误登记为分母 + 全零守卫拒绝，页面报错；默认 dpmo=6210 不含该串 ⇒ 强判别"
+  "expect": [ "不能据此断言" ],
+  "ref": "DPMO=0 时 y=1、invNorm(1) 无有限值：旧版错误显示「≥6σ 上限」；现明确说明不能断言总体零风险，并提示可填已检验机会数给 3/N 置信上界。"
 },
 {
   "slug": "process/tolerance-rss",
@@ -368,7 +368,62 @@ const CASES = [
   "clicks": ["var s=document.getElementById('sigma');var min=s.getAttribute('min');s.value='0.0001';calcTool();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='CPMIN '+(min==='0.0001'&&h.indexOf('166.667')>=0?'OK':'BAD min='+min);"],
   "expect": ["CPMIN OK"],
   "ref": "1054 复核重做：σ 输入除原有的 >0 计算守卫外，还须有表单下限 min=0.0001；边界值 0.0001 仍可算出 Cp=(10.05−9.95)/(6×0.0001)=166.667。旧版无 min 属性 ⇒ BAD；默认 σ=0.01 不含该探针。"
+},
+{
+  "slug": "process/first-pass-yield",
+  "inputs": { "good": "950.5", "total": "1000" },
+  "expect": ["首次合格数须为非负整数"],
+  "ref": "非整数件数：旧实现按 950.5 件照算 95.05%；现要求计数为非负整数，默认 950/1000 不命中。"
+},
+{
+  "slug": "process/defect-probability",
+  "inputs": { "usl": "10.05", "mu": "10.0", "sigma": "0.01" },
+  "expect": ["2.867e-5", "0.287"],
+  "ref": "z=5 的极小尾概率：旧版 toFixed(4) 显示 0.0000%、DPMO 0.0；现以科学计数显示 2.867e-5%、DPMO 0.287，不再舍入为零。"
+},
+{
+  "slug": "process/xbar-control-limits",
+  "inputs": { "mean": "50", "sigma": "-2", "n": "5" },
+  "expect": ["标准差 σ 须为有限非负值"],
+  "ref": "负 σ：旧版算出 UCL=47.317、LCL=52.683（上下限颠倒）；现拒绝并清空主结果/明细，默认 σ=2 不命中。"
+},
+{
+  "slug": "process/xbar-control-limits",
+  "inputs": { "mean": "50", "sigma": "2", "n": "2.5" },
+  "expect": ["子组大小 n 须为有限正整数"],
+  "ref": "小数 n：旧版按 √2.5 计算；现要求正整数，默认 n=5 不命中。"
+},
+{
+  "slug": "process/tolerance-rss",
+  "inputs": { "t1": "0", "t2": "0", "t3": "0" },
+  "expect": ["不适用（线性叠加为 0，0/0）"],
+  "ref": "三项全零：旧版用 (sum||1) 把分母变 1，比例显示 0.00%；现标 0/0 不适用，两个总公差仍为 0.000。"
+},
+{
+  "slug": "process/dpmo-calc",
+  "inputs": { "def": "124", "units": "2000", "opp": "10.5" },
+  "expect": ["5904.8", "21000"],
+  "ref": "平均机会数：每单位 10.5 个机会（可为平均值），总机会=21000，DPMO=124/21000×1e6≈5904.8；默认 10 机会为 6200.0，强判别。"
+},
+{
+  "slug": "process/dpmo-calc",
+  "inputs": { "def": "1", "units": "1.5", "opp": "2" },
+  "expect": ["单位数须为正整数"],
+  "ref": "小数单位数：旧版按 1.5 件计算并输出总机会 3；现要求单位数为正整数。"
+},
+{
+  "slug": "process/sigma-level",
+  "inputs": { "dpmo": "0", "sampleN": "1000000" },
+  "expect": ["3.00 DPMO", "95% 置信上界"],
+  "ref": "零缺陷有限样本：填 1,000,000 机会后按 3/N 给 95% 上界≈3 DPMO，而不是「≥6σ 上限」；与无样本的提示分支互斥。"
+},
+{
+  "slug": "process/rolled-throughput-yield",
+  "inputs": { "y1": "98", "y2": "100", "y3": "99" },
+  "expect": ["97.02", "100% 工序不降低 RTY"],
+  "ref": "100% 工序：0.98×1×0.99=97.02%；用来纠正「工序越多 RTY 越低」的绝对说法。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

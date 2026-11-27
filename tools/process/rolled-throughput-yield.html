@@ -93,7 +93,15 @@
       "name": "工序越多 RTY 越低是必然吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "只要单工序 FPY<100% 就必然衰减，与工序数正相关；提升 RTY 要么提高单工序 FPY（治本），要么减少不必要工序（瘦身），不能靠末端筛选掩盖前道缺陷。"
+        "text": "不是。新增 100% 工序不改变 RTY；只有新增工序的 FPY<100% 才会继续衰减。提升 RTY 要么提高单工序 FPY（治本），要么减少不必要工序（瘦身），不能靠末端筛选掩盖前道缺陷。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "两种平均不良率该看哪个？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "「等效几何平均」回答的是：若各工序不良率相同，需要多高才能得到当前 RTY，适合与 RTY 联动解释；「算术平均」是各工序不良率的简单平均，适合看整体不良水平分布。两者量纲相同但定义不同，报告中应写明口径。"
       }
     }
   ]
@@ -132,23 +140,27 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="多工序串联时整体一次合格率。">Rolled Throughput Yield</p>
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">RTY = y₁·y₂·y₃（y 为各工序良率）；例 98%×97%×99%≈94.11%。工序越多 RTY 越低。</div>
-      <p class="formula-desc">多工序串联时整体一次合格率。</p>
+      <div class="formula-eq">RTY = Π yᵢ（yᵢ 为各工序同口径一次通过率，小数）；例 98%×97%×99%≈94.11%。100% 工序不降低 RTY；工序越多、任一 <100% 时衰减越明显。</div>
+      <p class="formula-desc">多工序串联的整体一次合格率。各输入须为同口径一次通过率（不含返修后合格）；可增删工序。另有「等效几何平均单工序不良率」（由 RTY 开 n 次方反推）与「算术平均单工序不良率」两个不同口径，不能混用。</p>
     </div>
 
-    <div class="input-row">
+    <div class="input-row" id="rtyRows" style="flex-wrap:wrap;">
       <div>
-        <label for="y1">工序1良率 (%)</label>
-        <input type="number" id="y1" value="98" step="0.5" placeholder="如 98" oninput="calcTool()">
+        <label for="y1">工序1一次通过率 (%)</label>
+        <input type="number" class="rty-y" id="y1" value="98" step="0.5" placeholder="如 98" oninput="calcTool()">
       </div>
       <div>
-        <label for="y2">工序2良率 (%)</label>
-        <input type="number" id="y2" value="97" step="0.5" placeholder="如 97" oninput="calcTool()">
+        <label for="y2">工序2一次通过率 (%)</label>
+        <input type="number" class="rty-y" id="y2" value="97" step="0.5" placeholder="如 97" oninput="calcTool()">
       </div>
       <div>
-        <label for="y3">工序3良率 (%)</label>
-        <input type="number" id="y3" value="99" step="0.5" placeholder="如 99" oninput="calcTool()">
+        <label for="y3">工序3一次通过率 (%)</label>
+        <input type="number" class="rty-y" id="y3" value="99" step="0.5" placeholder="如 99" oninput="calcTool()">
       </div>
+    </div>
+    <div style="margin:8px 0 4px;display:flex;gap:8px;flex-wrap:wrap;">
+      <button type="button" class="btn" onclick="__rtyAdd()">＋ 添加工序</button>
+      <button type="button" class="btn" onclick="__rtyRemove()">－ 删除末道工序</button>
     </div>
 
     <div id="rolled_throughput_yieldPresets"></div>
@@ -298,44 +310,72 @@ function __tbInputGuardCore(_ids,_labels){
 
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __rtyInputs(){var arr=Array.prototype.slice.call(document.querySelectorAll('#rtyRows .rty-y'));if(arr.length)return arr;['y1','y2','y3'].forEach(function(id){var e=document.getElementById(id);if(e)arr.push(e);});return arr;}
+function __rtyAdd(){
+  var rows=document.getElementById('rtyRows'); var ins=__rtyInputs(); if(!ins.length) return;
+  var last=ins[ins.length-1]; var wrap=last.parentNode.cloneNode(true);
+  var n=ins.length+1; var inp=wrap.querySelector('input'); inp.id='y'+n; inp.value='100';
+  var lab=wrap.querySelector('label'); lab.setAttribute('for','y'+n); var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn()); lab.textContent=(en?'Process '+n+' first-pass yield (%)':'工序'+n+'一次通过率 (%)');
+  rows.appendChild(wrap); calcTool();
+}
+function __rtyRemove(){
+  var rows=document.getElementById('rtyRows'); var ins=__rtyInputs(); if(ins.length<=1){calcTool();return;}
+  rows.removeChild(ins[ins.length-1].parentNode); calcTool();
+}
+function __rtySetValues(vals){
+  var rows=document.getElementById('rtyRows'); var ins=__rtyInputs();
+  while(ins.length>vals.length){rows.removeChild(ins[ins.length-1].parentNode); ins=__rtyInputs();}
+  while(ins.length<vals.length){var last=ins[ins.length-1];var wrap=last.parentNode.cloneNode(true);var n=ins.length+1;var inp=wrap.querySelector('input');inp.id='y'+n;inp.value='100';var lab=wrap.querySelector('label');lab.setAttribute('for','y'+n);var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());lab.textContent=(en?'Process '+n+' first-pass yield (%)':'工序'+n+'一次通过率 (%)');rows.appendChild(wrap);ins=__rtyInputs();}
+  ins.forEach(function(inp,i){inp.value=String(vals[i]);});
+}
 function calcTool(){
-              var __ig=__tbInputGuard(['y1', 'y2', 'y3'],["工序1良率 (%)", "工序2良率 (%)", "工序3良率 (%)"]);if(__ig){const __g1=__ig;ToolBox.setResult("result",(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));return;}
-const y1=num('y1')/100,y2=num('y2')/100,y3=num('y3')/100;
-            if(y1>1||y2>1||y3>1){const __h0='<p style="color:var(--danger)">⚠ 工序良率不能超过 100%，请检查输入。</p>';ToolBox.setResult('result',__h0);return;}
-            const __g2=dataGrid([
-                [(y1*y2*y3*100).toFixed(2),'RTY (%)'],
-                [(y1*y2*y3).toFixed(4),'RTY (小数)'],
-                [(100-(y1*y2*y3*100)).toFixed(2), '总不良率 (%)'],
-                [((1-Math.pow(y1*y2*y3,1/3))*100).toFixed(2), '平均单工序不良率 (%)']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
-function resetForm(){document.getElementById('y1').value = '98';
-      document.getElementById('y2').value = '97';
-      document.getElementById('y3').value = '99';
-      calcTool();}
+  var ins=__rtyInputs(); var vals=[]; var bad=false;
+  function __rtyBad(msg){ToolBox.setResult('result','<p style="color:var(--danger)">'+msg+'</p>');var tb=document.getElementById('rolled_throughput_yieldTable');if(tb)tb.innerHTML='';}
+  if(!ins.length){__rtyBad('至少保留一道工序');return;}
+  ins.forEach(function(inp){var v=parseFloat(inp.value);if(!isFinite(v)||v<0||v>100){bad=true;}vals.push(v);});
+  if(bad){__rtyBad('每道工序的一次通过率须为 0–100% 的有限数值，请检查输入。');return;}
+  var n=vals.length; var prod=vals.reduce(function(a,v){return a*v/100;},1);
+  var arith=vals.reduce(function(a,v){return a+(100-v);},0)/n;
+  var equiv=(1-Math.pow(prod,1/n))*100;
+  var __g2=dataGrid([
+    [(prod*100).toFixed(2),'RTY (%)'],
+    [prod.toFixed(6),'RTY (小数)'],
+    [(100-prod*100).toFixed(2), '总不良率 (%)'],
+    [equiv.toFixed(2), '等效几何平均单工序不良率 (%)'],
+    [arith.toFixed(2), '算术平均单工序不良率 (%)'],
+    [String(n), '参与串联工序数'],
+    ['几何口径由 RTY 开 n 次方反推；算术口径为各工序不良率简单平均','口径说明']
+  ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+}
+function resetForm(){__rtySetValues(['98','97','99']);calcTool();}
 calcTool();
+
 
 function __rolled_throughput_yieldNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.value):NaN;return isFinite(v)?v:NaN;}
 function __rolled_throughput_yieldExtras(){
     function __rolled_throughput_yieldRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
-    if (num('y1')>100 || num('y2')>100 || num('y3')>100 || num('y1')<0 || num('y2')<0 || num('y3')<0) {
-      var __t=document.getElementById('rolled_throughput_yieldTable'); if(__t) __t.innerHTML='';
-      return;
-    }
-    var y1=num('y1')/100,y2=num('y2')/100,y3=num('y3')/100;
-    if (!isFinite(__rolled_throughput_yieldNum('y1')) || !isFinite(__rolled_throughput_yieldNum('y2')) || !isFinite(__rolled_throughput_yieldNum('y3'))) return;
+    var ins=__rtyInputs(); if(!ins.length) return;
+    var vals=[], bad=false;
+    ins.forEach(function(inp){var v=parseFloat(inp.value);if(!isFinite(v)||v<0||v>100)bad=true;vals.push(v);});
+    if(bad){var __t=document.getElementById('rolled_throughput_yieldTable'); if(__t) __t.innerHTML='<p style="color:var(--danger);">输入无效，未生成明细</p>'; return;}
+    var n=vals.length, prod=vals.reduce(function(a,v){return a*v/100;},1);
+    var arith=vals.reduce(function(a,v){return a+(100-v);},0)/n;
+    var equiv=(1-Math.pow(prod,1/n))*100;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#rolled_throughput_yieldTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['RTY (%)', (y1*y2*y3*100).toFixed(2)],
-            ['RTY (小数)', (y1*y2*y3).toFixed(4)],
-            ['总不良率 (%)', (100-(y1*y2*y3*100)).toFixed(2)],
-            ['平均单工序不良率 (%)', ((1-Math.pow(y1*y2*y3,1/3))*100).toFixed(2)],
+            ['RTY (%)', (prod*100).toFixed(2)],
+            ['RTY (小数)', prod.toFixed(6)],
+            ['总不良率 (%)', (100-prod*100).toFixed(2)],
+            ['等效几何平均单工序不良率 (%)', equiv.toFixed(2)],
+            ['算术平均单工序不良率 (%)', arith.toFixed(2)],
+            ['参与串联工序数', String(n)],
         ]
     });
-    TBKit.history.record({y1:__rolled_throughput_yieldRaw('y1'), y2:__rolled_throughput_yieldRaw('y2'), y3:__rolled_throughput_yieldRaw('y3'), result: y1*y2*y3*100});
+    var rec={result:prod*100}; vals.forEach(function(v,i){rec['y'+(i+1)]=String(v);});
+    TBKit.history.record(rec);
     function __rolled_throughput_yieldRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#rolled_throughput_yieldHist',function(rec){ __rolled_throughput_yieldRestore(rec); calcTool(); });
 }
@@ -349,7 +389,7 @@ function __rolled_throughput_yieldPresets(){
         {label:'默认',labelEn:'Default',values:{y1:'98', y2:'97', y3:'99'}},
         {label:'高良率',labelEn:'High yield',values:{y1:'99.5', y2:'99', y3:'98.5'}},
         {label:'低良率',labelEn:'Low yield',values:{y1:'92', y2:'90', y3:'95'}},
-    ],function(){ calcTool(); });
+    ],function(v){ __rtySetValues([v.y1,v.y2,v.y3]); calcTool(); });
 }
 var __tb_fn0 = calcTool;
 calcTool = function(){ __tb_fn0(); try{ __rolled_throughput_yieldExtras(); }catch(e){} };
@@ -385,28 +425,31 @@ else document.addEventListener('DOMContentLoaded', __rolled_throughput_yieldBoot
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>计算多工序串联过程的『首次合格直通率』，暴露隐藏在『最终合格率 100%』背后的中间返工。</li>
-<li>六西格玛中用 RTY 反推过程<a class="term-link" href="/tools/process/sigma-level.html">西格玛水平</a>与隐性成本，比单看成品合格率更灵敏。</li>
-<li>识别哪道工序的 FPY 最低，作为优先改进环节。</li>
+<li>支持增删工序：新增 100% 工序不改变 RTY，新增 &lt;100% 工序才继续衰减。</li>
+<li>区分「等效几何平均单工序不良率」与「算术平均单工序不良率」，避免把几何等效值误称为算术平均。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">RTY = FPY₁ × FPY₂ × … × FPYₙ，各 FPY 为各工序<a class="term-link" href="/tools/process/first-pass-yield.html">一次通过率</a>（小数）。RTY 必 ≤ 任一单工序 FPY，工序越多、衰减越明显。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">三道工序一次通过率分别为 98%、97%、99%：RTY = 0.98 × 0.97 × 0.99 = 0.941094 ≈ 94.11%（小数 0.9411）。即便每道都接近 99%，三道串联后直通率已跌破 95%，说明至少有约 6% 的单元经历过返工，应排查 97% 那道工序。</div></div>
+<div class="dd-example"><div class="dd-ex-title">公式</div><div class="dd-ex-body">RTY = FPY₁ × FPY₂ × … × FPYₙ（小数）。RTY ≤ 任一单工序 FPY。「等效几何平均单工序不良率」= 1 − RTY^(1/n)，由 RTY 开 n 次方反推；「算术平均单工序不良率」= 各工序不良率的简单平均。两者不同，不能混用。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">三道工序<a class="term-link" href="/tools/process/first-pass-yield.html">一次通过率</a> 98%、97%、99%：RTY=0.98×0.97×0.99≈94.11%；等效几何平均单工序不良率≈2.00%，算术平均不良率=(2+3+1)/3≈2.00%（本例巧合相等）。若再加一道 100% 工序，RTY 仍为 94.11%，说明 100% 工序不降低 RTY。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>RTY 和最终合格率差在哪？</dt><dd>最终合格率通常统计『最终合格品/投入品』，返修后合格也算合格；RTY 只算首次就一路合格的，因此 RTY ≤ 最终合格率，差值就是返工浪费的体量。</dd>
-<dt>工序越多 RTY 越低是必然吗？</dt><dd>只要单工序 FPY&lt;100% 就必然衰减，与工序数正相关；提升 RTY 要么提高单工序 FPY（治本），要么减少不必要工序（瘦身），不能靠末端筛选掩盖前道缺陷。</dd>
+<dt>工序越多 RTY 越低是必然吗？</dt><dd>不是。新增 100% 工序不改变 RTY；只有新增工序的 FPY&lt;100% 才会继续衰减。提升 RTY 要么提高单工序 FPY（治本），要么减少不必要工序（瘦身），不能靠末端筛选掩盖前道缺陷。</dd>
+<dt>两种平均不良率该看哪个？</dt><dd>「等效几何平均」回答的是：若各工序不良率相同，需要多高才能得到当前 RTY，适合与 RTY 联动解释；「算术平均」是各工序不良率的简单平均，适合看整体不良水平分布。两者量纲相同但定义不同，报告中应写明口径。</dd>
 </dl>
 </div>
 </section>
 <script>
 function __rtydChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.line)return;
-  var y2=num('y2'),y3=num('y3');
-  if(!isFinite(y2)||!isFinite(y3)||!(y2>0)||!(y3>0)||y2>100||y3>100)return;
+  var ins=__rtyInputs(); if(!ins.length)return;
+  var vals=[]; ins.forEach(function(inp){vals.push(parseFloat(inp.value));});
+  if(vals.some(function(v){return !isFinite(v)||v<0||v>100;}))return;
+  var rest=vals.slice(1).reduce(function(a,v){return a*v/100;},1);
   var labels=[],data=[];
   for(var i=0;i<=10;i++){
     var y1=50+i*5;
     labels.push(y1.toFixed(0));
-    data.push(Math.round((y1/100)*(y2/100)*(y3/100)*1000)/1000);
+    data.push(Math.round((y1/100)*rest*1000)/1000);
   }
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
   TBKit.chart.line('#rtydChart',{title:en?'RTY vs step1 yield (increasing)':'滚动良率随工序1良率变化（上升）',labels:labels,series:[{name:en?'RTY':'滚动良率 RTY',data:data}]});
