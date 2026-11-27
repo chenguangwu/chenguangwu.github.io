@@ -142,10 +142,10 @@ const CASES = [
 },
 {
   "slug": "home/water-filter-lifespan",
-  "inputs": { "cap": "5000", "daily": "10", "margin": "85", "price": "150" },
-  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var ok=['3613 L','361 天','1.01 支/年','152 元/年','0.0415 元/L'].every(function(x){return t.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='WALL '+(ok?'OK':'BAD');"],
+  "inputs": { "cap": "6000", "daily": "12", "margin": "80", "price": "180" },
+  "clicks": ["try{calcTool()}catch(e){};var t=String(document.getElementById('result').innerHTML);var ok=['4080 L','340 天','1.07 支/年','193 元/年','0.0441 元/L'].every(function(x){return t.indexOf(x)>=0;});document.getElementById('__tbProbe').textContent='WALL '+(ok?'OK':'BAD');"],
   "expect": ["WALL OK"],
-  "ref": "非默认算例：有效 5000×0.85×0.85≈3613 L；3613/10≈361 天；365/361≈1.01 支/年；150×1.01≈152 元/年；150/3613≈0.0415 元/L。组合探针要求五项全部命中，避免 expect 任一命中即通过的弱断言；默认 4000/8/90/120 不命中。"
+  "ref": "非默认算例：有效 6000×0.80×0.85=4080 L；4080/12=340 天；365/340≈1.07 支/年；180×1.07≈193 元/年；180/4080≈0.0441 元/L。组合探针要求五项全部命中；默认 4000/8/90/120 不命中。"
 },
 {
   "slug": "home/water-filter-lifespan",
@@ -213,7 +213,7 @@ const CASES = [
 },
 {
   "slug": "home/water-filter-lifespan",
-  "inputs": { "start": "" },
+  "inputs": { "cap": "6000", "start": "" },
   "expect": ["请填写开始使用日期后再计算。"],
   "ref": "清空开始使用日期必须提示，不得静默回退今天导致预计更换日期与用户输入不一致。"
 },

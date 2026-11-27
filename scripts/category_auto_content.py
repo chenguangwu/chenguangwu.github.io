@@ -13,13 +13,13 @@ import re
 # RL-K57：以下行业的工具是统计/编目/测评/展陈类，不含换算器，通用模板的「换算/单位转换」
 # 与实际工具不符。仅对这些行业定制能力词，其余行业继续用原模板（避免全站 268 页 SEO 文案变动）。
 _CAPABILITY_ZH = {
-    'research': '统计分析、数据处理与查询',
+    'research': '统计分析、方案对比、数据处理与查询',
     'library': '文献编目、档案管理与查询',
     'cognition': '认知测评、脑力训练与查询',
     'museum': '展陈规划、文物保存与查询',
 }
 _CAPABILITY_EN = {
-    'research': 'statistical analysis, data processing and lookups',
+    'research': 'statistical analysis, scenario comparison, data processing and lookups',
     'library': 'document cataloguing, archive management and lookups',
     'cognition': 'cognitive assessment, brain training and lookups',
     'museum': 'exhibition planning, heritage conservation and lookups',

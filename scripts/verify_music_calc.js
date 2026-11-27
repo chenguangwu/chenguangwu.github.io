@@ -28,7 +28,7 @@ function musicStaticChecks(){
     {name:"跟拍训练空值与越界拒绝启动",ok:/function readInt\(id, min, max\)/.test(rr)&&/Number\.isInteger\(n\) && n >= min && n <= max/.test(rr)&&/bpm === null \|\| sub === null \|\| bars === null/.test(rr)&&!/parseInt\(document\.getElementById\('tapBpm'\)\.value\)\|\|100/.test(rr)&&!/bpm=Math\.max\(40,Math\.min\(200,bpm\)\)/.test(rr)},
     {name:"钢琴键盘失焦/隐藏停止全部音符",ok:/window\.addEventListener\('blur', function\(\) \{\n    stopAllNotes\(\);/.test(pk)&&/document\.addEventListener\('visibilitychange'/.test(pk)&&/if \(document\.hidden\) stopAllNotes\(\)/.test(pk)&&/window\.addEventListener\('pagehide'/.test(pk)},
     {name:"音阶生成指定调性/正确拼写/试听键盘",ok:/function spellPitch/.test(sg)&&/const ROOTS = \[/.test(sg)&&/function buildScale/.test(sg)&&/function renderKeyboard/.test(sg)&&/function playScale/.test(sg)&&/随机练习/.test(sg)&&!/一律随机生成/.test(sg)},
-    {name:"BPM 主/反向分别校验记录导出",ok:/function __bpm_converterMainValid/.test(bp)&&/function __bpm_converterReverseValid/.test(bp)&&/if\(!mainOk && !reverseOk\)/.test(bp)&&/if\(!reverseOk\)\{ delete snap\.reverseMs/.test(bp)&&/!__bpm_converterMainValid\(\) && !__bpm_converterReverseValid\(\)/.test(bp)&&!/if\(!Number\.isFinite\(ms\) \|\| ms<=0\)\{\n        ToolBox\.showToast\('请先输入有效的时长值'\)/.test(bp)}
+    {name:"BPM 主/反向均须有效才记录导出",ok:/function __bpm_converterMainValid/.test(bp)&&/function __bpm_converterReverseValid/.test(bp)&&/if\(!mainOk \|\| !reverseOk\)/.test(bp)&&/if\(!reverseOk\)\{ delete snap\.reverseMs/.test(bp)&&/!__bpm_converterMainValid\(\) \|\| !__bpm_converterReverseValid\(\)/.test(bp)&&!/if\(!Number\.isFinite\(ms\) \|\| ms<=0\)\{\n        ToolBox\.showToast\('请先输入有效的时长值'\)/.test(bp)}
   ];
 }
 const CASES = [
