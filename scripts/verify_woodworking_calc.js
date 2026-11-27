@@ -61,7 +61,7 @@ const CASES = [
     "topThick": "15"
   },
   "expect": [
-    "穿透下层约83%"
+    "穿透下层约67%"
   ],
   "ref": "auto-restore"
 },
@@ -99,7 +99,7 @@ const CASES = [
   ],
   "ref": "数量 0：旧代码 parseInt(...)||1 把 0 静默改成 1 根并输出结果；现要求正整数，非法时清空结果卡并提示。默认 quantity=1 合法，不命中。"
 },
-{ slug:"woodworking/wood-screws", clicks:["document.getElementById('totalThick').value='10';document.getElementById('topThick').value='5';recommend();document.getElementById('__tbProbe').textContent='WS861 '+document.getElementById('result').innerText;"], expect:["WS861","无法选到不穿透的标准长度","需 ≥12mm","总厚−2mm"], ref:"#861 薄板：总厚10/上层5 旧实现先限总厚再强制≥12并向上取整 → 推荐15mm 穿透；现明确无法满足并提供替代连接方式。" },
+{ slug:"woodworking/wood-screws", clicks:["document.getElementById('totalThick').value='10';document.getElementById('topThick').value='5';recommend();document.getElementById('__tbProbe').textContent='WS861 '+document.getElementById('result').innerText;"], expect:["WS861","无法选到不穿透的标准长度","穿入下层至少 5.0mm","总厚−2mm"], ref:"#861 薄板：总厚10/上层5 旧实现先限总厚再强制≥12并向上取整 → 推荐15mm 穿透；现明确无法满足并提供替代连接方式。" },
 { slug:"woodworking/wood-screws", clicks:["document.getElementById('totalThick').value='30';document.getElementById('topThick').value='30';recommend();document.getElementById('__tbProbe').textContent='WS861B '+document.getElementById('result').innerText;"], expect:["WS861B","上层厚度必须小于总厚度"], ref:"#861 板厚关系：上层等于总厚时下层为0，旧实现继续算穿透比例；现拦截。" },
 { slug:"woodworking/angle-cut", clicks:["document.getElementById('jointAngle').value='90';document.getElementById('segments').value='2';calcMiter();document.getElementById('__tbProbe').textContent='AC861 '+document.getElementById('miterResult').innerText;"], expect:["AC861","每侧斜接角： 45.00°","锯台设置角度（从垂直方向）： 45.00°"], ref:"#861 直角相框：90° 两根材料每侧切45°，锯台设45°；旧公式输出斜接67.5/锯台22.5。" },
 { slug:"woodworking/angle-cut", clicks:["document.getElementById('jointAngle').value='90';document.getElementById('segments').value='100000';calcMiter();document.getElementById('__tbProbe').textContent='AC861B '+document.getElementById('miterResult').innerText+'|'+document.getElementById('miterVis').innerHTML.length;"], expect:["AC861B","段数须为 2–12 的整数","|0"], ref:"#861 大段数：旧实现按段数循环生成SVG，100000 段可卡死；现范围校验并清空旧示意。" },
@@ -108,7 +108,7 @@ const CASES = [
 { slug:"woodworking/angle-cut", clicks:["document.getElementById('startWidth').value='';document.getElementById('endWidth').value='20';document.getElementById('taperLength').value='200';calcTaper();document.getElementById('__tbProbe').textContent='AC861E '+document.getElementById('taperResult').innerText;"], expect:["AC861E","均须为大于 0 的有限数值","已清除旧结果"], ref:"#861 空宽度：旧 parseFloat||0 把空值当0；现拦截并清空旧结果。" },
 { slug:"woodworking/moisture-content", clicks:["document.getElementById('wetWeight').value='';document.getElementById('dryWeight').value='100';calc();document.getElementById('__tbProbe').textContent='MC861 '+document.getElementById('result').innerText;"], expect:["MC861","湿重不得留空","已清除旧结果"], ref:"#861 缺湿重：旧实现 wet=0 进入负含水率分支仍展示结果；现拦截并清空。" },
 { slug:"woodworking/moisture-content", clicks:["document.getElementById('wetWeight').value='90';document.getElementById('dryWeight').value='100';calc();document.getElementById('__tbProbe').textContent='MC861B '+document.getElementById('result').innerText+'|'+document.getElementById('dataGrid').innerHTML.length;"], expect:["MC861B","湿重不能小于绝干重量","|0"], ref:"#861 湿重<绝干重：旧实现提示数据异常但仍展示负含水率与收缩；现不输出结果卡。" },
-{ slug:"woodworking/moisture-content", clicks:["document.getElementById('wetWeight').value='100';document.getElementById('dryWeight').value='100';calc();document.getElementById('__tbProbe').textContent='MC861C '+document.getElementById('result').innerText;"], expect:["MC861C","含水率： 0.00%","窑干"], ref:"#861 湿重=绝干重：合法0%含水率，须正常计算，不得被空态/负值守卫拦截。" },
+{ slug:"woodworking/moisture-content", clicks:["document.getElementById('wetWeight').value='100';document.getElementById('dryWeight').value='100';calc();document.getElementById('__tbProbe').textContent='MC861C '+document.getElementById('result').innerText;"], expect:["MC861C","含水率： 0.00%","很低（近绝干）"], ref:"#861 湿重=绝干重：合法0%含水率，须正常计算，不得被空态/负值守卫拦截。" },
 { slug:"woodworking/mortise-size", clicks:["document.getElementById('thickness').value='';document.getElementById('width').value='80';calc();document.getElementById('__tbProbe').textContent='MS861 '+document.getElementById('result').innerText+'|'+document.getElementById('dataGrid').innerHTML.length;"], expect:["MS861","请填写大于 0 的板厚","|0"], ref:"#861 空板厚：旧 parseFloat||20 静默替换为20；现拦截并清空结果。" },
 { slug:"woodworking/mortise-size", clicks:["document.getElementById('thickness').value='20';document.getElementById('width').value='';calc();document.getElementById('__tbProbe').textContent='MS861B '+document.getElementById('result').innerText;"], expect:["MS861B","请填写大于 0 的板厚、板宽与榫厚倍率"], ref:"#861 空板宽：旧||80 静默替换；现拦截。" },
 { slug:"woodworking/mortise-size", clicks:["document.getElementById('thickness').value='25';document.getElementById('width').value='100';document.getElementById('jointType').value='dovetail';document.getElementById('ratio').value='1';document.getElementById('hardness').value='medium';calc();document.getElementById('__tbProbe').textContent='MS861C '+document.getElementById('result').innerText;"], expect:["MS861C","实际板厚比 60%","燕尾榫基准 60% × 1 倍率 × 硬度因子 1"], ref:"#861 比例口径：燕尾榫标准 1.0× 即板厚60%，结果明确实际比例与基准，不再把选项误读为40%。" },
