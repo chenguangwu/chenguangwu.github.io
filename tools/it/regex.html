@@ -524,6 +524,8 @@ function testRegex(){
   const pattern = document.getElementById('pattern').value;
   const flags = document.getElementById('flags').value;
   const text = document.getElementById('testText').value;
+  // 输入变化会重跑测试；旧 copy 请求必须同时失效，避免把旧快照的匹配写入剪贴板。
+  __rxInvalidate('copy');
   
   const resultDiv = document.getElementById('matchResult');
   const highlightDiv = document.getElementById('highlight-output');
@@ -681,12 +683,21 @@ function copyMatches(){
   const flags = document.getElementById('flags').value;
   const text = document.getElementById('testText').value;
   if (!pattern) return;
+  const snapshot = {pattern:pattern, flags:flags, text:text};
   
   // IT-N254：跟随用户 flags；global 必须同步（非 g 时若仍传 global:true，worker 的
   // exec 循环因 lastIndex 不前进会把同一条匹配重复 1000+ 次）。
   runRegexGuarded({mode:'test', pattern:pattern, flags:flags, text:text, global:flags.includes('g')}, function(res){
     if(!res.ok){ ToolBox.showToast(i18nText('toast.msg455')); return; }
     if(res.matches.length === 0){ ToolBox.showToast(i18nText('toast.msg475')); return; }
+    const nowPattern = document.getElementById('pattern').value;
+    const nowFlags = document.getElementById('flags').value;
+    const nowText = document.getElementById('testText').value;
+    if(nowPattern !== snapshot.pattern || nowFlags !== snapshot.flags || nowText !== snapshot.text){
+      const en = (typeof TBKit!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
+      ToolBox.showToast(en ? 'Inputs changed; the old copy was cancelled. Copy again.' : '输入已变化，旧复制已取消，请重新复制', 'warning');
+      return;
+    }
     const copied = res.matches.map(function(m){ return m.g[0]; }).join('\n');
     if(res.truncated){
       ToolBox.copyText(copied, ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Copied first 1000 matches only — results were truncated":"仅复制前 1000 条匹配，结果已截断"));
@@ -940,7 +951,7 @@ self.onmessage = function(e){
       if (d.global) {
         while ((m = re.exec(d.text)) !== null) {
           if (ms.length >= 1000) { truncated = true; break; }
-          var g1 = {}, k1;
+          var g1 = Object.create(null), k1;
           if (m.groups) { for (k1 in m.groups) { if (Object.prototype.hasOwnProperty.call(m.groups, k1)) g1[k1] = m.groups[k1]; } }
           ms.push({ i: m.index, g: Array.prototype.slice.call(m), n: g1 });
           if (m.index === re.lastIndex) {
@@ -955,7 +966,7 @@ self.onmessage = function(e){
       } else {
         m = re.exec(d.text);
         if (m) {
-          var g2 = {}, k2;
+          var g2 = Object.create(null), k2;
           if (m.groups) { for (k2 in m.groups) { if (Object.prototype.hasOwnProperty.call(m.groups, k2)) g2[k2] = m.groups[k2]; } }
           ms.push({ i: m.index, g: Array.prototype.slice.call(m), n: g2 });
         }

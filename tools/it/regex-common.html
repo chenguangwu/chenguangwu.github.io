@@ -151,6 +151,13 @@
         </select>
       </div>
       <div>
+        <label for="mode">匹配模式</label>
+        <select id="mode" style="width:100%;">
+          <option value="extract" selected>提取匹配（按形状）</option>
+          <option value="validate">严格校验（整段）</option>
+        </select>
+      </div>
+      <div>
         <label for="txt">测试文本</label>
         <textarea id="txt" rows="5" style="width:100%;font-family:monospace;font-size:12.5px;">abc@example.com 13812345678 test@mail.cn 10.0.0.1</textarea>
       </div>
@@ -290,6 +297,18 @@ function num(id){const v=parseFloat(document.getElementById(id).value);return is
 function escH(s){var d=document.createElement('div');const __g1=s==null?'':String(s);d.textContent=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1));return d.innerHTML;}
 function fmtMoney(n){return n.toLocaleString('zh-CN',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __rcIPv4Valid(v){
+   if(!/^\d{1,3}(?:\.\d{1,3}){3}$/.test(v)) return false;
+   return v.split('.').every(function(p){return Number(p)<=255;});
+}
+function __rcDateValid(v){
+   const m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+   if(!m) return false;
+   const y=Number(m[1]),mo=Number(m[2]),d=Number(m[3]);
+   if(y<1000||y>9999||mo<1||mo>12||d<1||d>31) return false;
+   const dt=new Date(Date.UTC(y,mo-1,d));
+   return dt.getUTCFullYear()===y&&dt.getUTCMonth()===mo-1&&dt.getUTCDate()===d;
+}
 function calcTool(){const cat=document.getElementById('cat').value||'email', txt=document.getElementById('txt').value||'';
    const lim=Math.max(1,Math.floor(num('limit')));
    const regs={
@@ -297,8 +316,8 @@ function calcTool(){const cat=document.getElementById('cat').value||'email', txt
      phone:/1[3-9]\d{9}/g,
      idcard:/\d{17}[\dXx]/g,
      url:/https?:\/\/[^\s<>"']+/g,
-     ipv4:/(?:\d{1,3}\.){3}\d{1,3}/g,
-     date:/\d{4}-\d{2}-\d{2}/g,
+     ipv4:/(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/g,
+     date:/(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/g,
      chinese:/[\u4e00-\u9fff]+/g,
      username:/[A-Za-z0-9_]{3,16}/g,
    };
@@ -306,11 +325,44 @@ function calcTool(){const cat=document.getElementById('cat').value||'email', txt
    const re=regs[cat]||regs.email;
    const found=txt.match(re)||[];
    const name=names[cat]||'';
+   const __rcMode=(document.getElementById('mode')||{}).value||'extract';
+   const __rcEn=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+   if(__rcMode==='validate'){
+     const value=txt.trim();
+     let ok=false;
+     if(!value) ok=false;
+     else if(cat==='ipv4') ok=__rcIPv4Valid(value);
+     else if(cat==='date') ok=__rcDateValid(value);
+     else {
+       const rx=new RegExp('^(?:'+re.source+')$');
+       rx.lastIndex=0;
+       ok=rx.test(value);
+     }
+     let html=dataGrid([
+       [ok?(__rcEn?'✅ Valid':'✅ 有效'):(__rcEn?'❌ Invalid':'❌ 无效'),__rcEn?'Validation result':'校验结果'],
+       [value||(__rcEn?'(empty)':'(空)'),__rcEn?'Input value':'输入值'],
+       [name,__rcEn?'Regex category':'正则类别']
+     ]);
+     const note=cat==='ipv4'
+       ? (__rcEn?'IPv4 validation checks four decimal parts, each 0–255; values such as 999.999.999.999 are rejected.':'IPv4 严格校验检查四段十进制数且每段 0–255；999.999.999.999 会被判为无效。')
+       : cat==='date'
+       ? (__rcEn?'Date validation checks YYYY-MM-DD plus the real calendar, including leap years; 2024-99-99 and 2023-02-29 are rejected.':'日期严格校验检查 YYYY-MM-DD 与实际日历（含闰年）；2024-99-99、2023-02-29 会被判为无效。')
+       : (__rcEn?'Validation requires the whole trimmed input to match the selected pattern; surrounding text makes it invalid.':'严格校验要求整段输入（去除首尾空白）完整匹配所选正则；带前后缀文本即判为无效。');
+     html+='<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+escH(note)+'</div>';
+     ToolBox.setResult('result',String(html));
+     return;
+   }
    let html=dataGrid([
      [name,'正则类别'],
      [found.length+' 个','匹配数量'],
      [found.length?found.slice(0,lim).join('、'):'无匹配','匹配结果（前 '+lim+' 个）']
    ]);
+   const __rcShapeNote = cat==='ipv4'
+     ? (__rcEn?'Extraction is shape-only: 999.999.999.999 can be matched and is not a valid IPv4 address. Switch to strict validation to check ranges.':'提取模式只按形状匹配：999.999.999.999 也会命中，但不代表是有效 IPv4 地址；切到“严格校验”可检查每段范围。')
+     : cat==='date'
+     ? (__rcEn?'Extraction is shape-only: 2024-99-99 or 2023-02-29 can be matched. Switch to strict validation for calendar checks.':'提取模式只按形状匹配：2024-99-99、2023-02-29 也会命中；切到“严格校验”可做实际日历检查。')
+     : (__rcEn?'Extraction finds substrings; it does not prove the surrounding text is valid.':'提取模式只查找子串，不代表整段文本有效。');
+   html+='<div class="tip-mini" style="margin-top:10px;font-size:13px;color:var(--text-muted);">'+escH(__rcShapeNote)+'</div>';
    // ── S6 原文高亮：逐段拼接 <mark>，并列出命中位置（字符偏移由输入决定，可断言）──
    const __ren=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())?1:0;
    // S6：出厂样例本身可命中，高亮标题必须标注“默认示例”，避免被当作输入后的结果锚点。
@@ -349,6 +401,7 @@ function calcTool(){const cat=document.getElementById('cat').value||'email', txt
 function resetForm(){document.getElementById('cat').selectedIndex=0;
       document.getElementById('txt').value='abc@example.com 13812345678 test@mail.cn 10.0.0.1';
       document.getElementById('limit').value='8';
+      var __m=document.getElementById('mode');if(__m)__m.value='extract';
       calcTool();}
 calcTool();
 
@@ -358,21 +411,31 @@ function __regex_commonExtras(){
     if (typeof TBKit === 'undefined') return;
     var cat=document.getElementById('cat').value||'email', txt=document.getElementById('txt').value||'';
     var lim=Math.max(1,Math.floor(num('limit')));
-    var regs={ email:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, phone:/1[3-9]\d{9}/g, idcard:/\d{17}[\dXx]/g, url:/https?:\/\/[^\s<>"']+/g, ipv4:/(?:\d{1,3}\.){3}\d{1,3}/g, date:/\d{4}-\d{2}-\d{2}/g, chinese:/[\u4e00-\u9fff]+/g, username:/[A-Za-z0-9_]{3,16}/g, };
+    var regs={ email:/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, phone:/1[3-9]\d{9}/g, idcard:/\d{17}[\dXx]/g, url:/https?:\/\/[^\s<>"']+/g, ipv4:/(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/g, date:/(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/g, chinese:/[\u4e00-\u9fff]+/g, username:/[A-Za-z0-9_]{3,16}/g, };
     var names={email:'邮箱地址',phone:'中国大陆手机号',idcard:'身份证号',url:'URL 链接',ipv4:'IPv4 地址',date:'日期 YYYY-MM-DD',chinese:'中文字符',username:'用户名(字母数字_3-16)'};
     var re=regs[cat]||regs.email;
     var found=txt.match(re)||[];
     var name=names[cat]||'';
+    var mode=(document.getElementById('mode')||{}).value||'extract';
     if (!isFinite(__regex_commonNum('limit')) || !__regex_commonRaw('cat') || !__regex_commonRaw('txt')) return;
     var en=TBKit.util.isEn();
+    var rows=[['正则类别', name]];
+    if(mode==='validate'){
+        var v=txt.trim(), ok=false;
+        if(v){
+            if(cat==='ipv4') ok=__rcIPv4Valid(v);
+            else if(cat==='date') ok=__rcDateValid(v);
+            else { var rx=new RegExp('^(?:'+re.source+')$'); rx.lastIndex=0; ok=rx.test(v); }
+        }
+        rows.push(['校验结果', ok?(en?'✅ Valid':'✅ 有效'):(en?'❌ Invalid':'❌ 无效')]);
+    }else{
+        rows.push(['匹配数量', found.length+' 个']);
+    }
     TBKit.matrix.table('#regex_commonTable',{
         head: en?['Item','Value']:['项目','数值'],
-        rows: [
-            ['正则类别', name],
-            ['匹配数量', found.length+' 个'],
-        ]
+        rows: rows
     });
-    TBKit.history.record({limit:__regex_commonRaw('limit'), cat:__regex_commonRaw('cat'), txt:__regex_commonRaw('txt'), lim:lim});
+    TBKit.history.record({limit:__regex_commonRaw('limit'), cat:__regex_commonRaw('cat'), mode:__regex_commonRaw('mode'), txt:__regex_commonRaw('txt'), lim:lim});
     function __regex_commonRestore(rec){for(var k in rec){var e=document.getElementById(k);if(!e)continue;var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio'){e.checked=(String(e.value)===String(rec[k])||rec[k]==='1'||rec[k]===true);}else{e.value=rec[k];}}}
     TBKit.history.mount('#regex_commonHist',function(rec){ __regex_commonRestore(rec); calcTool(); });
     TBKit.util.diffBox('#regex_commonDiff',['cat']);
@@ -405,8 +468,8 @@ function __rgcChart(){
     phone:/1[3-9]\d{9}/g,
     idcard:/\d{17}[\dXx]/g,
     url:/https?:\/\/[^\s<>"']+/g,
-    ipv4:/(?:\d{1,3}\.){3}\d{1,3}/g,
-    date:/\d{4}-\d{2}-\d{2}/g,
+    ipv4:/(?<![\d.])(?:\d{1,3}\.){3}\d{1,3}(?![\d.])/g,
+    date:/(?<!\d)\d{4}-\d{2}-\d{2}(?!\d)/g,
     chinese:/[\u4e00-\u9fff]+/g,
     username:/[A-Za-z0-9_]{3,16}/g
   };

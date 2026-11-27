@@ -140,6 +140,7 @@
     <li><b>需要转义</b>：<code>.</code> <code>*</code> <code>+</code> <code>?</code> <code>^</code> <code>$</code> <code>{</code> <code>}</code> <code>(</code> <code>)</code> <code>|</code> <code>[</code> <code>]</code> <code>\</code> 等。</li>
     <li><b>用途</b>：把用户输入安全地拼进正则，避免语法错误与正则注入（ReDoS）。</li>
     <li><b>等价函数</b>：各语言内置工具，如 Python 的 <code>re.escape</code>。</li>
+    <li><b>ECMAScript 安全字面量</b>：U+2028/U+2029 与孤立代理项一律输出为 <code>\uXXXX</code>；勾选「拼接安全」时首位字母/数字改写为 <code>\xNN</code>，避免拼接到 <code>\</code> 前缀后变成反向引用或转义。</li>
     <li><b>注意</b>：不同引擎对 <code>/</code> 与 <code>-</code> 的处理略有差异。</li>
   </ul>
 </div>
@@ -159,6 +160,9 @@
       </label>
       <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;">
         <input type="checkbox" id="slash" onchange="__escLive()"> 转义 /
+      </label>
+      <label style="margin:0;display:flex;align-items:center;gap:6px;font-size:13px;" title="将首位字母/数字写作 \xNN，避免拼接到反斜杠前缀后变成反向引用或转义">
+        <input type="checkbox" id="joinSafe" onchange="__escLive()"> 拼接安全（首字符）
       </label>
     </div>
 
@@ -261,8 +265,16 @@ function esc(live){
   const flavor = document.getElementById('flavor').value;
   const escapeSlash = document.getElementById('slash').checked;
   const set = flavor === 'verbose' ? VERBOSE_META : META;
+  const joinSafe = !!(document.getElementById('joinSafe') && document.getElementById('joinSafe').checked);
   let out = '';
+  let first = true;
   for(const ch of text){
+    const cp = ch.codePointAt(0);
+    // JS 正则字面量不能直接包含 U+2028/U+2029；孤立代理项在 u/v 模式下也可能报错。
+    if(cp === 0x2028){ out += '\\u2028'; first = false; continue; }
+    if(cp === 0x2029){ out += '\\u2029'; first = false; continue; }
+    if(cp >= 0xD800 && cp <= 0xDFFF){ out += '\\u' + cp.toString(16).toUpperCase().padStart(4,'0'); first = false; continue; }
+    if(cp === 0){ out += '\\x00'; first = false; continue; }
     if(set.includes(ch) || (escapeSlash && ch === '/')){
       out += '\\' + ch;
     } else if(ch === '\n'){
@@ -271,9 +283,13 @@ function esc(live){
       out += '\\r';
     } else if(ch === '\t'){
       out += '\\t';
+    } else if(joinSafe && first && /[A-Za-z0-9]/.test(ch)){
+      // 片段可能紧跟在 `\`、`\1` 或 `\c` 之后：首位字母/数字改写为十六进制字面量，避免被解释成反向引用/转义。
+      out += '\\x' + cp.toString(16).toUpperCase().padStart(2,'0');
     } else {
       out += ch;
     }
+    first = false;
   }
   document.getElementById('output').value = out;
 }
