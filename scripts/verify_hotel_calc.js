@@ -127,6 +127,7 @@ const CASES = [
 { slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"2.5","tax":"0"}, expect:["用餐人数必须是 ≥1 的整数"], ref:"人数 2.5 旧实现 parseInt 截成 2 人继续算；现完整数值校验拒绝小数。" },
 { slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"1e2","tax":"0"}, clicks:["calc();"], expect:["100","人均"], ref:"科学计数法 1e2 是合法 100 人，不能截成 1 人；验证 Number 完整转换。" },
 { slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"1000000000","tax":"0"}, expect:["最多支持 1000 人"], ref:"复核失败重做·人数上限：10 亿人会同步构造 10 亿项 split 数组并冻结页面；现明确限制 1–1000 人并提示分批计算。默认 2 人不出现该提示。" },
+{ slug:"hotel/tip-calculator", inputs:{"bill":"100","tipPct":"15","people":"1000","tax":"0"}, expect:["…（其余 980 人）","精确分账：前 500 人各 0.12，其余 500 人各 0.11"], ref:"1000 人不再构造 1000 项分账数组：只预览前 20 项，再按「前 500 人各 0.12、其余 500 人各 0.11」摘要；11500 分×0.01 合计 115.00 精确。默认 2 人无该串。" },
 { slug:"hotel/tip-calculator", inputs:{"bill":"","tipPct":"","people":"","tax":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
   { slug: "hotel/tip-calculator",
     clicks: ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/hotel/tip-calculator.html','utf8');var ok=h.indexOf('data-zh=\"通用小费算式（本工具定义）\"')>=0&&h.indexOf('data-zh=\"支付总额 = 消费额 + 小费（本工具定义）\"')>=0&&h.indexOf('data-zh=\"人均分摊 = 支付总额 ÷ 人数（本工具定义）\"')>=0;document.getElementById('__tbProbe').textContent='TIPSRC '+(ok?'OK':'BAD');"],
