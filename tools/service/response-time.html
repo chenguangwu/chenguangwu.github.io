@@ -98,7 +98,7 @@
       "name": "SLA 达标率是怎么算的？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "达标率 = 响应时长 ≤ SLA 目标值的工单数 ÷ 工单总数。本例 SLA=30 分，8 单中 6 单 ≤30 分（45、35 分超时），故为 75.0%。"
+        "text": "达标率 = 响应时长 ≤ SLA 目标值的有效工单数 ÷ 工单总数；响应缺失按未达标。本例 SLA=30 分，8 单中 6 单 ≤30 分（45、35 分超时），故为 75.0%。"
       }
     },
     {
@@ -106,7 +106,7 @@
       "name": "P90、P99 分位响应有什么用？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "P90 表示 90% 的工单响应快于该值，P99 表示 99% 的工单快于该值；它们衡量长尾体验，比平均值更能暴露少数极端慢响应问题，是 SLA 治理的关键指标。"
+        "text": "P90 是有效响应时长的第 90 百分位（线性插值），表示约 90% 的样本不高于该时长，并不等于“90% 的工单达标”；SLA 达标率另按“响应≤目标”的工单数 ÷ 总工单数计算。插值得到的 P90 可能不对应某张实际工单。"
       }
     }
   ]
@@ -145,7 +145,7 @@
     <h2 data-zh="🎧 客服响应时间统计">Service Response Time Statistics</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="录入工单响应与解决时间，自动计算平均响应时间、解决率、P50/P90/P99等关键SLA指标">Response Time</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">客服工单响应时间统计分析<br>平均响应时间 = Σ响应时长 ÷ 工单数<br>平均解决时间 = Σ解决时长 ÷ 已解决工单数（仅统计已解决且 >0）<br>解决率 = 已解决数 ÷ 总工单数（新增空工单默认「处理中」，不自动计入已解决）<br>有效样本：平均响应/分位数只用工单中已填且 ≥0 的响应时长；平均解决时间只用状态已解决且解决时长 >0 的样本，并在结果中显示有效样本数<br>SLA 达标率 = 响应 ≤ 目标时长的工单数 ÷ 总工单数<br>分位数：P50 / P90 / P99 按「响应时长有效样本」取位，空值不计入分母<br>分布直方图分桶：0-5 分｜5-15 分｜15-30 分｜30-60 分｜60 分以上<br>条宽按最大桶计数归一化；占比 >60% 红、>30% 橙、其他绿<br>明细表逐单显示响应/解决时长、状态、是否达标<br>SLA 达标率 ≥90% 视为达标（绿色），否则红色告警</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">客服工单响应时间统计分析<br>平均响应时间 = Σ响应时长 ÷ 工单数<br>平均解决时间 = Σ解决时长 ÷ 已解决工单数（仅统计已解决且 ≥0，0 分钟计入）<br>解决率 = 已解决数 ÷ 总工单数（新增空工单默认「处理中」，不自动计入已解决）<br>有效样本：平均响应/分位数只用工单中已填且 ≥0 的响应时长；平均解决时间只用状态已解决且解决时长 ≥0 的样本，并在结果中显示有效样本数<br>SLA 达标率 = 响应 ≤ 目标时长的有效工单数 ÷ 总工单数（缺失响应按未达标）<br>分位数：P50 / P90 / P99 按「响应时长有效样本」线性插值取位，空值不计入分母；P90 是时长分位值，不等于 SLA 达标率<br>分布直方图分桶：0-5 分｜5-15 分｜15-30 分｜30-60 分｜60 分以上<br>条宽按最大桶计数归一化；占比 >60% 红、>30% 橙、其他绿<br>明细表逐单显示响应/解决时长、状态、是否达标；工单 CSV 直接导出当前明细并附目标与样本口径<br>SLA 达标率 ≥90% 视为达标（绿色），否则红色告警</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.max.apply(null,counts)||1；counts[i]÷maxCount×100">Key formulas: Math.max.apply(null,counts)||1; counts[i]÷maxCount×100</p>
     </div>
 
@@ -160,7 +160,7 @@
     <div class="stat-grid" id="stats" style="margin-top:16px;"></div>
 
     <h3 style="font-size:14px;margin:16px 0 6px;">📊 响应时间分布</h3>
-    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__response_timeExport()">导出明细 CSV</button></div><div id="distChart" class="result-box" style="padding:14px;"></div> <div id="response_timeTable"></div> <div id="response_timeDiff"></div> <div id="response_timeChart"></div> <div id="response_timeHist"></div>
+    <div class="toolbar" style="margin:8px 0;"><button class="btn" type="button" onclick="__response_timeExport()">导出工单明细 CSV</button><button class="btn" type="button" onclick="__response_timeExportHistory()">导出历史摘要 CSV</button></div><div id="distChart" class="result-box" style="padding:14px;"></div> <div id="response_timeTable"></div> <div id="response_timeDiff"></div> <div id="response_timeChart"></div> <div id="response_timeHist"></div>
 
     <h3 style="font-size:14px;margin:16px 0 6px;">📋 工单明细</h3>
     <div style="overflow-x:auto;">
@@ -175,7 +175,7 @@
     </div>
 
     <div class="tip-box tip-info" style="margin-top:12px;">
-      <strong>SLA指标</strong>：P50（中位数）表示50%的工单在此时间内响应；P90表示90%的工单达标；P99用于评估长尾体验。
+      <strong>SLA指标</strong>：P50（中位数）表示50%的有效响应样本不高于该时长；P90 表示90%的有效样本不高于该时长，是分位值而非“90%达标”；SLA 达标率另按“响应≤目标”的工单数 ÷ 总工单数计算。线性插值得到的 P90 可能不对应某张实际工单。
     </div>
   </div>
 
@@ -205,11 +205,11 @@
 <li>周报月报：结合解决时长算出平均解决时间与解决率，用 0-5/5-15/15-30/30-60/60+ 分箱直方图直观展示响应分布，便于向上汇报。</li>
 <li>异常排查：当 P90 远超 SLA 时定位长尾工单（如响应 35 分、45 分超 30 分阈值），针对性优化排班或升级机制，提升整体达标率。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：内置 8 张工单（SLA=30 分）</div><div class="dd-ex-body">工单响应时长 [5,12,25,3,45,8,35,15] 分，其中 1 张未解决。计算得：工单总数 8、已解决 7、解决率 87.5%；平均响应 18.5 分；响应≤30 分 6 单 → SLA 达标率 75.0%；分位 P50=13.5 分、P90=38.0 分、P99=44.3 分；平均解决时间 115.7 分。结论：多数工单达标，但 P90/P99 长尾（35、45 分）拉低达标率，需重点治理超时工单。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：内置 8 张工单（SLA=30 分）</div><div class="dd-ex-body">工单响应时长 [5,12,25,3,45,8,35,15] 分，其中 1 张未解决。计算得：工单总数 8、已解决 7、解决率 87.5%；平均响应 18.5 分；响应≤30 分 6 单 → SLA 达标率 75.0%；分位 P50=13.5 分、P90=38.0 分、P99=44.3 分；平均解决时间 115.7 分。结论：多数工单达标，但 P90/P99 长尾（35、45 分）拉低达标率，需重点治理超时工单。 解决时长为 0 的已解决工单也计入平均解决时间与有效样本；空值才排除。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>SLA 达标率是怎么算的？</dt><dd>达标率 = 响应时长 ≤ SLA 目标值的工单数 ÷ 工单总数。本例 SLA=30 分，8 单中 6 单 ≤30 分（45、35 分超时），故为 75.0%。</dd>
-<dt>P90、P99 分位响应有什么用？</dt><dd>P90 表示 90% 的工单响应快于该值，P99 表示 99% 的工单快于该值；它们衡量长尾体验，比平均值更能暴露少数极端慢响应问题，是 SLA 治理的关键指标。</dd>
+<dt>SLA 达标率是怎么算的？</dt><dd>达标率 = 响应时长 ≤ SLA 目标值的有效工单数 ÷ 工单总数；响应缺失按未达标。本例 SLA=30 分，8 单中 6 单 ≤30 分（45、35 分超时），故为 75.0%。</dd>
+<dt>P90、P99 分位响应有什么用？</dt><dd>P90 是有效响应时长的第 90 百分位（线性插值），表示约 90% 的样本不高于该时长，并不等于“90% 的工单达标”；SLA 达标率另按“响应≤目标”的工单数 ÷ 总工单数计算。插值得到的 P90 可能不对应某张实际工单。</dd>
 </dl>
 </div>
 </section>
@@ -320,14 +320,14 @@ function calc(){
   var slaValid=isFinite(slaRaw)&&slaRaw>0;
   var sla=slaValid?slaRaw:null;
   var respTimes=tickets.filter(function(t){return t.resp!=null && isFinite(t.resp) && t.resp>=0;}).map(function(t){return t.resp;});
-  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>0;}).map(function(t){return t.solve;});
+  var solveTimes=tickets.filter(function(t){return t.status==='resolved' && t.solve!=null && isFinite(t.solve) && t.solve>=0;}).map(function(t){return t.solve;});
   var total=tickets.length;
   var resolved=tickets.filter(function(t){return t.status==='resolved';}).length;
   var resolveRate=total>0?resolved/total:0;
   var avgResp=respTimes.length?respTimes.reduce(function(a,b){return a+b;},0)/respTimes.length:0;
   var avgSolve=solveTimes.length?solveTimes.reduce(function(a,b){return a+b;},0)/solveTimes.length:0;
   var metSla=slaValid?respTimes.filter(function(t){return t<=sla;}).length:0;
-  var slaRate=(slaValid && respTimes.length)?metSla/respTimes.length:null;
+  var slaRate=(slaValid && total)?metSla/total:null;
 
   const __g2='<div class="stat-card"><div class="val" style="color:var(--primary);">'+(respTimes.length?fmt(avgResp):'--')+'分</div><div class="lbl">平均响应时间</div></div>'+
     '<div class="stat-card"><div class="val">'+(resolveRate*100).toFixed(1)+'%</div><div class="lbl">解决率</div></div>'+
@@ -541,7 +541,38 @@ function __response_timeExtras(){
     TBKit.history.record(rec);
     __response_timeRender(keys,rk,en);
 }
+function __csvCell(v){
+    v=(v==null?'':String(v));
+    return '"'+v.replace(/"/g,'""')+'"';
+}
+function __downloadCsv(rows,filename){
+    var csv='\ufeff'+rows.map(function(r){return r.map(__csvCell).join(',');}).join('\r\n');
+    var blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+    var a=document.createElement('a');
+    a.href=URL.createObjectURL(blob);a.download=filename;
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},0);
+}
 function __response_timeExport(){
+    var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn());
+    var slaRaw=parseFloat(document.getElementById('slaTarget').value);
+    var sla=isFinite(slaRaw)&&slaRaw>0?slaRaw:null;
+    var rows=[
+        [en?'Response SLA target (min)':'响应SLA目标(分)', sla==null?(en?'Not set':'未设置'):sla],
+        [en?'Response sample':'响应样本', en?'Filled and >=0; blank excluded from averages and percentiles':'已填且≥0；空值不计入均值与分位数'],
+        [en?'Solve-time sample':'解决时长样本', en?'Resolved tickets with solve time >=0; 0 counts as valid':'已解决且解决时长≥0；0 分钟计入'],
+        [en?'SLA rate denominator':'SLA达标率分母', en?'All tickets; missing response counts as not met':'全部工单；响应缺失按未达标']
+    ];
+    rows.push([en?'Ticket':'工单',en?'Response (min)':'响应(分)',en?'Solve (min)':'解决(分)',en?'Status':'状态',en?'SLA verdict':'SLA判定']);
+    tickets.forEach(function(t){
+        var rv=t.resp!=null&&isFinite(t.resp)&&t.resp>=0;
+        var sv=t.solve!=null&&isFinite(t.solve)&&t.solve>=0;
+        var verdict=(!sla||!rv)?'-':(t.resp<=sla?(en?'Met':'达标'):(en?'Missed':'超标'));
+        rows.push([t.id,rv?t.resp:'',sv?t.solve:'',t.status==='resolved'?(en?'Resolved':'已解决'):(en?'Pending':'处理中'),verdict]);
+    });
+    __downloadCsv(rows,en?'response-time-tickets.csv':'response-time-tickets.csv');
+}
+function __response_timeExportHistory(){
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#response_timeTable');
@@ -552,7 +583,7 @@ function __response_timeExport(){
             __response_timeRender(keys,en?'Result':'结果',en);
         }
     }catch(e){}
-    try { TBKit.util.exportTable('#response_timeTable','response-time.csv'); } catch(e){}
+    try { TBKit.util.exportTable('#response_timeTable','response-time-history.csv'); } catch(e){}
 }
 function __response_timePresets(){
     if (typeof TBKit === 'undefined') return;

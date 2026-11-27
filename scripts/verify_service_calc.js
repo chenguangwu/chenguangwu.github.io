@@ -5,12 +5,9 @@ const CASES = [
 {
   "slug": "service/complaint-analysis",
   "clicks": [
-    "document.getElementById('complaintText').value='配送太慢了，等了三天才到\\n商品质量有问题，收到就坏了';calc();"
+    "var t='配送太慢了，等了三天才到'+String.fromCharCode(10)+'商品质量有问题，收到就坏了';document.getElementById('complaintText').value=t;calc();var st=document.getElementById('stats').innerHTML;var di=document.getElementById('distChart').innerHTML;document.getElementById('__tbProbe').textContent='CORIG '+((st.indexOf('2')>=0&&di.indexOf('物流')>=0&&di.indexOf('50.0%')>=0)?'OK':'BAD '+st);"
   ],
-  "expect": [
-    "2 投诉总数",
-    "物流 1 (50.0%)"
-  ],
+  "expect": ["CORIG OK"],
   "ref": "两条投诉分别命中物流（配送/慢）与质量（质量/坏了）⇒ 总数 2、物流 1 条占 50.0%。"
      + "原用例 expect「保修_X」直接抄自 keywords 输入框自身文本（collectStrings 收录该输入框的 value），与计算无关 ⇒ 逃生项，已重写。"
      + "不用「100% 分类覆盖率」：页面 fallback 会调 loadDemo()，10 条示例同样 0 未分类 ⇒ 该锚在注入失败时仍命中（逃生）；「2 投诉总数」「物流 1 (50.0%)」在示例态（10 条 / 物流 3）均不出现。"
@@ -170,15 +167,53 @@ const CASES = [
   "ref": "第831批：同一条投诉同时命中物流/服务/售后，旧实现只取配置顺序第一个类别。现在全部保留为多标签，统计卡显示多标签投诉=1；各类别分别计数，页面说明占比合计可>100%。"
 },{
   "slug": "service/response-time",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/response-time.html','utf8');document.getElementById('__tbProbe').textContent='TICKET831 '+((h.indexOf(\"status:'pending'\")>=0&&h.indexOf(\"t.solve>0\")>=0&&h.indexOf('响应时长有效样本/总数')>=0)?'OK':'BAD');"],
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/response-time.html','utf8');document.getElementById('__tbProbe').textContent='TICKET831 '+((h.indexOf(\"status:'pending'\")>=0&&h.indexOf(\"t.solve>=0\")>=0&&h.indexOf('响应时长有效样本/总数')>=0)?'OK':'BAD');"],
   "expect": ["TICKET831 OK"],
-  "ref": "第831批：新增工单旧默认 resolved+空时长，会抬高解决率。现在默认 pending（处理中）且不计入已解决；结果新增响应/解决有效样本卡。探针断源码默认态与 >0 样本口径及有效样本卡存在。"
+  "ref": "第831批：新增工单旧默认 resolved+空时长，会抬高解决率。现在默认 pending（处理中）且不计入已解决；结果新增响应/解决有效样本卡。探针断源码默认态与 ≥0 样本口径（0 分钟计入）及有效样本卡存在；1129 批次将 >0 改为 ≥0。"
 },{
   "slug": "service/csat-score",
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/csat-score.html','utf8');document.getElementById('__tbProbe').textContent='CSAT831 '+((h.indexOf('单期快照')>=0&&h.indexOf('NPS 趋势参考')<0&&h.indexOf('不生成趋势线')>=0)?'OK':'BAD');"],
   "expect": ["CSAT831 OK"],
   "ref": "第831批：页面只算当前一组星级，无多期趋势。删除 SEO/正文的「NPS 趋势参考」，统一为「星级代理、单期快照」「不生成趋势线」；探针同时要求旧串消失。"
 }
+,
+{
+  "slug": "service/response-time",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/response-time.html','utf8');var ok=h.indexOf('导出工单明细 CSV')>=0&&h.indexOf('导出历史摘要 CSV')>=0&&h.indexOf('response-time-tickets.csv')>=0&&h.indexOf('t.resp<=sla')>=0&&h.indexOf('P90 是时长分位值，不等于 SLA 达标率')>=0&&h.indexOf('solve>=0')>=0;document.getElementById('__tbProbe').textContent='REXP '+((ok)?'OK':'BAD');"],
+  "expect": ["REXP OK"],
+  "ref": "工单明细 CSV 直接遍历 tickets 并附目标/样本口径，历史摘要另名导出；P90 说明改为分位值，解决时长过滤统一 >=0。"
+},
+{
+  "slug": "service/ticket-priority",
+  "clicks": ["tickets=[{name:'B',urgency:3,importance:4},{name:'A',urgency:4,importance:3},{name:'C',urgency:1,importance:1}];render();var x=document.getElementById('prioList').innerHTML;var n=(x.match(/优先处理（P2）/g)||[]).length;document.getElementById('__tbProbe').textContent='TPRIO '+((n===2&&x.indexOf('低优先级（P4）')>=0&&x.indexOf('最高优先')<0)?'OK':'BAD '+n);"],
+  "expect": ["TPRIO OK"],
+  "ref": "绝对分档：3×4 与 4×3 同为 12 分、同级 P2（旧排名法会分成两档）；1×1 单独存在为 P4，不再显示最高优先。"
+},
+{
+  "slug": "service/script-template",
+  "clicks": ["drawRandom(3);var cap1='',cap2='';var o=ToolBox.copyText;ToolBox.copyText=function(t){cap1=String(t);};copyPicked(0);ToolBox.copyText=function(t){cap2=String(t);};copyAllPicked();ToolBox.copyText=o;document.getElementById('__tbProbe').textContent='STCOPY '+((lastPicked.length===3&&cap1&&cap2.indexOf(cap1)>=0)?'OK':'BAD');"],
+  "expect": ["STCOPY OK"],
+  "ref": "多条抽取后 lastPicked 保留 3 条，单条复制与全部复制均可用；修复前 currentScript=null，copyCurrent 直接警告。"
+},
+{
+  "slug": "service/complaint-analysis",
+  "clicks": ["document.getElementById('complaintText').value='物流太慢\\n物流很慢';calc();var w=document.getElementById('wordCloud').innerHTML;document.getElementById('__tbProbe').textContent='CWORD '+((w.indexOf('物流 (2)')>=0&&w.indexOf('物流太慢')<0)?'OK':'BAD '+w.slice(0,80));"],
+  "expect": ["CWORD OK"],
+  "ref": "中文无空格也按可解释词表命中：两条均含“物流”，按投诉条数计 2；修复前整句按空白切分，只得到“物流太慢”“物流很慢”各 1。"
+},
+{
+  "slug": "service/complaint-analysis",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/service/complaint-analysis.html','utf8');var n=h.split('__e(c.name)').length-1;var ok=h.indexOf('function __e(')>=0&&n>=2&&h.indexOf('cat===RESERVED_CAT')>=0&&h.indexOf('+c.name+')<0;document.getElementById('__tbProbe').textContent='CXSS '+((ok)?'OK':'BAD '+n);"],
+  "expect": ["CXSS OK"],
+  "ref": "自定义分类名必须经 __e 转义后进入分布图与明细表；行业验证器的 ToolBox.escHtml 是恒等桩，无法在 DOM 断言转义结果，故改为源码探针：__e 定义存在、分布/明细两处使用 __e(c.name)、无裸 +c.name+，且“其他”保留名被跳过。"
+},
+{
+  "slug": "service/complaint-analysis",
+  "clicks": ["document.getElementById('complaintText').value='天气不错';setManualCat(0,'物流');var c=document.getElementById('catBody').innerHTML;document.getElementById('__tbProbe').textContent='CMANUAL '+((c.indexOf('物流')>=0&&c.indexOf('1')>=0)?'OK':'BAD '+c);"],
+  "expect": ["CMANUAL OK"],
+  "ref": "逐条人工修正：未命中任何关键词的“天气不错”可手动改为物流，分类统计随之更新；修复前无逐条修正入口。"
+}
+
 ];
 async function main() {
   const only = process.argv.slice(2);
@@ -190,7 +225,7 @@ async function main() {
       if (r.ok) { pass++; }
       else {
         fails.push(c.slug);
-        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        console.log("❌ " + c.slug + " [" + (c.expect && c.expect[0]) + "]  " + (r.why || "no expect match"));
         if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
         if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
       }

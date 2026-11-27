@@ -93,7 +93,7 @@
       "name": "分类关键词可以自定义吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "可以。页面提供关键词输入框，按「类别:词1,词2;类别2:词…」格式填写即可覆盖默认词库，适配不同业务场景（电商 / SaaS / 线下门店）。"
+        "text": "可以。页面提供关键词输入框，按「类别:词1,词2;类别2:词…」格式填写；自定义类别不能命名为保留的“其他”。另有停用词输入框，仅影响高频词统计。逐条表可人工修正类别，修正只保留在当前页面、不上传。"
       }
     },
     {
@@ -101,7 +101,7 @@
       "name": "分类覆盖率低说明什么？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "覆盖率 = (总投诉数 − 未归类「其他」数) ÷ 总投诉数。偏低意味着大量投诉未命中关键词，应补充词库或将高频「其他」样本提炼为新类别，持续提升自动归类能力。"
+        "text": "覆盖率 = (总投诉数 − 内部未分类数) ÷ 总投诉数。偏低意味着大量投诉未命中关键词，应补充词库或把高频未分类样本提炼为新类别。未分类在页面显示为「其他（未分类）」，与用户自定义类别分开统计。"
       }
     }
   ]
@@ -136,19 +136,25 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="录入投诉文本并分类，自动统计问题类型分布、词频与处理优先级">Complaint Analysis</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">投诉分类：按关键词库将每行投诉匹配到类别（质量、物流、服务、退换）；类别占比 = 该类条数 ÷ 总条数 × 100%；高频词按词频降序取前 N；处理优先级按「占比 × 严重度权重」排序，供客服复盘与流程改进。</div>
+  <div class="formula-eq">投诉分类：按关键词库将每行投诉匹配到类别；类别占比 = 命中该类的投诉条数 ÷ 总条数 × 100%（多标签可超过 100%）。高频词采用可解释词表命中：同一投诉中同一词只计 1 次，按命中条数降序；中文按内置服务词表与自定义关键词匹配，不把整句当作一个词。未命中归入内部“未分类”，显示为「其他（未分类）」，不与用户自定义的“其他”混用。</div>
   
 </div>
 
     <div>
       <label for="complaintText">投诉内容（每行一条）</label>
-      <textarea id="complaintText" rows="8" style="min-height:140px;" placeholder="每行输入一条投诉内容&#10;如：配送太慢，等了三天才到"></textarea>
+      <textarea id="complaintText" rows="8" style="min-height:140px;" placeholder="每行输入一条投诉内容&#10;如：配送太慢，等了三天才到" oninput="calc()"></textarea>
     </div>
 
     <div class="input-row" style="margin-top:8px;">
       <div>
         <label for="keywords">分类关键词设置（用逗号分隔）</label>
         <input type="text" id="keywords" value="物流:配送,快递,发货,慢,延迟,到货;质量:质量,坏了,破损,缺陷,次品;服务:态度,客服,不理, rude,敷衍;价格:贵,涨价,价格,收费,乱收费;售后:退款,退货,售后,维修,保修" oninput="calc()">
+      </div>
+    </div>
+    <div class="input-row" style="margin-top:8px;">
+      <div>
+        <label for="stopwords">停用词（逗号分隔，仅影响高频词统计）</label>
+        <input type="text" id="stopwords" value="的,了,是,在,我,你,他,她,它,很,太,不,就,都,也,还,又,这,那,有,没,要,会,能,和,与,及,或,但,而,一个,一下,一直,可以,希望,请问" oninput="calc()">
       </div>
     </div>
 
@@ -174,8 +180,16 @@
       </table>
     </div>
 
+    <h3 style="font-size:14px;margin:16px 0 6px;">🧾 逐条归类与人工修正</h3>
+    <div style="overflow-x:auto;">
+      <table class="freq-table" id="lineTable">
+        <thead><tr><th scope="col">原文</th><th scope="col">自动/人工类别</th><th scope="col">人工修正</th></tr></thead>
+        <tbody id="lineBody"></tbody>
+      </table>
+    </div>
+
     <div class="tip-box tip-info" style="margin-top:12px;">
-      工具仅按关键词做字面命中，不做语义理解；一条投诉命中多个类别时<strong>全部保留为多标签</strong>，各类别按「投诉条数」分别计数，因此类别占比合计可超过 100%。未命中任何关键词的投诉归入「其他」。请人工复核标签后再用于复盘。
+      工具仅做可解释的词表命中，不做语义理解；一条投诉命中多个类别时<strong>全部保留为多标签</strong>，各类别按「投诉条数」分别计数，因此类别占比合计可超过 100%。未命中的投诉归入内部“未分类”，页面显示「其他（未分类）」，自定义类别不能占用“其他”这个保留名。逐条表可人工修正类别，修正只保留在当前页面、不上传。
     </div>
   </div>
 
@@ -202,14 +216,14 @@
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
 <li>投诉归类：粘贴多条投诉文本，工具按预设关键词（物流/质量/服务/价格/售后）逐行匹配，自动归类并统计各类型数量与占比。</li>
-<li>改进聚焦：通过「分类覆盖率」指标识别未归类的「其他」投诉，结合高频词（去停用词）发现新痛点，迭代关键词库。</li>
+<li>改进聚焦：通过「分类覆盖率」识别未归类投诉，结合可解释高频词（同一投诉同一词只计 1 次）发现新痛点，迭代关键词库；逐条表保留原文与类别，可人工修正。</li>
 <li>日报生成：输出各类型投诉条数、占比与词频 Top20，直接用于质量例会、供应商或物流问责。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：6 条投诉文本分类</div><div class="dd-ex-body">默认词库：物流(配送/快递/发货/慢/延迟/到货)、质量(质量/坏了/破损/缺陷/次品)、服务(态度/客服/不理)、价格(贵/涨价/价格/收费)、售后(退款/退货/维修)。输入 6 条：①「快递太慢、物流信息不更新」→物流；②「产品质量有瑕疵」→质量；③「客服态度差、没人理我」→服务；④「价格太贵」→价格；⑤「退款流程麻烦、要求退货」→售后；⑥「今天心情不好」→其他。结果：物流1/质量1/服务1/价格1/售后1/其他1，分类覆盖率 = (6-1)/6 ≈ 83%，即 5/6 投诉被有效归类。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：6 条投诉文本分类</div><div class="dd-ex-body">默认词库：物流(配送/快递/发货/慢/延迟/到货)、质量(质量/坏了/破损/缺陷/次品)、服务(态度/客服/不理)、价格(贵/涨价/价格/收费)、售后(退款/退货/维修)。输入 6 条：①「快递太慢、物流信息不更新」→物流；②「产品质量有瑕疵」→质量；③「客服态度差、没人理我」→服务；④「价格太贵」→价格；⑤「退款流程麻烦、要求退货」→售后；⑥「今天心情不好」→其他（未分类）。结果：物流1/质量1/服务1/价格1/售后1/未分类1，分类覆盖率 = (6-1)/6 ≈ 83%。中文高频词按词表命中而不是按空格切整句；自定义类别不能占用“其他”。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>分类关键词可以自定义吗？</dt><dd>可以。页面提供关键词输入框，按「类别:词1,词2;类别2:词…」格式填写即可覆盖默认词库，适配不同业务场景（电商 / SaaS / 线下门店）。</dd>
-<dt>分类覆盖率低说明什么？</dt><dd>覆盖率 = (总投诉数 − 未归类「其他」数) ÷ 总投诉数。偏低意味着大量投诉未命中关键词，应补充词库或将高频「其他」样本提炼为新类别，持续提升自动归类能力。</dd>
+<dt>分类关键词可以自定义吗？</dt><dd>可以。页面提供关键词输入框，按「类别:词1,词2;类别2:词…」格式填写；自定义类别不能命名为保留的“其他”。另有停用词输入框，仅影响高频词统计。逐条表可人工修正类别，修正只保留在当前页面、不上传。</dd>
+<dt>分类覆盖率低说明什么？</dt><dd>覆盖率 = (总投诉数 − 内部未分类数) ÷ 总投诉数。偏低意味着大量投诉未命中关键词，应补充词库或把高频未分类样本提炼为新类别。未分类在页面显示为「其他（未分类）」，与用户自定义类别分开统计。</dd>
 </dl>
 </div>
 </section>
@@ -256,23 +270,51 @@ var CAT_COLORS={
   '物流':'#FF6B35','质量':'#B91C1C','服务':'#7C3AED','价格':'#92400E','售后':'#00796B','其他':'#6B7280'
 };
 
+var manualCats={};
+var __lastTextKey='';
+var RESERVED_CAT='其他';
+var UNCLASSIFIED='__unclassified';
+var TOKEN_LEXICON=['物流信息','物流','快递员','快递','配送','发货','到货','延迟','延误','太慢','很慢','慢','破损','损坏','坏了','瑕疵','缺陷','次品','质量','态度','客服','不理','敷衍','退款','退货','售后','维修','保修','涨价','价格','收费','乱收费','太贵','贵','等待','没人','处理','回复','解决','订单','包装','少件','错发','漏发','发票','承诺','上门','取件','电话','短信','通知'];
+var TOKEN_LEXICON_EN=['delivery','shipping','courier','late','slow','delay','damaged','broken','quality','defect','attitude','service','rude','refund','return','repair','warranty','price','expensive','fee','overcharge','wait','order','packing','missing','wrong','invoice','promise'];
+
+function __e(v){ if(typeof ToolBox!=='undefined'&&ToolBox.escHtml) return ToolBox.escHtml(v); return String(v==null?'':v).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
 function parseKeywords(){
-  var raw=document.getElementById('keywords').value;
+  var raw=document.getElementById('keywords').value||'';
   var cats={};
   raw.split(';').forEach(function(seg){
     var p=seg.split(':');
     if(p.length>=2){
-      var cat=p[0].trim();
+      var cat=(p[0]||'').trim();
+      if(!cat || cat===RESERVED_CAT) return;
+      if(Object.prototype.hasOwnProperty.call(cats,cat)) return;
       var words=p.slice(1).join(':').split(',').map(function(w){return w.trim().toLowerCase();}).filter(function(w){return w;});
       cats[cat]=words;
     }
   });
   return cats;
 }
+function parseStopwords(){
+  var raw=(document.getElementById('stopwords')||{}).value||'';
+  var out={};
+  raw.split(/[,，]/).forEach(function(w){w=w.trim().toLowerCase();if(w)out[w]=true;});
+  return out;
+}
+function catDisplay(cat){ return cat===UNCLASSIFIED?'其他（未分类）':cat; }
+function catCountKey(cat){ return cat===UNCLASSIFIED?'__unclassified':cat; }
+function setManualCat(i,val){
+  var txt=document.getElementById('complaintText').value;
+  __lastTextKey=txt.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;}).join('\n');
+  if(!val) delete manualCats[i];
+  else manualCats[i]=val;
+  calc();
+}
 
 function calc(){
   var text=document.getElementById('complaintText').value;
   var lines=text.split('\n').map(function(l){return l.trim();}).filter(function(l){return l;});
+  var textKey=lines.join('\n');
+  if(textKey!==__lastTextKey){ manualCats={}; __lastTextKey=textKey; }
+  var lineBody=document.getElementById('lineBody');
   if(!lines.length){
     var en=/^en/i.test(document.documentElement.lang||'');
     var hint='<p style="color:var(--danger,#c0392b);font-weight:600;">'+(en?'Please paste complaint text before analyzing.':'请粘贴投诉内容后再分析')+'</p>';
@@ -280,58 +322,77 @@ function calc(){
     document.getElementById('distChart').innerHTML=hint;
     document.getElementById('wordCloud').innerHTML=hint;
     document.getElementById('catBody').innerHTML='';
+    if(lineBody) lineBody.innerHTML='';
     return;
   }
   var cats=parseKeywords();
   var catNames=Object.keys(cats);
 
-  var classified=lines.map(function(line){
+  var classified=lines.map(function(line,i){
     var lower=line.toLowerCase();
+    var override=manualCats[i];
     var matched=[];
-    catNames.forEach(function(c){
-      var words=cats[c];
-      if(words.some(function(w){return lower.indexOf(w)>=0;})) matched.push(c);
-    });
-    return {text:line, cats:matched, cat:matched.length?matched.join(' / '):'其他'};
+    if(override){
+      if(override!==UNCLASSIFIED && cats[override]) matched=[override];
+    }else{
+      catNames.forEach(function(c){
+        var words=cats[c];
+        if(words.some(function(w){return lower.indexOf(w)>=0;})) matched.push(c);
+      });
+    }
+    return {text:line, cats:matched, manual:!!override, cat:matched.length?matched.join(' / '):UNCLASSIFIED};
   });
 
   var counts={};
   catNames.forEach(function(c){counts[c]=0;});
-  counts['其他']=0;
+  counts[UNCLASSIFIED]=0;
   var multiLabel=0;
   classified.forEach(function(c){
     if(c.cats.length>1) multiLabel++;
     if(c.cats.length){ c.cats.forEach(function(x){counts[x]=(counts[x]||0)+1;}); }
-    else counts['其他']=(counts['其他']||0)+1;
+    else counts[UNCLASSIFIED]=(counts[UNCLASSIFIED]||0)+1;
   });
   var total=classified.length;
+  var unclassified=counts[UNCLASSIFIED]||0;
 
   var color=total>0?'var(--primary)':'var(--text-muted)';
   const __g1='<div class="stat-card"><div class="val" style="color:'+color+';">'+total+'</div><div class="lbl">投诉总数</div></div>'+
     '<div class="stat-card"><div class="val">'+catNames.length+'</div><div class="lbl">问题类型</div></div>'+
-    '<div class="stat-card"><div class="val">'+(total>0?(counts['其他']||0):0)+'</div><div class="lbl">未分类</div></div>'+
-    '<div class="stat-card"><div class="val">'+(total>0?((total-counts['其他'])/total*100).toFixed(0):'0')+'%</div><div class="lbl">分类覆盖率（有至少 1 个命中）</div></div>'+'<div class="stat-card"><div class="val">'+multiLabel+'</div><div class="lbl">多标签投诉</div></div>';document.getElementById('stats').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '<div class="stat-card"><div class="val">'+unclassified+'</div><div class="lbl">未分类</div></div>'+
+    '<div class="stat-card"><div class="val">'+(total>0?((total-unclassified)/total*100).toFixed(0):'0')+'%</div><div class="lbl">分类覆盖率（至少 1 个命中）</div></div>'+
+    '<div class="stat-card"><div class="val">'+multiLabel+'</div><div class="lbl">多标签投诉</div></div>';
+  document.getElementById('stats').innerHTML=__g1;
 
-  var sortedCats=Object.keys(counts).map(function(k){return {name:k,count:counts[k]};}).filter(function(c){return c.count>0;}).sort(function(a,b){return b.count-a.count;});
+  var sortedCats=Object.keys(counts).map(function(k){return {key:k,name:catDisplay(k),count:counts[k]};}).filter(function(c){return c.count>0;}).sort(function(a,b){return b.count-a.count;});
   var maxCount=sortedCats.length?sortedCats[0].count:1;
   var distHtml='';
   sortedCats.forEach(function(c){
     var pct=total>0?c.count/total*100:0;
     var barPct=c.count/maxCount*100;
-    var color=CAT_COLORS[c.name]||'#6B7280';
-    distHtml+='<div class="bar-row"><div class="bar-lbl" style="width:80px;">'+c.name+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+barPct+'%;background:'+color+';">'+c.count+' ('+pct.toFixed(1)+'%)</div></div></div>';
+    var color=(c.key===UNCLASSIFIED?'#6B7280':(CAT_COLORS[c.key]||'#6B7280'));
+    distHtml+='<div class="bar-row"><div class="bar-lbl" style="width:110px;">'+__e(c.name)+'</div><div class="bar-bg"><div class="bar-fill" style="width:'+barPct+'%;background:'+color+';">'+c.count+' ('+pct.toFixed(1)+'%)</div></div></div>';
   });
   if(!sortedCats.length) distHtml='<p style="color:var(--text-muted);">暂无数据</p>';
-  const __g2=distHtml;document.getElementById('distChart').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('distChart').innerHTML=distHtml;
 
+  var stopWords=parseStopwords();
   var wordFreq={};
-  var stopWords=['的','了',((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Yes":"是"),'在','我','很','太','不','就','都','也','还','又','这','那','有','没','要','会','能','和','与','及','或','但','而','一个','一下','一直','可以'];
+  var wordTerms={};
   lines.forEach(function(line){
-    var segs=line.replace(/[，。！？、；：""''（）()\[\]【】…\—\-,.!?;:"']/g,' ').split(/\s+/);
-    segs.forEach(function(seg){
-      if(seg.length<2) return;
-      if(stopWords.indexOf(seg)>=0) return;
-      wordFreq[seg]=(wordFreq[seg]||0)+1;
+    var seen={};
+    var lower=line.toLowerCase();
+    var terms=[];
+    TOKEN_LEXICON.concat(catNames.reduce(function(a,c){return a.concat(cats[c]);},[])).concat(TOKEN_LEXICON_EN).forEach(function(t){
+      t=String(t||'').toLowerCase();
+      if(t && lower.indexOf(t)>=0) terms.push(t);
+    });
+    terms.sort(function(a,b){return b.length-a.length;});
+    terms.forEach(function(t){
+      if(stopWords[t]||seen[t]) return;
+      if(Object.keys(seen).some(function(k){return k.indexOf(t)>=0;})) return;
+      seen[t]=true;
+      wordFreq[t]=(wordFreq[t]||0)+1;
+      wordTerms[t]=true;
     });
   });
   var words=Object.keys(wordFreq).map(function(w){return {word:w,count:wordFreq[w]};}).sort(function(a,b){return b.count-a.count;}).slice(0,20);
@@ -340,21 +401,32 @@ function calc(){
   words.forEach(function(w){
     var size=12+w.count/maxWord*12;
     var opacity=0.5+w.count/maxWord*0.5;
-    var color=CAT_COLORS['其他'];
+    var color='#6B7280';
     for(var i=0;i<catNames.length;i++){
       var kws=cats[catNames[i]];
-      if(kws.indexOf(w.word.toLowerCase())>=0){ color=CAT_COLORS[catNames[i]]; break; }
+      if(kws.some(function(k){return w.word.indexOf(k)>=0||k.indexOf(w.word)>=0;})){ color=CAT_COLORS[catNames[i]]||'#6B7280'; break; }
     }
-    cloudHtml+='<span class="word-chip" style="font-size:'+size+'px;color:'+color+';opacity:'+opacity+';background:'+color+'15;">'+ToolBox.escHtml(w.word)+' ('+w.count+')</span>';
+    cloudHtml+='<span class="word-chip" style="font-size:'+size+'px;color:'+color+';opacity:'+opacity+';background:'+color+'15;">'+__e(w.word)+' ('+w.count+')</span>';
   });
-  const __g3=cloudHtml||'<p style="color:var(--text-muted);">暂无数据</p>';document.getElementById('wordCloud').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('wordCloud').innerHTML=cloudHtml||'<p style="color:var(--text-muted);">暂无数据</p>';
 
   var body=document.getElementById('catBody');
   const __g4=sortedCats.map(function(c){
     var pct=total>0?c.count/total*100:0;
     var prio=c.count>=total*0.3?'<span class="grade-tag grade-fail">高</span>':c.count>=total*0.15?'<span class="grade-tag grade-pass">中</span>':'<span class="grade-tag grade-good">低</span>';
-    return '<tr><td><span class="cat-tag" style="background:'+(CAT_COLORS[c.name]||'#6B7280')+'20;color:'+(CAT_COLORS[c.name]||'#6B7280')+';">'+c.name+'</span></td><td>'+c.count+'</td><td>'+pct.toFixed(1)+'%</td><td>'+prio+'</td></tr>';
-  }).join('');body.innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+    var color=(c.key===UNCLASSIFIED?'#6B7280':(CAT_COLORS[c.key]||'#6B7280'));
+    return '<tr><td><span class="cat-tag" style="background:'+color+'20;color:'+color+';">'+__e(c.name)+'</span></td><td>'+c.count+'</td><td>'+pct.toFixed(1)+'%</td><td>'+prio+'</td></tr>';
+  }).join('');
+  body.innerHTML=__g4;
+
+  if(lineBody){
+    var opts='<option value="">自动</option>'+catNames.map(function(c){return '<option value="'+__e(c)+'">'+__e(c)+'</option>';}).join('')+'<option value="'+UNCLASSIFIED+'">其他（未分类）</option>';
+    lineBody.innerHTML=classified.map(function(c,i){
+      var selected=c.manual?manualCats[i]:'';
+      var selHtml=opts.replace('value="'+__e(selected)+'"','value="'+__e(selected)+'" selected');
+      return '<tr><td style="max-width:420px;white-space:normal;">'+__e(c.text)+'</td><td>'+__e(c.cat)+'</td><td><select onchange="setManualCat('+i+',this.value)" aria-label="人工修正第 '+(i+1)+' 条">'+selHtml+'</select></td></tr>';
+    }).join('');
+  }
 }
 
 function loadDemo(){
