@@ -74,8 +74,8 @@ const CASES = [
   "clicks": [
     "resetGame();var a0=game.a,b0=game.b;nextQuestion(true);var ch1=(game.a!==a0||game.b!==b0);nextQuestion(true);var ch2=(game.a!==a0||game.b!==b0);document.getElementById('__tbProbe').textContent='MPADV '+ch1+' '+ch2+' pos'+game.pos;"
   ],
-  "expect": ["MPADV true true pos4"],
-  "ref": "顺序模式独立 pos 推进：初始 2×1，连续跳过两次到 2×3，第三次新题 pos=4；修复前用 idx%9 且跳过不增 idx，下一题仍是原题。"
+  "expect": ["MPADV true true pos3"],
+  "ref": "阶梯模式按未掌握乘数推进：初始 2×1，跳过 1 后到 2×2、再跳到 2×3，此时待答位置 pos=3；修复前用 idx%9 且跳过不增 idx，下一题仍是原题。"
 },
 {
   "slug": "kids/stroke-order",
@@ -126,7 +126,50 @@ const CASES = [
   "clicks": ["resetGame();game.answer=6;game.done=false;var t0=stats.total;var inp=document.getElementById('answer');inp.value='6.9';checkAnswer();document.getElementById('__tbProbe').textContent='MPDEC '+(stats.total===t0)+' '+game.done;"],
   "expect": ["MPDEC true false"],
   "ref": "6.9 不再被 parseInt 截成 6 判对：非整数输入给提示且不增加 stats.total、不置 game.done；合法整数仍走 Number(val)===game.answer。"
+},
+{
+  "slug": "kids/focus-timer",
+  "clicks": ["state.focusSec=300;state.restSec=60;state.phase='focus';state.paused=false;state.endAt=Date.now()-7*60*1000;stats.today=todayStr();stats.done=0;stats.total=0;tick();document.getElementById('__tbProbe').textContent='FOCUSCATCH '+state.phase+' '+stats.done+' '+stats.total+' '+state.remaining;"],
+  "expect": ["FOCUSCATCH focus 2 2 300"],
+  "ref": "后台 12 分钟（专注5+休息1×2）后恢复：按截止时间连续结算 2 个专注阶段，进入第 3 个完整专注（300 秒），不再只补 1 个阶段并从休息重新开始。默认 15/5 分钟与探针不同源。"
+},
+{
+  "slug": "kids/memory-palace",
+  "clicks": ["generate();startRecall();var cells=document.querySelectorAll('#palace .cell');var hidden=cells[0].classList.contains('hide');revealCell(0,true);changePage(1);changePage(-1);cells=document.querySelectorAll('#palace .cell');var kept=cells[0].classList.contains('reveal');window.__memBody=document.body||document.documentElement;document.getElementById('__tbProbe').textContent='MEMRECALL '+(window.__memBody&&window.__memBody.classList&&window.__memBody.classList.contains('recall-mode'))+' '+hidden+' '+kept;"],
+  "expect": ["MEMRECALL true true true"],
+  "ref": "回忆模式隐藏待记忆输入与编码对照表；首格初始隐藏，揭示后翻页再返回仍保持 reveal。修复前只隐藏格子，输入框与编码表仍直接暴露答案，翻页后揭示状态丢失。"
+},
+{
+  "slug": "kids/memory-palace",
+  "clicks": ["generate();var src=String(exportPalaceCsv);var ok=src.indexOf('memory-palace.csv')>=0&&src.indexOf('页码,位置,内容,联想,状态')>=0&&src.indexOf('Math.floor(i / perPage) + 1')>=0&&src.indexOf('c.empty ?')>=0;document.getElementById('__tbProbe').textContent='MEMCSV '+ok;"],
+  "expect": ["MEMCSV true"],
+  "ref": "导出改为从 palace 逐格生成页码/位置/内容/联想/状态 CSV，另保留历史摘要导出；修复前“导出明细”调用通用历史表，只有输入与 80 字摘要。"
+},
+{
+  "slug": "kids/stroke-order",
+  "clicks": ["loadChar('我');curStep=getStrokes().length;render();"],
+  "expect": ["点（最后一笔）✓ 完成"],
+  "ref": "7 画「我」前进到最后一笔时，当前笔画名仍显示「点」并附完成状态；修复前 curStep>=total 直接显示「完成 ✓」，最后一笔名称被覆盖。默认「永」末笔为捺，与锚点不同源。"
+},
+{
+  "slug": "kids/mirror-letter",
+  "clicks": ["showGuide();"],
+  "expect": ["不是左右镜像", "旋转约 180°", "竖直中线"],
+  "ref": "6/9 说明改为“旋转约 180°近似对应，不是左右镜像”，并明确本练习沿竖直中线翻转；修复前写成“上下颠倒互为镜像”，与左右翻转练习冲突。默认指南盒隐藏，不命中。"
+},
+{
+  "slug": "kids/multiplication-practice",
+  "clicks": ["resetGame();game.done=false;game.timeLimit=5;game.deadline=Date.now()-100;game.answer=6;var t0=stats.total;var inp=document.getElementById('answer');inp.value='6';checkAnswer();if(game.nextId){clearTimeout(game.nextId);game.nextId=null;}document.getElementById('__tbProbe').textContent='MPLATE '+(stats.total===t0+1)+' '+(String(document.getElementById('hint').innerHTML).indexOf('时间到')>=0)+' '+(String(checkAnswer).indexOf('Date.now() >= game.deadline')>=0);"],
+  "expect": ["MPLATE true true true"],
+  "ref": "提交答案时先校验截止时间：已超时即使答案正确也按“时间到”判错并计次，后台节流不再额外给答题时间。默认 8 秒未超时，且答案 6 与默认题 2×3 相同，但 stats.total 默认 0、探针要求 +1，默认态不命中。"
+},
+{
+  "slug": "kids/multiplication-practice",
+  "clicks": ["resetGame();game.mode='asc';game.level=2;game.mastered={1:true,2:true,3:true,4:true,5:true,6:true,7:true,8:true};game.idx=8;game.pos=9;game.b=9;game.a=2;game.answer=18;stats.total=0;stats.right=0;handleRight();var lv=game.level;var idx=game.idx;resetGame();game.mastered={1:true,2:true,3:true,4:true,5:true,6:true,7:true,8:true};game.idx=8;game.pos=9;game.b=9;nextQuestion(true);document.getElementById('__tbProbe').textContent='MPMASTER '+lv+' '+idx+' '+game.level+' '+game.idx;"],
+  "expect": ["MPMASTER 3 0 2 8"],
+  "ref": "阶梯模式第 9 个未掌握乘数答对才升到第 3 关；若只是跳过第 9 题，掌握数仍 8、停在 2 关。修复前按 idx%9 升关，跳过/超时也推进 pos，未答全九题即可通关。"
 }
+
 ];
 async function main() {
   const only = process.argv.slice(2);

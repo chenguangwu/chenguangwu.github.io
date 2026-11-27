@@ -118,6 +118,14 @@
         "@type": "Answer",
         "text": "这两组是公认高频错误点（结果 56 与 42 相邻易混）。建议用拆解法代替死记：7×8 = 7×10 − 7×2 = 70 − 14 = 56；6×7 = 6×5 + 6×2 = 30 + 12 = 42。把不会的题单独做成错题本，每次练习前先过一遍，连续 3 次全对再移出，比整表反复刷效率高得多。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "切到后台后限时会不会变慢？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会。每题按截止时间计算剩余秒数，切标签或休眠只影响刷新频率，不延长答题时间；恢复页面和提交答案时都会校验是否已超时。"
+      }
     }
   ]
 }
@@ -198,6 +206,7 @@
     </div>
 
     <div class="level-bar" id="levelBar"></div>
+    <div id="levelProgress" style="font-size:12px;color:var(--text-muted);margin:-6px 0 10px;text-align:center;"></div>
 
     <div class="qa-box">
       <div class="q" id="question">2 <span class="eq">×</span> 3 <span class="eq">=</span> ?</div>
@@ -242,10 +251,12 @@
 </ul>
 <div class="dd-example"><div class="dd-ex-title">2–9 表随机一题</div><div class="dd-ex-body">范围内随机出 7×8，答对 56；连做 20 题计时，正确 18 题则正确率 90%，错在 6/7/8 段需补。</div></div>
 <div class="dd-example"><div class="dd-ex-title">限定某数专项</div><div class="dd-ex-body">只练 ×9：9×1…9×9，用「十位数减1、个位补到10」窍门(9×7=63：6=7−1、3=10−7)提速。</div></div>
+<div class="dd-example"><div class="dd-ex-title">阶梯模式按乘数掌握</div><div class="dd-ex-body">第 2 关需要 2×1 到 2×9 九个乘数各答对一次；跳过或答错只会换题，掌握数不增加，九题全对才升到第 3 关。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么限时？</dt><dd>限时逼出自动化反应，暴露「想」而非「背」的薄弱点；正确率比速度先抓，再逐步提速。</dd>
 <dt>总在 7×8、6×7 卡壳怎么办？</dt><dd>这两组是公认高频错误点（结果 56 与 42 相邻易混）。建议用拆解法代替死记：7×8 = 7×10 − 7×2 = 70 − 14 = 56；6×7 = 6×5 + 6×2 = 30 + 12 = 42。把不会的题单独做成错题本，每次练习前先过一遍，连续 3 次全对再移出，比整表反复刷效率高得多。</dd>
+<dt>切到后台后限时会不会变慢？</dt><dd>不会。每题按截止时间计算剩余秒数，切标签或休眠只影响刷新频率，不延长答题时间；恢复页面和提交答案时都会校验是否已超时。</dd>
 </dl>
 </div>
 </section>
@@ -294,8 +305,8 @@ var game = {
   mode:'asc', level:2, idx:0, pos:1,
   en:/[?&]lang=en-US/.test(location.search), // asc: level 从2递增到9
   a:2, b:3, answer:6,
-  streak:0, timerId:null, timeLimit:8, remaining:8,
-  done:false, nextId:null
+  streak:0, timerId:null, timeLimit:8, remaining:8, deadline:0,
+  mastered:{}, done:false, nextId:null
 };
 
 function loadStats(){
@@ -330,9 +341,26 @@ function renderLevelBar(){
       html += '<div class="lb' + (on || cur) + '" title="' + n + '的口诀"></div>';
     }
     const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){bar.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}bar.innerHTML=__h1;
+    document.getElementById('levelProgress').textContent = (game.en?'Level ':'第 ') + game.level + (game.en?' mastery: ':' 关掌握：') + masteredCount() + '/9' + (game.en?' (each multiplier 1–9 answered correctly once)':'（每个乘数 1–9 各答对一次才通关）');
   } else {
     const __h2='';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){bar.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}bar.innerHTML=__h2;
+    document.getElementById('levelProgress').textContent = (game.en?'Mixed / single practice: mastery bands apply to step mode only.':'混合/单关练习：掌握进度仅阶梯模式统计。');
   }
+}
+
+function pickAscB(){
+  for(var k = 0; k < 9; k++){
+    var b = ((game.pos - 1 + k) % 9) + 1;
+    if(!game.mastered[b]) return b;
+  }
+  return game.pos;
+}
+
+function masteredCount(){ return Object.keys(game.mastered).length; }
+
+function advanceAsc(){
+  game.pos = (game.b % 9) + 1;
+  game.idx = masteredCount();
 }
 
 function makeQuestion(){
@@ -340,16 +368,17 @@ function makeQuestion(){
   game.done = false;
   if(game.mode === 'asc'){
     game.a = game.level;
-    game.b = game.pos; // 顺序出题位置 1..9，答对/跳过/超时都推进
+    game.b = pickAscB();
   } else if(game.mode === 'single'){
     game.a = parseInt(document.getElementById('singleSel').value);
     game.b = game.pos;
+    game.pos = (game.pos % 9) + 1;
   } else { // mixed
     game.a = 2 + Math.floor(Math.random() * 8); // 2..9
     game.b = 1 + Math.floor(Math.random() * 9); // 1..9
+    game.pos = (game.pos % 9) + 1;
   }
   game.answer = game.a * game.b;
-  game.pos = (game.pos % 9) + 1;
   const __h3=game.a + ' <span class="eq">×</span> ' + game.b + ' <span class="eq">=</span> ?';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('question').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('question').innerHTML=__h3;
   var inp = document.getElementById('answer');
   inp.value = '';
@@ -361,13 +390,22 @@ function makeQuestion(){
   startCountdown();
 }
 
+function renderCountdown(){
+  if(!game.timeLimit || !game.deadline){ document.getElementById('cdFill').style.width = '100%'; return; }
+  game.remaining = Math.max(0, (game.deadline - Date.now()) / 1000);
+  document.getElementById('cdFill').style.width = (game.remaining / game.timeLimit * 100) + '%';
+}
+
 function startCountdown(){
   stopCountdown();
   game.timeLimit = parseInt(document.getElementById('timeSel').value) || 0;
   game.remaining = game.timeLimit;
-  if(game.timeLimit === 0){ document.getElementById('cdFill').style.width = '100%'; return; }
+  if(game.timeLimit === 0){ game.deadline = 0; renderCountdown(); return; }
+  game.deadline = Date.now() + game.timeLimit * 1000;
+  renderCountdown();
   game.timerId = setInterval(function(){
-    game.remaining -= 0.1;
+    if(game.done){ stopCountdown(); return; }
+    game.remaining = Math.max(0, (game.deadline - Date.now()) / 1000);
     if(game.remaining <= 0){
       stopCountdown();
       handleWrong(true);
@@ -386,6 +424,11 @@ function checkAnswer(){
   var inp = document.getElementById('answer');
   var val = inp.value.trim();
   if(val === '') return;
+  if(game.timeLimit > 0 && game.deadline && Date.now() >= game.deadline){
+    stopCountdown();
+    handleWrong(true);
+    return;
+  }
   if(!/^\d+$/.test(val)){
     inp.classList.add('wrong');
     document.getElementById('hint').innerHTML='<span style="color:var(--danger);">'+(/[?&]lang=en-US/.test(location.search)?'Enter a whole-number answer with no decimal point, minus sign, or other characters.':'请输入完整整数答案，不能带小数点、负号或其他字符。')+'</span>';
@@ -413,12 +456,16 @@ function handleRight(){
   ToolBox.showToast(i18nText('toast.msg531'), 'success');
 
   if(game.mode === 'asc'){
-    game.idx++;
-    if(game.idx % 9 === 0){
-      // 完成本关
+    game.mastered[game.b] = true;
+    advanceAsc();
+    if(game.idx === 9){
+      // 本关 1..9 全部答对后才通关
       if(stats.cleared.indexOf(game.level) < 0) stats.cleared.push(game.level);
       if(game.level < 9){
         game.level++;
+        game.mastered = {};
+        game.idx = 0;
+        game.pos = 1;
         ToolBox.showToast('解锁 ' + game.level + ' 的口诀！', 'success');
       } else {
         ToolBox.showToast(i18nText('toast.msg065'), 'success');
@@ -437,6 +484,7 @@ function handleWrong(timeout){
   game.done = true;
   stats.total++;
   game.streak = 0;
+  if(game.mode === 'asc') advanceAsc();
   var msg = timeout ? '时间到！正确答案：' + game.answer : '答错啦，正确答案：' + game.answer;
   const __h5='<span style="color:var(--danger);font-weight:600;">' + msg + '</span>';if((typeof __h5==='number'&&!isFinite(__h5))||/Infinity/.test(String(__h5))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h5)){document.getElementById('hint').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('hint').innerHTML=__h5;
   var inp = document.getElementById('answer');
@@ -451,7 +499,7 @@ function handleWrong(timeout){
 
 function nextQuestion(skip){
   if(game.nextId){ clearTimeout(game.nextId); game.nextId = null; }
-  if(skip && !game.done){ stats.total++; game.streak = 0; saveStats(); renderStats(); ToolBox.showToast('已跳过本题，记入已练题数', 'info'); }
+  if(skip && !game.done){ stats.total++; game.streak = 0; if(game.mode === 'asc') advanceAsc(); saveStats(); renderStats(); ToolBox.showToast('已跳过本题，记入已练题数', 'info'); }
   makeQuestion();
 }
 
@@ -466,6 +514,7 @@ function resetGame(){
   game.level = 2;
   game.idx = 0;
   game.pos = 1;
+  game.mastered = {};
   game.streak = 0;
   if(game.mode === 'single'){
     game.level = parseInt(document.getElementById('singleSel').value);
@@ -500,6 +549,13 @@ document.getElementById('modeSel').addEventListener('change', function(){
   document.getElementById('singleSel').style.display = this.value === 'single' ? '' : 'none';
 });
 
+document.addEventListener('visibilitychange', function(){
+  if(document.hidden || game.done) return;
+  if(game.timeLimit > 0 && game.deadline){
+    if(Date.now() >= game.deadline){ stopCountdown(); handleWrong(true); }
+    else renderCountdown();
+  }
+});
 loadStats();
 renderStats();
 syncControls();
