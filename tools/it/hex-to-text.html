@@ -153,6 +153,11 @@
     <label for="input">十六进制输入</label>
     <textarea id="input" placeholder="输入十六进制字符串，如 48 65 6c 6c 6f 或 0x48...">48 65 6c 6c 6f</textarea>
 
+    <label style="display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;">
+      <input type="checkbox" id="preserveBom" checked style="width:auto;margin:0;">
+      <span data-zh="保留起始 U+FEFF（BOM）">Preserve leading U+FEFF (BOM)</span>
+    </label>
+
     <label style="margin-top:16px;" for="output">文本输出</label>
     <textarea id="output" placeholder="文本结果..." readonly></textarea><p id="hexStatus" role="status" aria-live="polite"></p> <div id="hex_to_textTable"></div> <div id="hex_to_textDiff"></div> <div id="hex_to_textChart"></div> <div id="hex_to_textHist"></div>
   </div>
@@ -281,7 +286,13 @@ function convert(){
     return;
   }
   try {
-    output.value = new TextDecoder('utf-8', {fatal:true}).decode(bytes);
+    const preserveBom = document.getElementById('preserveBom').checked;
+    output.value = new TextDecoder('utf-8', {fatal:true, ignoreBOM: preserveBom}).decode(bytes);
+    const hasBom = bytes.length >= 3 && bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF;
+    if(hasBom){
+      if(preserveBom) hexStatus('已保留起始 BOM（U+FEFF），输出可按原字节还原。', 'Leading BOM (U+FEFF) preserved; the output restores to the original bytes.');
+      else hexStatus('已去除起始 BOM（U+FEFF）；勾选「保留起始 U+FEFF」可无损还原。', 'Leading BOM (U+FEFF) removed; enable "Preserve leading U+FEFF" for lossless restoration.');
+    }
   } catch(e){
     clearHexArtifacts();
     hexStatus('字节序列不是有效的 UTF-8，请确认原始字符编码。', 'The byte sequence is not valid UTF-8. Check the original character encoding.');
