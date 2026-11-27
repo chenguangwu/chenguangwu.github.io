@@ -205,8 +205,8 @@ const CASES = [
     "innerArea": "4800",
     "unitCount": "40"
   },
-  "expect": [ "公摊总面积 4800.00" ],
-  "ref": "auto-restore"
+  "expect": [ "4800.00 ㎡ 套内总面积" ],
+  "ref": "动态部位行在桩内无法完整渲染，本用例只锚定套内总面积注入；分摊结果另用显式部位行用例校验"
 },
 {
   "slug": "property/stats-manager",
