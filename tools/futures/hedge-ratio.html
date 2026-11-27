@@ -97,6 +97,14 @@
         "@type": "Answer",
         "text": "R²<0.5 对冲效果较差，可换相关性更高的标的或叠加期权，降低基差风险。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "h* 为负怎么办？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "负号说明所选期货方向与最小方差方向相反：按原方向建仓会放大风险，应把多空方向反过来；工具因此把可执行手数设为 0，并单独给出反向手数。"
+      }
     }
   ]
 }
@@ -250,12 +258,13 @@
 <li>对冲手数估算</li>
 <li>对冲效果评估</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">最小方差法 h* = ρ·σS/σF；R²=ρ² 衡量对冲效果。建议手数 = 现货敞口×h* / 每手合约价值，再四舍五入。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">σS=3%、σF=3.5%、ρ=0.85 → h*=0.85×3/3.5=0.7286，R²=72.25%（良好）；现货 100 万、合约价 3800×300=114 万/手 → 建议 1 手，对冲价值约 114 万、覆盖 114%。纯计算演示、非投资建议。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">最小方差法 h* = ρ·σS/σF；R²=ρ² 是正确方向下的理论风险降低上限。h*&lt;0 表示所选方向与最小方差方向相反，按所选方向可执行 0 手，应反向持有期货；整数手数实际覆盖单独列示，不能与理论覆盖率混为一谈。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">正相关示例：σS=3%、σF=3.5%、ρ=0.85 → h*=0.7286，R²=72.25%；现货 100 万、合约价 3800×300=114 万/手 → 1 手实际覆盖 114%，理论覆盖率 72.86%。负相关示例：ρ=−0.85 → h*=−0.7286，按当前方向不可执行、可执行 0 手，需反向建仓。纯计算演示、非投资建议。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>ρ 怎么取？</dt><dd>用历史期现价格变动的<a class="term-link" href="/tools/science/correlation-calculator.html">相关系数</a>估计；样本期与行情结构不同结果会变，需定期更新。</dd>
 <dt>R² 低怎么办？</dt><dd>R²&lt;0.5 对冲效果较差，可换相关性更高的标的或叠加期权，降低基差风险。</dd>
+<dt>h* 为负怎么办？</dt><dd>负号说明所选期货方向与最小方差方向相反：按原方向建仓会放大风险，应把多空方向反过来；工具因此把可执行手数设为 0，并单独给出反向手数。</dd>
 </dl>
 </div>
 </section>
@@ -326,7 +335,7 @@ function calc(){
   var futureMult = getVal('futureMult');
   var direction = getDirection();
 
-  if(!isFiniteNum(sigmaS) || sigmaS <= 0 || !isFiniteNum(sigmaF) || sigmaF <= 0 || !isFiniteNum(rho) || rho < -1 || rho > 1 || !isFiniteNum(spotValue) || spotValue <= 0 || !isFiniteNum(futurePrice) || futurePrice <= 0 || !isFiniteNum(futureMult) || futureMult <= 0){
+  if(!isFiniteNum(sigmaS) || sigmaS <= 0 || !isFiniteNum(sigmaF) || sigmaF <= 0 || !isFiniteNum(rho) || rho < -1 || rho > 1 || !isFiniteNum(spotValue) || spotValue <= 0 || !isFiniteNum(futurePrice) || futurePrice <= 0 || !isFiniteNum(futureMult) || futureMult <= 0 || Math.floor(futureMult) !== futureMult){
     __hedge_ratioOk=false;
     document.getElementById('statGrid').innerHTML='';
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写现货标准差、期货标准差、相关系数（-1 至 1）、现货价值、期货价格和合约乘数；数值不能为空</p>';
@@ -339,18 +348,21 @@ function calc(){
   var hedgeRatio = rho * (sigmaS / sigmaF);
   var rSquared = rho * rho;
   var contractValue = futurePrice * futureMult;
-  var hedgeContracts = contractValue > 0 ? (spotValue * hedgeRatio) / contractValue : 0;
-  var hedgeLots = Math.round(hedgeContracts);
-  var hedgeValue = hedgeLots * contractValue;
+  var hedgeContracts = (spotValue * hedgeRatio) / contractValue;
+  var executableLots = hedgeRatio > 0 ? Math.round(hedgeContracts) : 0;
+  var reverseLots = hedgeRatio < 0 ? Math.round(Math.abs(hedgeContracts)) : 0;
+  var hedgeValue = executableLots * contractValue;
   var coverageRatio = spotValue > 0 ? hedgeValue / spotValue * 100 : 0;
+  var theoreticalCoverage = hedgeRatio * 100;
 
   var effectGrade = rSquared > 0.9 ? '优秀' : (rSquared > 0.7 ? '良好' : (rSquared > 0.5 ? '一般' : '较差'));
   var dirName = direction === 'short' ? '卖出套保（卖出期货）' : '买入套保（买入期货）';
+  var directionNote = hedgeRatio < 0 ? 'h* 为负：所选方向与最小方差方向相反，按所选方向不可执行，应反向持有期货。' : (hedgeRatio === 0 ? 'h* 为 0：两者无有效线性关系，不建议据此对冲。' : 'h* 为正：与所选方向一致。');
 
-  var statHtml = '<div class="stat-card"><div class="val">' + hedgeRatio.toFixed(4) + '</div><div class="lbl">最优对冲比例</div></div>'
-    + '<div class="stat-card"><div class="val">' + (rSquared * 100).toFixed(1) + '%</div><div class="lbl">对冲效果 R²</div></div>'
-    + '<div class="stat-card"><div class="val">' + hedgeLots + ' 手</div><div class="lbl">建议对冲手数</div></div>'
-    + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(hedgeValue, 0) + '</div><div class="lbl">对冲合约价值</div></div>';
+  var statHtml = '<div class="stat-card"><div class="val">' + hedgeRatio.toFixed(4) + '</div><div class="lbl">最优对冲比例 h*</div></div>'
+    + '<div class="stat-card"><div class="val">' + (rSquared * 100).toFixed(1) + '%</div><div class="lbl">理论风险降低 R²</div></div>'
+    + '<div class="stat-card"><div class="val">' + executableLots + ' 手</div><div class="lbl">所选方向整数手数</div></div>'
+    + '<div class="stat-card"><div class="val">' + coverageRatio.toFixed(1) + '%</div><div class="lbl">整数手数实际覆盖</div></div>';
   const __g3=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
 
   var html = '<h3 style="margin-bottom:10px;font-size:15px;">📋 对冲计算明细</h3>';
@@ -363,17 +375,24 @@ function calc(){
   html += '<p>h* = ρ × (σS / σF) = ' + rho.toFixed(3) + ' × (' + sigmaS + ' / ' + sigmaF + ')</p>';
   html += '<p style="font-size:18px;font-weight:700;color:var(--primary);">h* = ' + hedgeRatio.toFixed(4) + '</p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p>对冲效果 R² = ρ² = ' + rho.toFixed(3) + '² = <strong>' + (rSquared * 100).toFixed(2) + '%</strong>（' + effectGrade + '）</p>';
-  html += '<p>未被对冲风险 = <strong>' + ((1 - rSquared) * 100).toFixed(2) + '%</strong></p>';
+  html += '<p>' + directionNote + '</p>';
+  html += '<p>理论风险降低 R² = ρ² = ' + rho.toFixed(3) + '² = <strong>' + (rSquared * 100).toFixed(2) + '%</strong>（' + effectGrade + '，按正确方向执行时的理论上限）</p>';
+  html += '<p>未被解释的方差 = <strong>' + ((1 - rSquared) * 100).toFixed(2) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  html += '<p style="font-weight:600;">对冲手数：</p>';
+  html += '<p style="font-weight:600;">对冲手数（理论值与整数执行分开）：</p>';
   html += '<p>现货总价值 = <strong>¥' + ToolBox.formatNumber(spotValue, 0) + '</strong></p>';
   html += '<p>期货合约价值 = ' + futurePrice + ' × ' + futureMult + ' = <strong>¥' + ToolBox.formatNumber(contractValue, 0) + '</strong></p>';
-  html += '<p>理论对冲合约数 = ' + ToolBox.formatNumber(spotValue, 0) + ' × ' + hedgeRatio.toFixed(4) + ' ÷ ' + ToolBox.formatNumber(contractValue, 0) + ' = <strong>' + hedgeContracts.toFixed(2) + ' 手</strong></p>';
-  html += '<p style="font-size:18px;font-weight:700;color:var(--success);">建议对冲手数 = ' + hedgeLots + ' 手（' + dirName + '）</p>';
-  html += '<p>对冲覆盖比例 = <strong>' + coverageRatio.toFixed(1) + '%</strong></p>';
+  html += '<p>理论对冲合约数（带符号） = ' + ToolBox.formatNumber(spotValue, 0) + ' × ' + hedgeRatio.toFixed(4) + ' ÷ ' + ToolBox.formatNumber(contractValue, 0) + ' = <strong>' + hedgeContracts.toFixed(2) + ' 手</strong></p>';
+  if(hedgeRatio < 0){
+    html += '<p style="font-size:18px;font-weight:700;color:var(--danger);">所选方向可执行手数 = 0 手；反向（' + (direction === 'short' ? '买入' : '卖出') + '期货）约 ' + reverseLots + ' 手</p>';
+  } else {
+    html += '<p style="font-size:18px;font-weight:700;color:var(--success);">所选方向整数手数 = ' + executableLots + ' 手（' + dirName + '）</p>';
+  }
+  html += '<p>理论覆盖率 h* = <strong>' + theoreticalCoverage.toFixed(1) + '%</strong>；整数手数实际覆盖 = <strong>' + coverageRatio.toFixed(1) + '%</strong></p>';
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
-  if(rSquared < 0.5){
+  if(hedgeRatio < 0){
+    html += '<div class="tip-box tip-warn">相关系数为负，最小方差方向与所选方向相反；不能把负手数当作可执行空单，应反向建仓或重新评估套保方向。</div>';
+  } else if(rSquared < 0.5){
     html += '<div class="tip-box tip-warn">对冲效果较差（R²<50%），基差风险较大，对冲意义有限。</div>';
   } else {
     html += '<div class="tip-box tip-success">对冲效果' + effectGrade + '，能有效降低价格波动风险。</div>';

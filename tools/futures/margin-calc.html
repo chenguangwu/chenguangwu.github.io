@@ -95,7 +95,7 @@
       "name": "手续费算进去了吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "工具按手数扣手续费并算剩余资金；具体费率以期货公司为准，本工具为演示。"
+        "text": "是。最大手数按“每手保证金+手续费”计算，零手或留空按未开仓处理，不再默认满仓；具体费率以期货公司为准。"
       }
     }
   ]
@@ -193,9 +193,9 @@
     <div class="ref-card">
       <h4>🔢 保证金公式</h4>
       <p><strong>合约价值</strong> = 合约价格 × 合约乘数</p>
-      <p><strong>每手保证金</strong> = 合约价值 × 保证金比例</p>
-      <p><strong>最大可开仓手数</strong> = 可用资金 ÷ 每手保证金（取整）</p>
-      <p><strong>杠杆倍数</strong> = 合约价值 ÷ 保证金 = 1 ÷ 保证金比例</p>
+      <p><strong>每手保证金</strong> = 合约价值 × 保证金比例；<strong>每手占用现金</strong> = 每手保证金 + 手续费</p>
+      <p><strong>最大可开仓手数</strong> = floor(可用资金 ÷ 每手占用现金)</p>
+      <p><strong>杠杆倍数</strong> = 合约价值 ÷ 保证金 = 1 ÷ 保证金比例</p><p class="formula-desc">估算口径：只按输入的资金、保证金比例与手续费计算，不含交易所临时提高保证金、维持保证金、涨跌停与强平规则；实际可开手数以期货公司为准。</p>
     </div>
     <div class="ref-card">
       <h4>📊 常见期货合约参考</h4>
@@ -242,12 +242,12 @@
 <li>最大可开仓手数</li>
 <li>实际杠杆测算</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">每手保证金 = 合约价×乘数×保证金比例；最大手数 = floor(资金/每手保证金)；杠杆 = 1/保证金比例。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">合约价 3800、乘数 300、保证金 12%、资金 20 万 → 合约价值 114 万、每手保证金 13.68 万、最大开 1 手、杠杆 8.33 倍。杠杆越高风险越大，仅作资金规划参考。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">每手保证金 = 合约价×乘数×保证金比例；每手占用现金 = 每手保证金 + 手续费；最大手数 = floor(资金/每手占用现金)；杠杆 = 1/保证金比例。手数须为非负整数，零手或留空按未开仓处理，不再默认满仓。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">合约价 3800、乘数 300、保证金 12%、资金 20 万、手续费 10 元/手 → 每手保证金 136,800、每手占用 136,810，最多 1 手（不是 1.46 手），满仓后剩 63,190。资金 1000、每手保证金 1000、手续费 10 → 最多 0 手；填 1.5 手会被拒绝。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>杠杆和保证金比例关系？</dt><dd>杠杆 = 1/保证金比例；12% 保证金对应约 8.3 倍杠杆，比例越低杠杆越高、爆仓风险越大。</dd>
-<dt>手续费算进去了吗？</dt><dd>工具按手数扣手续费并算剩余资金；具体费率以期货公司为准，本工具为演示。</dd>
+<dt>手续费算进去了吗？</dt><dd>是。最大手数按“每手保证金+手续费”计算，零手或留空按未开仓处理，不再默认满仓；具体费率以期货公司为准。</dd>
 </dl>
 </div>
 </section>
@@ -309,35 +309,49 @@ function calc(){
   var inputLotsRaw = getVal('lots');
   var feeRaw = getVal('fee');
 
-  if(!isFiniteNum(price) || price <= 0 || !isFiniteNum(mult) || mult <= 0 || !isFiniteNum(marginRateRaw) || marginRateRaw <= 0 || !isFiniteNum(capital) || capital < 0){
+  var badCore = !isFiniteNum(price) || price <= 0 || !isFiniteNum(mult) || mult <= 0 || !isFiniteNum(marginRateRaw) || marginRateRaw <= 0 || !isFiniteNum(capital) || capital < 0;
+  var badRate = isFiniteNum(marginRateRaw) && marginRateRaw > 100;
+  var fee = (feeRaw===null || feeRaw===undefined) ? 0 : feeRaw;
+  var badFee = !isFiniteNum(fee) || fee < 0;
+  var inputLots = (inputLotsRaw===null || inputLotsRaw===undefined) ? null : inputLotsRaw;
+  var badLots = inputLots!==null && (!isFiniteNum(inputLots) || inputLots < 0 || Math.floor(inputLots)!==inputLots);
+  if(badCore || badRate || badFee || badLots){
     __margin_calcOk=false;
+    var msg = badCore ? '请填写价格、合约乘数、保证金比例和资金；数值不能为空' : (badRate ? '保证金比例须在 0–100% 之间' : (badFee ? '手续费须为 ≥0 的有限数值' : '手数须为非负整数'));
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写价格、合约乘数、保证金比例和资金；数值不能为空</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+msg+'</p>';
     var ch=document.getElementById('margin_calcChart'); if(ch) ch.innerHTML='';
     var tb=document.getElementById('margin_calcTable'); if(tb) tb.innerHTML='';
     return;
   }
   __margin_calcOk=true;
   var marginRate=marginRateRaw/100;
-  var inputLots = (inputLotsRaw===null || inputLotsRaw===undefined) ? null : inputLotsRaw;
-  if(inputLots!==null && (!isFiniteNum(inputLots) || inputLots < 0)) inputLots=null;
-  var fee = (feeRaw===null || feeRaw===undefined) ? 0 : feeRaw;
-  if(!isFiniteNum(fee) || fee < 0) fee = 0;
 
   var contractValue = price * mult;
   var perLotMargin = contractValue * marginRate;
-  var maxLots = perLotMargin > 0 ? Math.floor(capital / perLotMargin) : 0;
+  var cashPerLot = perLotMargin + fee;
+  var maxLots = cashPerLot > 0 ? Math.floor(capital / cashPerLot) : 0;
   var leverage = marginRate > 0 ? 1 / marginRate : 0;
+  var requestedLots = inputLots === null ? 0 : inputLots;
+  if(requestedLots > maxLots){
+    __margin_calcOk=false;
+    document.getElementById('statGrid').innerHTML='<div class="stat-card"><div class="val">'+maxLots+' 手</div><div class="lbl">含手续费最多可开</div></div>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">按当前资金与每手保证金+手续费，最多可开 '+maxLots+' 手；请减少手数或增加资金。</p>';
+    var ch=document.getElementById('margin_calcChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('margin_calcTable'); if(tb) tb.innerHTML='';
+    return;
+  }
 
-  // 实际持仓
-  var actualLots = inputLots > 0 ? Math.min(inputLots, maxLots) : maxLots;
+  // 实际持仓：空值与 0 均表示未开仓，不再默认满仓
+  var actualLots = requestedLots;
   var usedMargin = actualLots * perLotMargin;
   var totalFee = actualLots * fee;
   var totalValue = actualLots * contractValue;
   var remainCapital = capital - usedMargin - totalFee;
+  var maxRemain = capital - maxLots * cashPerLot;
 
   var statHtml = '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(perLotMargin, 0) + '</div><div class="lbl">每手保证金</div></div>'
-    + '<div class="stat-card"><div class="val">' + maxLots + ' 手</div><div class="lbl">最大可开仓</div></div>'
+    + '<div class="stat-card"><div class="val">' + maxLots + ' 手</div><div class="lbl">最大可开仓（含手续费）</div></div>'
     + '<div class="stat-card"><div class="val">' + leverage.toFixed(1) + 'x</div><div class="lbl">杠杆倍数</div></div>'
     + '<div class="stat-card"><div class="val">¥' + ToolBox.formatNumber(contractValue, 0) + '</div><div class="lbl">合约价值</div></div>';
   const __g3=statHtml;document.getElementById('statGrid').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
@@ -353,8 +367,10 @@ function calc(){
   html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
   html += '<p style="font-weight:600;">资金占用：</p>';
   html += '<p>可用资金：<strong>¥' + ToolBox.formatNumber(capital, 0) + '</strong></p>';
-  html += '<p>最大可开仓手数 = ' + ToolBox.formatNumber(capital, 0) + ' ÷ ' + ToolBox.formatNumber(perLotMargin, 0) + ' = <strong style="color:var(--success);">' + maxLots + ' 手</strong></p>';
-  if(inputLots > 0){
+  html += '<p>每手占用现金 = 保证金 ' + ToolBox.formatNumber(perLotMargin, 0) + ' + 手续费 ' + ToolBox.formatNumber(fee, 0) + ' = <strong>¥' + ToolBox.formatNumber(cashPerLot, 0) + '</strong></p>';
+  html += '<p>最大可开仓手数 = ' + ToolBox.formatNumber(capital, 0) + ' ÷ ' + ToolBox.formatNumber(cashPerLot, 0) + ' = <strong style="color:var(--success);">' + maxLots + ' 手</strong></p>';
+  html += '<p>满仓后剩余资金 = <strong>¥' + ToolBox.formatNumber(maxRemain, 0) + '</strong></p>';
+  if(actualLots > 0){
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
     html += '<p style="font-weight:600;">实际开仓 ' + actualLots + ' 手：</p>';
     html += '<p>占用保证金 = ' + actualLots + ' × ' + ToolBox.formatNumber(perLotMargin, 0) + ' = <strong>¥' + ToolBox.formatNumber(usedMargin, 0) + '</strong></p>';
@@ -371,6 +387,9 @@ function calc(){
     if(remainCapital < usedMargin * 0.3){
       html += '<div class="tip-box tip-warn">剩余资金较少，强平风险较高，建议追加保证金或减仓。</div>';
     }
+  } else {
+    html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
+    html += '<p>当前手数为 0 或留空：按未开仓计算，仅展示资金可支持的最大手数。</p>';
   }
   const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }
@@ -380,7 +399,7 @@ function loadPreset(){
   document.getElementById('multiplier').value = 300;
   document.getElementById('marginRate').value = 12;
   document.getElementById('capital').value = 200000;
-  document.getElementById('lots').value = 2;
+  document.getElementById('lots').value = 1;
   document.getElementById('fee').value = 10;
   calc();
 }

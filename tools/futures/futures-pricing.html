@@ -95,7 +95,7 @@
       "name": "结果能当成交价吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "不能，理论价仅模型估算，实际受流动性、交割、情绪影响；本工具为纯计算演示、不获取实时行情。"
+        "text": "不能。理论价仅模型估算，实际受流动性、交割、情绪影响；价差未计交易成本与交割限制，不构成套利可行性结论。"
       }
     }
   ]
@@ -246,12 +246,12 @@
 <li>期现套利基差分析</li>
 <li>正向/反向市场判断</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">持有成本模型：理论价 F = S×(1 + (r + u − q)×T)（单利）或 S·e^((r+u−q)T)（连续），其中 S 现货、r 利率、u 仓储率、q 红利率、T 到期年数；F−S 为持有成本，S−F 为基差。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">现货 5000、r=4%、u=0.5%、q=1%、T=0.25 年 → 净持有成本率 3.5%，F=5000×(1+3.5%×0.25)=5043.75（连续复利 5043.94）；持有成本 43.75、基差 −43.75、F&gt;现货为「正向市场」。仅供定价参考，非投资建议。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">持有成本模型：理论价 F = S×(1+(r+u−q)×T)（单利）或 S·e^((r+u−q)T)（连续）。页面价差按“实际价−理论价”显示：实际高于理论提示卖期货买现货，实际低于理论提示买期货卖现货；差额仅为模型提示，未计手续费、冲击成本、资金占用、交割限制与基差风险。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">现货 5000、r=4%、u=0.5%、q=1%、T=0.25 → F=5043.94；实际价 5100 时差额 +56.06，显示“实际价高于理论价、可考虑卖期货买现货”；实际价 5000 时差额 −43.94，方向相反。价差绝对值小于 0.005 视为相等。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>基差负说明什么？</dt><dd>正向市场中期货高于现货、基差为负属正常；基差走阔/收窄反映持有成本与预期变化，用于套利与套保决策。</dd>
-<dt>结果能当成交价吗？</dt><dd>不能，理论价仅模型估算，实际受流动性、交割、情绪影响；本工具为纯计算演示、不获取实时行情。</dd>
+<dt>结果能当成交价吗？</dt><dd>不能。理论价仅模型估算，实际受流动性、交割、情绪影响；价差未计交易成本与交割限制，不构成套利可行性结论。</dd>
 </dl>
 </div>
 </section>
@@ -314,10 +314,12 @@ function calc(){
   var method = document.getElementById('method').value;
   var actualFutureRaw = getVal('actualFuture');
 
-  if(!isFiniteNum(spot) || spot <= 0 || !isFiniteNum(rateRaw) || rateRaw < 0 || !isFiniteNum(time) || time <= 0 || !isFiniteNum(yldRaw) || yldRaw < 0 || !isFiniteNum(storageRaw) || storageRaw < 0){
+  var badCore = !isFiniteNum(spot) || spot <= 0 || !isFiniteNum(rateRaw) || rateRaw < 0 || !isFiniteNum(time) || time <= 0 || !isFiniteNum(yldRaw) || yldRaw < 0 || !isFiniteNum(storageRaw) || storageRaw < 0;
+  var badActual = actualFutureRaw!==null && (!isFiniteNum(actualFutureRaw) || actualFutureRaw < 0);
+  if(badCore || badActual){
     __futures_pricingOk=false;
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写现货价格、无风险利率、到期时间、便利收益率和存储成本率；数值不能为空</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">'+(badCore?'请填写现货价格、无风险利率、到期时间、便利收益率和存储成本率；数值不能为空':'实际期货价须为 ≥0 的有限数值，或留空不做套利比较')+'</p>';
     var ch=document.getElementById('futures_pricingChart'); if(ch) ch.innerHTML='';
     var tb=document.getElementById('futures_pricingTable'); if(tb) tb.innerHTML='';
     return;
@@ -325,7 +327,6 @@ function calc(){
   __futures_pricingOk=true;
   var rate=rateRaw/100, yld=yldRaw/100, storage=storageRaw/100;
   var actualFuture = (actualFutureRaw===null || actualFutureRaw===undefined) ? 0 : actualFutureRaw;
-  if(!isFiniteNum(actualFuture) || actualFuture < 0) actualFuture = 0;
 
   var carry = rate + storage - yld; // 净持有成本率
   var futurePrice, formula;
@@ -365,16 +366,18 @@ function calc(){
     html += '<hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">';
     var diff = actualFuture - futurePrice;
     var diffPct = futurePrice > 0 ? diff / futurePrice * 100 : 0;
-    html += '<p style="font-weight:600;">套利分析：</p>';
+    var diffText = Math.abs(diff) < 0.005 ? '0.00（视为相等）' : ToolBox.formatNumber(diff, 2);
+    html += '<p style="font-weight:600;">期现价差比较（模型提示，不是交易建议）：</p>';
     html += '<p>实际期货价：<strong>' + actualFuture + '</strong></p>';
-    html += '<p>理论价 - 实际价 = <strong>' + ToolBox.formatNumber(diff, 2) + '（' + diffPct.toFixed(2) + '%）</strong></p>';
-    if(diff > 0){
-      html += '<div class="tip-box tip-success">实际价格低于理论价，可买入期货、卖空现货套利（正向套利）。</div>';
-    } else if(diff < 0){
-      html += '<div class="tip-box tip-warn">实际价格高于理论价，可卖出期货、买入现货套利（反向套利）。</div>';
+    html += '<p>实际价 - 理论价 = <strong>' + diffText + '（' + diffPct.toFixed(2) + '%）</strong></p>';
+    if(Math.abs(diff) < 0.005){
+      html += '<p>实际价与理论价基本相等，价差不足以覆盖交易成本。</p>';
+    } else if(diff > 0){
+      html += '<div class="tip-box tip-warn">实际价高于理论价：可考虑卖出期货、买入现货；需先核实可交割现货、保证金、交易与交割成本。</div>';
     } else {
-      html += '<p>实际价格等于理论价，无套利空间。</p>';
+      html += '<div class="tip-box tip-success">实际价低于理论价：可考虑买入期货、卖出现货；需先核实可卖出现货、保证金与交易成本。</div>';
     }
+    html += '<p style="font-size:12px;color:var(--text-muted);">价差仅为持有成本模型提示，未计入手续费、冲击成本、资金占用、交割限制与基差风险，不构成套利可行性结论。</p>';
   }
   const __g4=html;document.getElementById('result').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
 }

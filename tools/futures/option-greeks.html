@@ -250,8 +250,8 @@
 <li>风险敞口监控</li>
 <li>策略盈亏分析</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">Black-Scholes：d1=(ln(S/K)+(r+σ²/2)T)/(σ√T)，d2=d1−σ√T；由此得 Delta/Gamma/Theta/Vega/Rho 与理论价，衡量价格、时间、波动、利率敏感度。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看涨 S=100、K=100、r=3%、σ=20%、T=0.5 → d1≈0.177、d2≈0.035；Delta≈0.570、Gamma≈0.0278、Theta≈−0.0194/天、Vega≈0.278/1%、Rho≈0.253/1%、理论价≈6.37。纯模型演示、非投资建议。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">Black-Scholes：d1=(ln(S/K)+(r+σ²/2)T)/(σ√T)，d2=d1−σ√T；由此得 Delta/Gamma/Theta/Vega/Rho 与理论价。IV 由当前现价、行权价、利率、期限、股息与市价二分反解，任一参数变化都会同步重算；市价缺失或越界时明确提示不计算。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">看涨 S=100、K=100、r=3%、σ=20%、T=0.5 → 理论价约 6.37；若市价填 5，反解 IV 约 15.06%，把现价改为 90 后 IV 约 32.41%。Greeks 随现价、波动率、期限变化而变，IV 只是市价反解值、不是预测。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>Theta 为负代表什么？</dt><dd>买方 Theta 通常为负，表示每过一天时间价值流失；卖方则反之，靠时间衰减获利。</dd>
@@ -352,6 +352,7 @@ function calc(){
     document.getElementById('greeksGrid').innerHTML='';
     var ch=document.getElementById('option_greeksChart'); if(ch) ch.innerHTML='';
     var tb=document.getElementById('option_greeksTable'); if(tb) tb.innerHTML='';
+    var ib=document.getElementById('ivBox'); if(ib) ib.innerHTML='<p style="color:var(--danger);">参数无效，隐含波动率暂不计算</p>';
     return;
   }
   __option_greeksOk=true;
@@ -403,6 +404,7 @@ function calc(){
   grid += '<div class="greek-card"><div class="gname">Vega ν</div><div class="gval">' + vega.toFixed(4) + '</div><div class="gdesc">元/1%</div></div>';
   grid += '<div class="greek-card"><div class="gname">Rho ρ</div><div class="gval">' + rho.toFixed(4) + '</div><div class="gdesc">元/1%</div></div>';
   const __g4=grid;document.getElementById('greeksGrid').innerHTML=(typeof __g4==='number'?(isFinite(__g4)?__g4:'—'):String(__g4).replace(/Infinity|NaN/g,'—'));
+  if(document.getElementById('marketPrice')) calcIV();
 }
 
 function copyResult(){
@@ -427,19 +429,31 @@ function __bsPrice(S,K,rPct,sigmaPct,T,qPct,type){
   if(type==='call') return S*eqT*normCDF(d1)-K*erT*normCDF(d2);
   return K*erT*normCDF(-d2)-S*eqT*normCDF(-d1);
 }
+function ifv(v){ return typeof v === 'number' && isFinite(v); }
 function calcIV(){
+  var box=document.getElementById('ivBox');
+  var mEl=document.getElementById('marketPrice');
+  if(!box||!mEl) return;
   var S=getVal('spot'), K=getVal('strike'), rPct=getVal('rate'), T=getVal('time'), qPct=getVal('div'), type=getType();
-  var mkt=parseFloat(document.getElementById('marketPrice').value)||0;
+  var raw=String(mEl.value==null?'':mEl.value).trim();
+  var mkt=raw===''?NaN:Number(raw);
   var en=__ogIsEn();
-  if(S<=0||K<=0||T<=0||mkt<=0){ document.getElementById('ivBox').innerHTML='<p>'+(en?'Enter valid params and market price':'请输入有效参数与市价')+'</p>'; return; }
+  var bad=!ifv(S)||S<=0||!ifv(K)||K<=0||!ifv(rPct)||!ifv(T)||T<=0||!ifv(qPct)||!ifv(mkt)||mkt<=0;
+  if(bad){
+    box.innerHTML='<p style="color:var(--danger);">'+(en?'Enter valid spot, strike, rate, time, dividend and a positive market price':'请输入有效的标的参数与正数期权市价')+'</p>';
+    return;
+  }
   var lo=1e-6, hi=5;
   function f(sig){ return __bsPrice(S,K,rPct,sig*100,T,qPct,type) - mkt; }
-  if(f(lo)>0||f(hi)<0){ document.getElementById('ivBox').innerHTML='<p>'+(en?'No IV in (0,500%] matches the market price':'市价超出 (0,500%] 波动率可解释范围')+'</p>'; return; }
+  if(!ifv(f(lo))||f(lo)>0||f(hi)<0){
+    box.innerHTML='<p style="color:var(--danger);">'+(en?'No IV in (0,500%] matches this market price; check the price or parameters':'市价超出 (0,500%] 波动率可解释范围，请检查市价或参数')+'</p>';
+    return;
+  }
   for(var i=0;i<80;i++){ var mid=(lo+hi)/2; if(f(mid)>0) hi=mid; else lo=mid; }
   var iv=(lo+hi)/2*100;
   var html='<p>'+ (en?'Implied volatility IV':'隐含波动率 IV') +': <strong>'+ iv.toFixed(2) +'%</strong></p>'+
-           '<p style="font-size:12px;color:var(--text-muted);">'+ (en?'Reversed from market price by bisection (σ∈(0,500%])':'二分法由市价反解（σ∈(0,500%]）') +'</p>';
-  document.getElementById('ivBox').innerHTML=html;
+           '<p style="font-size:12px;color:var(--text-muted);">'+ (en?'Reversed from the current spot/strike/rate/time/dividend by bisection (σ∈(0,500%])':'按上方当前现价、行权价、利率、期限与股息二分反解（σ∈(0,500%]）') +'</p>';
+  box.innerHTML=html;
 }
 
 calc();
@@ -466,27 +480,22 @@ try{ calcIV(); }catch(e){}
 <div class="related-tools" data-related-tools="1">
   <h3 class="related-tools-title">🔗 相关工具</h3>
   <div class="related-tools-grid">
-    <a href="../finance/text-reverse-words.html" class="related-tool-card">
-      <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">单词顺序反转</span><span class="rt-desc">将英文句子中的单词顺序整体反转，保留标点位置可选，用于密码学练习、文案倒置与文本处理，纯前端即时处理</span></span>
+    <a href="option-payoff.html" class="related-tool-card">
+      <span class="rt-icon">📈</span>
+      <span class="rt-info"><span class="rt-name">期权盈亏图</span><span class="rt-desc">输入期权执行价、权利金与标的现价，绘制看涨或看跌期权到期损益曲线（买方/卖方），标出盈亏平衡点与最大…</span></span>
     </a>
-    <a href="../text/stats-1.html" class="related-tool-card">
-      <span class="rt-icon">📖</span>
-      <span class="rt-info"><span class="rt-name">字数统计（含字符数、单词数）</span><span class="rt-desc">字数统计工具：统计文本字符数、单词数与行数，支持中英文混合计数，用于写作与排版字数核算</span></span>
+    <a href="margin-calc.html" class="related-tool-card">
+      <span class="rt-icon">📉</span>
+      <span class="rt-info"><span class="rt-name">期货保证金计算器</span><span class="rt-desc">输入期货合约价格、合约乘数与保证金比例，计算开仓所需保证金、可开仓手数与实际杠杆倍数，帮助期货投资者…</span></span>
     </a>
-    <a href="../finance/word-wrap.html" class="related-tool-card">
+    <a href="hedge-ratio.html" class="related-tool-card">
+      <span class="rt-icon">🧮</span>
+      <span class="rt-info"><span class="rt-name">对冲比例计算器</span><span class="rt-desc">输入现货与期货价格变动的相关系数、波动率，按最小方差法计算最优对冲比例 h*=ρ·σS/σF，并估算…</span></span>
+    </a>
+    <a href="futures-pricing.html" class="related-tool-card">
       <span class="rt-icon">💰</span>
-      <span class="rt-info"><span class="rt-name">自动换行</span><span class="rt-desc">按列宽断行（避免词内断开）。按指定列宽对段落强制折行。报表备注、文档排版时对齐宽度。</span></span>
+      <span class="rt-info"><span class="rt-name">期货定价计算器</span><span class="rt-desc">基于持有成本模型Cost of Carry，输入现货价、利率、仓储与分红率估算期货理论价格，并给出与…</span></span>
     </a>
-    <a href="../finance/word-frequency.html" class="related-tool-card">
-      <span class="rt-icon">📊</span>
-      <span class="rt-info"><span class="rt-name">词频统计</span><span class="rt-desc">对中英文文本分词并统计词频，可过滤停用词、忽略大小写、限定最小词长，输出唯一词数、总词次、词汇丰富度…</span></span>
-    </a>
-    <a href="../finance/mirror-text.html" class="related-tool-card">
-      <span class="rt-icon">🏦</span>
-      <span class="rt-info"><span class="rt-name">镜像文字</span><span class="rt-desc">将文字左右镜像：复制近似 Unicode 字符，或导出真实左右翻转、透明背景的多行 PNG；</span></span>
-    </a>
-    
   </div>
 </div>
 <div class="tool-intro open" id="toolIntro">
@@ -518,6 +527,7 @@ try{ calcIV(); }catch(e){}
 <script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
+  try{ calcIV(); }catch(e){}
   var headers=document.querySelectorAll('.tool-intro-header');
   headers.forEach(function(h){
     h.addEventListener('click',function(){
