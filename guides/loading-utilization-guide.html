@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://chenguangwu.github.io/guides/loading-utilization-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"装载利用率 使用指南","description":"计算车辆装载的体积利用率与重量利用率，判断是体积受限还是重量受限，并估算可装载件数。典型场景包括：最大可装件数（体积侧）：对 3 种正交摆放取向 (长,宽,高)、(长,高,宽)、(宽,高,长) 分别计算 floor(车厢长÷第一边)×floor(车厢宽÷第二边)×floor(车厢高÷第三边)。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://chenguangwu.github.io/guides/loading-utilization-guide.html"},"image":"https://chenguangwu.github.io/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://chenguangwu.github.io/logo-512.png"}},"inLanguage":"zh-CN"}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "装载利用率 使用指南", "item": "https://chenguangwu.github.io/guides/loading-utilization-guide.html"}]}</script>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么每个方向用向下取整而不是四舍五入？", "acceptedAnswer": {"@type": "Answer", "text": "车厢三边不可切分，任一方向只能放下整数件，向下取整保证不越界。同时实际装车还要扣除托盘厚度、货物间隙、门框内缩与码放误差，建议在工具结果上再乘 0.90~0.95 的实装系数，作为可执行的装车计划。"}}, {"@type": "Question", "name": "只试 3 种摆放取向够吗？长方体不是有 6 种吗？", "acceptedAnswer": {"@type": "Answer", "text": "长方体正交摆放确有 6 种，但绕竖直轴旋转 180° 只是交换另外两边，在向下取整的计数模型中等价于已枚举的某一组，所以 3 种已覆盖不同的三边分配方式。若货物不允许倒置（如带向上标识的箱体），应手工剔除把原高边转到竖直方向的取向。"}}]}</script>
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么每个方向用向下取整而不是四舍五入？", "acceptedAnswer": {"@type": "Answer", "text": "车厢三边不可切分，任一方向只能放下整数件，向下取整保证不越界。同时实际装车还要扣除托盘厚度、货物间隙、门框内缩与码放误差，建议在工具结果上再乘 0.90~0.95 的实装系数，作为可执行的装车计划。"}}, {"@type": "Question", "name": "只试 3 种摆放取向够吗？长方体不是有 6 种吗？", "acceptedAnswer": {"@type": "Answer", "text": "工具实际枚举 6 种全排列。绕竖直轴旋转 180° 虽然交换另外两边，但在统一朝向网格中对应另一组三边分配，逐一枚举才能覆盖；若货物不允许倒置，把「允许摆放方向」改为「仅保持原高度」，即只试水平旋转两种；选「固定当前朝向」则不再旋转。结果仍只是统一朝向网格估算，未搜索混合朝向。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -75,9 +75,9 @@ li{margin:8px 0;}
 <h2>功能说明</h2>
 <p>计算车辆装载的体积利用率与重量利用率，判断是体积受限还是重量受限，并估算可装载件数。</p>
 <h2>典型使用场景</h2>
-<ul><li>最大可装件数（体积侧）：对 3 种正交摆放取向 (长,宽,高)、(长,高,宽)、(宽,高,长) 分别计算 floor(车厢长÷第一边)×floor(车厢宽÷第二边)×floor(车厢高÷第三边)，取三者最大值作为体积上限。</li><li>重量约束与受限类型判定：受重量限制的最大件数=floor(车辆载重÷单件重量)，最终最大可装件数=min(体积上限, 重量上限)。当体积上限≤重量上限判为「体积受限」，否则「重量受限」，据此决定优化方向（改码放还是换大载重车）。</li><li>计划装载校验：按计划件数计算总体积与总重量及对应利用率，超过体积上限标「超装」、超过重量上限标「超载」，利用率大于 90% 标「接近满载」，用于发车前复核是否需要补车或减量。</li></ul>
+<ul><li>最大可装件数（体积侧）：按所选方向（全部 6 种 / 仅保持原高度 / 固定朝向）枚举正交摆放，分别计算 floor((车厢长)÷(第一边+间隙))×floor((车厢宽)÷(第二边+间隙))×floor((车厢高)÷(第三边+间隙))，再按最大堆码层数与单箱承压上限压缩高度方向层数，取最大值作为体积/朝向上限。该上限仍是统一朝向网格估算，不搜索同一车厢内混合朝向。</li><li>重量约束与受限类型判定：重量上限件数=floor(车辆载重×允许载重利用率上限÷单件重量)；若填写单轴/局部承载上限，再取 floor(单轴上限÷单件重量)。最终最大可装件数=min(体积/朝向上限, 重量上限, 单轴上限)，取到哪一项即判「体积/朝向受限」「重量受限」或「单轴/局部承载受限」。单轴上限只按件数折算，不校验前后轴实际分配。</li><li>计划装载校验：计划件数须为 0 或正整数，按计划件数计算总体积与总重量及对应利用率，超过体积上限标「超装」、超过重量上限标「超载」，利用率大于 90% 标「接近满载」。堆码层数、单箱承压与箱间间隙已可按输入折算，但托盘厚度、门框内缩、绑扎与前后轴实际分配未建模；结果只说明是否超过体积/载重/单轴上限，不等于实际装车安全结论。</li></ul>
 <h2>算例参考</h2>
-<ul><li><strong>算例：6.8 m 厢车装 0.6×0.4×0.5 m 纸箱</strong>：输入：车厢 6.8×2.3×2.4 m（容积 37.536 m³）、载重 5000 kg；纸箱 0.6×0.4×0.5 m（单件 0.12 m³）、单件 15 kg；计划 500 件。三种取向：(0.6,0.4,0.5)→11×5×4=220 件、(0.6,0.5,0.4)→11×4×6=264 件、(0.4,0.5,0.6)→17×4×4=272 件，取最大 272 件。重量上限=floor(5000÷15)=333 件。最大可装件数=min(272,333)=272 件，受限类型=体积受限；按 272 件装载时体积利用率 87.0%、重量利用率 81.6%。计划 500 件需 60.00 m³（159.8%）与 7500 kg（150.0%），体积与重量双双超限，需分两车或减量；若改为 300 件则 36.00 m³（95.9%）、4500 kg（90.0%），体积仍超过 272 件上限，实际仍装不下。</li></ul>
+<ul><li><strong>算例：6.8 m 厢车装 0.6×0.4×0.5 m 纸箱</strong>：输入：车厢 6.8×2.3×2.4 m（容积 37.536 m³）、载重 5000 kg；纸箱 0.6×0.4×0.5 m（单件 0.12 m³）、单件 15 kg；计划 500 件。按默认全部朝向、0 间隙、堆码不限、载重上限 100%、单轴不限：三种代表取向 (0.6,0.4,0.5)→11×5×4=220 件、(0.6,0.5,0.4)→11×4×6=264 件、(0.4,0.5,0.6)→17×4×4=272 件，取最大 272 件。重量上限=floor(5000×100%÷15)=333 件。最大可装件数=min(272,333)=272 件，受限类型=体积受限；按 272 件装载时体积利用率 87.0%、重量利用率 81.6%。计划 500 件需 60.00 m³（159.8%）与 7500 kg（150.0%），体积与重量双双超限，需分两车或减量；若改为 300 件则 36.00 m³（95.9%）、4500 kg（90.0%），体积仍超过 272 件上限，实际仍装不下。</li></ul>
 <h2>注意事项</h2>
 <p>本工具纯前端运行，输入内容不上传服务器；结果为按上述口径得到的<strong>理论估算值</strong>。实际应用受设备参数、测量条件与当地规范影响，请以设备铭牌、检测报告与现行标准为准，重大决策建议咨询专业人士。</p>
 <div class="related">
@@ -89,7 +89,7 @@ li{margin:8px 0;}
 </div>
 <dl class="faq">
 <dt>为什么每个方向用向下取整而不是四舍五入？</dt><dd>车厢三边不可切分，任一方向只能放下整数件，向下取整保证不越界。同时实际装车还要扣除托盘厚度、货物间隙、门框内缩与码放误差，建议在工具结果上再乘 0.90~0.95 的实装系数，作为可执行的装车计划。</dd>
-<dt>只试 3 种摆放取向够吗？长方体不是有 6 种吗？</dt><dd>长方体正交摆放确有 6 种，但绕竖直轴旋转 180° 只是交换另外两边，在向下取整的计数模型中等价于已枚举的某一组，所以 3 种已覆盖不同的三边分配方式。若货物不允许倒置（如带向上标识的箱体），应手工剔除把原高边转到竖直方向的取向。</dd>
+<dt>只试 3 种摆放取向够吗？长方体不是有 6 种吗？</dt><dd>工具实际枚举 6 种全排列。绕竖直轴旋转 180° 虽然交换另外两边，但在统一朝向网格中对应另一组三边分配，逐一枚举才能覆盖；若货物不允许倒置，把「允许摆放方向」改为「仅保持原高度」，即只试水平旋转两种；选「固定当前朝向」则不再旋转。结果仍只是统一朝向网格估算，未搜索混合朝向。</dd>
 </dl>
 <div class="related"><h3>相关工具</h3><a class="tool-chip" href="/tools/logistics2/loading-utilization.html">装载利用率</a></div>
 <div class="back"><a href="https://chenguangwu.github.io/tools/logistics2/loading-utilization.html">→ 打开装载利用率工具</a></div>

@@ -31,7 +31,7 @@
     <meta name="twitter:description" content="装载利用率是一款免费的在线仓储物流工具，计算车辆装载的体积利用率与重量利用率，判断是体积受限还是重量受限，并估算可装载件数。">
 <!-- TOOLBOX-WEBAPP-LD -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"装载利用率","url":"https://chenguangwu.github.io/tools/logistics2/loading-utilization.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"装载利用率是一款免费的在线仓储物流工具，计算车辆装载的体积利用率与重量利用率，判断是体积受限还是重量受限，并估算可装载件数。最大可装件数（体积侧）：对 3 种正交摆放取向 (长,宽,高)、(长,高,宽)。","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
+{"@context":"https://schema.org","@type":"WebApplication","name":"装载利用率","url":"https://chenguangwu.github.io/tools/logistics2/loading-utilization.html","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","browserRequirements":"Requires JavaScript","inLanguage":["zh-CN", "zh-TW", "en-US"],"description":"装载利用率是一款免费的在线仓储物流工具，计算车辆装载的体积利用率与重量利用率，判断是体积受限还是重量受限，并估算可装载件数。最大可装件数（体积侧）：按所选方向（全部 6 种 / 仅保持原高度 / 固定朝向）枚举正交摆放。","image":"https://chenguangwu.github.io/og-image.png","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"CNY"}}
 </script>
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
 <meta http-equiv="X-Content-Type-Options" content="nosniff">
@@ -94,7 +94,7 @@
       "name": "只试 3 种摆放取向够吗？长方体不是有 6 种吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "长方体正交摆放确有 6 种，但绕竖直轴旋转 180° 只是交换另外两边，在向下取整的计数模型中等价于已枚举的某一组，所以 3 种已覆盖不同的三边分配方式。若货物不允许倒置（如带向上标识的箱体），应手工剔除把原高边转到竖直方向的取向。"
+        "text": "长方体正交摆放确有 6 种，但绕竖直轴旋转 180° 只是交换另外两边，在向下取整的计数模型中等价于已枚举的某一组，所以 3 种已覆盖不同的三边分配方式。若货物不允许倒置（如带向上标识的箱体），把「允许摆放方向」改为「仅保持原高度」，只试水平旋转两种；选「固定当前朝向」则不再旋转。结果仍只是统一朝向网格估算，未搜索混合朝向。"
       }
     }
   ]
@@ -191,6 +191,40 @@
         <input type="number" id="planQty" value="500" min="0" oninput="calc()" placeholder="如 500">
       </div>
     </div>
+    <div class="input-row">
+      <div>
+        <label for="orientMode">允许摆放方向</label>
+        <select id="orientMode" onchange="calc()">
+          <option value="all" selected>全部 6 种正交朝向</option>
+          <option value="upright">仅保持原高度（水平旋转 2 种）</option>
+          <option value="fixed">固定当前朝向（不旋转）</option>
+        </select>
+      </div>
+      <div>
+        <label for="gap">箱间/车厢边间隙（米）</label>
+        <input type="number" id="gap" value="0" min="0" step="0.01" oninput="calc()" placeholder="如 0.05">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="stackLayers">最大堆码层数（0=按车厢高度）</label>
+        <input type="number" id="stackLayers" value="0" min="0" step="1" oninput="calc()" placeholder="如 4">
+      </div>
+      <div>
+        <label for="stackLoad">单箱承压上限（kg，0=不限）</label>
+        <input type="number" id="stackLoad" value="0" min="0" step="1" oninput="calc()" placeholder="如 120">
+      </div>
+    </div>
+    <div class="input-row">
+      <div>
+        <label for="loadLimitPct">允许载重利用率上限（%，默认 100）</label>
+        <input type="number" id="loadLimitPct" value="100" min="1" max="100" step="1" oninput="calc()" placeholder="如 90">
+      </div>
+      <div>
+        <label for="axleLimit">单轴/局部承载上限（kg，0=不限制）</label>
+        <input type="number" id="axleLimit" value="0" min="0" step="1" oninput="calc()" placeholder="如 3000">
+      </div>
+    </div>
 
     <div class="toolbar">
       <div id="loading_utilizationPresets"></div><button type="button" class="btn primary" onclick="calc()">计算利用率</button><button class="btn" type="button" onclick="__loading_utilizationExport()">导出明细 CSV</button>
@@ -206,7 +240,7 @@
       <p><strong>重量利用率</strong> = 货物总重量 ÷ 额定载重 × 100%</p>
       <p><strong>受限类型</strong>：当体积利用率先达到 100% 为体积受限，当重量利用率先达到 100% 为重量受限。实际装载还需考虑堆码层数、稳固性等。</p>
     </div>
-    <div class="tip-box tip-warn">本工具按理想长方体堆叠估算，未考虑货物摆放方向、间隙、堆码承重等实际因素，结果仅供参考。</div>
+    <div class="tip-box tip-warn">本工具已提供摆放方向、箱间间隙、堆码层数/承压与载重/单轴上限输入，但仍按统一朝向网格估算；托盘厚度、门框内缩、绑扎与前后轴实际分配未建模，结果仅供参考。</div>
   </div>
 
 <!-- TOOLBOX-DEEP-DIVE -->
@@ -231,15 +265,15 @@
 <h2>📚 深度解析：装载利用率</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>最大可装件数（体积侧）：对 3 种正交摆放取向 (长,宽,高)、(长,高,宽)、(宽,高,长) 分别计算 floor(车厢长÷第一边)×floor(车厢宽÷第二边)×floor(车厢高÷第三边)，取三者最大值作为体积上限。</li>
-<li>重量约束与受限类型判定：受重量限制的最大件数=floor(车辆载重÷单件重量)，最终最大可装件数=min(体积上限, 重量上限)。当体积上限≤重量上限判为「体积受限」，否则「重量受限」，据此决定优化方向（改码放还是换大载重车）。</li>
-<li>计划装载校验：按计划件数计算总体积与总重量及对应利用率，超过体积上限标「超装」、超过重量上限标「超载」，利用率大于 90% 标「接近满载」，用于发车前复核是否需要补车或减量。</li>
+<li>最大可装件数（体积侧）：按所选方向（全部 6 种 / 仅保持原高度 / 固定朝向）枚举正交摆放，分别计算 floor((车厢长)÷(第一边+间隙))×floor((车厢宽)÷(第二边+间隙))×floor((车厢高)÷(第三边+间隙))，再按最大堆码层数与单箱承压上限压缩高度方向层数，取最大值作为体积/朝向上限。该上限仍是统一朝向网格估算，不搜索同一车厢内混合朝向。</li>
+<li>重量约束与受限类型判定：重量上限件数=floor(车辆载重×允许载重利用率上限÷单件重量)；若填写单轴/局部承载上限，再取 floor(单轴上限÷单件重量)。最终最大可装件数=min(体积/朝向上限, 重量上限, 单轴上限)，取到哪一项即判「体积/朝向受限」「重量受限」或「单轴/局部承载受限」。单轴上限只按件数折算，不校验前后轴实际分配。</li>
+<li>计划装载校验：计划件数须为 0 或正整数，按计划件数计算总体积与总重量及对应利用率，超过体积上限标「超装」、超过重量上限标「超载」，利用率大于 90% 标「接近满载」。堆码层数、单箱承压与箱间间隙已可按输入折算，但托盘厚度、门框内缩、绑扎与前后轴实际分配未建模；结果只说明是否超过体积/载重/单轴上限，不等于实际装车安全结论。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：6.8 m 厢车装 0.6×0.4×0.5 m 纸箱</div><div class="dd-ex-body">输入：车厢 6.8×2.3×2.4 m（容积 37.536 m³）、载重 5000 kg；纸箱 0.6×0.4×0.5 m（单件 0.12 m³）、单件 15 kg；计划 500 件。三种取向：(0.6,0.4,0.5)→11×5×4=220 件、(0.6,0.5,0.4)→11×4×6=264 件、(0.4,0.5,0.6)→17×4×4=272 件，取最大 272 件。重量上限=floor(5000÷15)=333 件。最大可装件数=min(272,333)=272 件，受限类型=体积受限；按 272 件装载时体积利用率 87.0%、重量利用率 81.6%。计划 500 件需 60.00 m³（159.8%）与 7500 kg（150.0%），体积与重量双双超限，需分两车或减量；若改为 300 件则 36.00 m³（95.9%）、4500 kg（90.0%），体积仍超过 272 件上限，实际仍装不下。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：6.8 m 厢车装 0.6×0.4×0.5 m 纸箱</div><div class="dd-ex-body">按默认全部朝向、0 间隙、堆码不限、载重上限 100%、单轴不限：三种代表取向 (0.6,0.4,0.5)→11×5×4=220 件、(0.6,0.5,0.4)→11×4×6=264 件、(0.4,0.5,0.6)→17×4×4=272 件，取最大 272 件。重量上限=floor(5000×100%÷15)=333 件。最大可装件数=min(272,333)=272 件，受限类型=体积/朝向受限；按 272 件装载时体积利用率 87.0%、重量利用率 81.6%。计划 500 件需 60.00 m³（159.8%）与 7500 kg（150.0%），体积与重量双双超限，需分两车或减量；若改为 300 件则 36.00 m³（95.9%）、4500 kg（90.0%），体积仍超过 272 件上限，实际仍装不下。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么每个方向用向下取整而不是四舍五入？</dt><dd>车厢三边不可切分，任一方向只能放下整数件，向下取整保证不越界。同时实际装车还要扣除托盘厚度、货物间隙、门框内缩与码放误差，建议在工具结果上再乘 0.90~0.95 的实装系数，作为可执行的装车计划。</dd>
-<dt>只试 3 种摆放取向够吗？长方体不是有 6 种吗？</dt><dd>长方体正交摆放确有 6 种，但绕竖直轴旋转 180° 只是交换另外两边，在向下取整的计数模型中等价于已枚举的某一组，所以 3 种已覆盖不同的三边分配方式。若货物不允许倒置（如带向上标识的箱体），应手工剔除把原高边转到竖直方向的取向。</dd>
+<dt>只试 3 种摆放取向够吗？长方体不是有 6 种吗？</dt><dd>长方体正交摆放确有 6 种，但绕竖直轴旋转 180° 只是交换另外两边，在向下取整的计数模型中等价于已枚举的某一组，所以 3 种已覆盖不同的三边分配方式。若货物不允许倒置（如带向上标识的箱体），把「允许摆放方向」改为「仅保持原高度」，只试水平旋转两种；选「固定当前朝向」则不再旋转。结果仍只是统一朝向网格估算，未搜索混合朝向。</dd>
 </dl>
 </div>
 </section>
@@ -291,8 +325,25 @@ function calc(){
   var bW = parseFloat(document.getElementById('boxW').value) || 0;
   var bH = parseFloat(document.getElementById('boxH').value) || 0;
   var bWeight = parseFloat(document.getElementById('boxWeight').value) || 0;
-  var planQty = parseInt(document.getElementById('planQty').value) || 0;
+  var planRaw = String(document.getElementById('planQty').value).trim();
+  var planQty = Number(planRaw);
+  var orientMode = document.getElementById('orientMode').value;
+  var gap = Number(document.getElementById('gap').value) || 0;
+  var stackLayers = Number(document.getElementById('stackLayers').value) || 0;
+  var stackLoad = Number(document.getElementById('stackLoad').value) || 0;
+  var loadLimitPct = Number(document.getElementById('loadLimitPct').value) || 100;
+  var axleLimit = Number(document.getElementById('axleLimit').value) || 0;
 
+  if(planRaw === '' || !/^\d+$/.test(planRaw) || !Number.isInteger(planQty) || planQty < 0){
+    ToolBox.showToast('计划件数须填写 0 或正整数，不能为空、负数或小数', 'error');
+    document.getElementById('result').style.display='none';
+    return;
+  }
+  if(gap < 0 || stackLayers < 0 || !Number.isInteger(stackLayers) || stackLoad < 0 || axleLimit < 0 || loadLimitPct <= 0 || loadLimitPct > 100 || ['all','upright','fixed'].indexOf(orientMode) < 0){
+    ToolBox.showToast('间隙、堆码层数、承压上限、载重上限与单轴上限须为非负数（载重利用率 1%–100%）', 'error');
+    document.getElementById('result').style.display='none';
+    return;
+  }
   if(tL<=0||tW<=0||tH<=0||tLoad<=0||bL<=0||bW<=0||bH<=0||bWeight<=0){
     ToolBox.showToast(i18nText('toast.msg719'), 'error');
     document.getElementById('result').style.display='none';
@@ -302,14 +353,18 @@ function calc(){
   var truckVol = tL * tW * tH;
   var boxVol = bL * bW * bH;
 
-  // 计算每方向可放件数（枚举 6 种朝向全排列，取最大）
-  var dims = [[bL,bW,bH],[bL,bH,bW],[bW,bL,bH],[bW,bH,bL],[bH,bL,bW],[bH,bW,bL]];
+  // 按允许方向枚举朝向；间隙按每件四周均匀扣减，堆码层数/承压只折算高度方向件数
+  var dimsAll = [[bL,bW,bH],[bL,bH,bW],[bW,bL,bH],[bW,bH,bL],[bH,bL,bW],[bH,bW,bL]];
+  var dims = orientMode === 'upright' ? [[bL,bW,bH],[bW,bL,bH]]
+    : (orientMode === 'fixed' ? [[bL,bW,bH]] : dimsAll);
   var bestFit = 0;
   var bestOrient = null;
   dims.forEach(function(d){
-    var nx = Math.floor(tL / d[0]);
-    var ny = Math.floor(tW / d[1]);
-    var nz = Math.floor(tH / d[2]);
+    var nx = Math.floor(tL / (d[0] + gap));
+    var ny = Math.floor(tW / (d[1] + gap));
+    var nz = Math.floor(tH / (d[2] + gap));
+    if(stackLayers > 0) nz = Math.min(nz, stackLayers);
+    if(stackLoad > 0) nz = Math.min(nz, Math.floor(stackLoad / bWeight) + 1);
     var fit = nx * ny * nz;
     if(fit > bestFit){
       bestFit = fit;
@@ -318,15 +373,16 @@ function calc(){
   });
 
   if(bestFit === 0 || !bestOrient){
-    document.getElementById('result').innerHTML = '<div class="tip-box tip-error">单件尺寸大于车厢，无法装载：单件 '+ToolBox.formatNumber(bL,2)+'×'+ToolBox.formatNumber(bW,2)+'×'+ToolBox.formatNumber(bH,2)+' m，车厢 '+ToolBox.formatNumber(tL,2)+'×'+ToolBox.formatNumber(tW,2)+'×'+ToolBox.formatNumber(tH,2)+' m。请核对尺寸或更换更大车型。</div>';
+    document.getElementById('result').innerHTML = '<div class="tip-box tip-error">单件（含间隙）在所选朝向下无法放入车厢：单件 '+ToolBox.formatNumber(bL,2)+'×'+ToolBox.formatNumber(bW,2)+'×'+ToolBox.formatNumber(bH,2)+' m，车厢 '+ToolBox.formatNumber(tL,2)+'×'+ToolBox.formatNumber(tW,2)+'×'+ToolBox.formatNumber(tH,2)+' m。请核对尺寸、间隙或更换更大车型/摆放方向。</div>';
     document.getElementById('result').style.display = 'block';
-    ToolBox.showToast('单件尺寸大于车厢，无法装载', 'error');
+    ToolBox.showToast('按所选方向与间隙无法装载', 'error');
     return;
   }
 
-  // 受重量限制的最大件数
-  var maxByWeight = Math.floor(tLoad / bWeight);
-  var maxQty = Math.min(bestFit, maxByWeight);
+  // 受总载重上限与单轴/局部上限限制的最大件数
+  var maxByWeight = Math.floor(tLoad * loadLimitPct / 100 / bWeight);
+  var maxByAxle = axleLimit > 0 ? Math.floor(axleLimit / bWeight) : Infinity;
+  var maxQty = Math.min(bestFit, maxByWeight, maxByAxle);
 
   var usedVol = boxVol * Math.min(planQty, maxQty);
   var volUtil = usedVol / truckVol * 100;
@@ -334,11 +390,9 @@ function calc(){
   var weightUtil = usedWeight / tLoad * 100;
 
   var limitType;
-  if(bestFit <= maxByWeight){
-    limitType = '体积受限';
-  } else {
-    limitType = '重量受限';
-  }
+  if(maxQty === bestFit) limitType = '体积/朝向受限';
+  else if(maxQty === maxByWeight) limitType = '重量受限';
+  else limitType = '单轴/局部承载受限';
 
   var planVol = boxVol * planQty;
   var planWeight = bWeight * planQty;
@@ -347,6 +401,7 @@ function calc(){
 
   var overVol = planQty > bestFit;
   var overWeight = planQty > maxByWeight;
+  var overAxle = planQty > maxByAxle;
 
   var html = '';
   html += '<div class="stat-grid">';
@@ -358,19 +413,20 @@ function calc(){
 
   html += '<h3 style="margin-top:8px;">计划装载分析（'+planQty+' 件）</h3>';
   html += '<table><thead><tr><th>指标</th><th>数值</th><th>利用率</th><th>状态</th></tr></thead><tbody>';
-  var volStatus = overVol ? '<span class="grade-tag grade-fail">超装</span>' : (planVolUtil>90?'<span class="grade-tag grade-pass">接近满载</span>':'<span class="grade-tag grade-excellent">可行</span>');
-  var weightStatus = overWeight ? '<span class="grade-tag grade-fail">超载</span>' : (planWeightUtil>90?'<span class="grade-tag grade-pass">接近满载</span>':'<span class="grade-tag grade-excellent">可行</span>');
+  var volStatus = overVol ? '<span class="grade-tag grade-fail">超装</span>' : (planVolUtil>90?'<span class="grade-tag grade-pass">接近满载</span>':'<span class="grade-tag grade-excellent">未超体积上限</span>');
+  var weightStatus = overWeight ? '<span class="grade-tag grade-fail">超载</span>' : (planWeightUtil>90?'<span class="grade-tag grade-pass">接近满载</span>':'<span class="grade-tag grade-excellent">未超载重上限</span>');
   html += '<tr><td>货物总体积</td><td>'+ToolBox.formatNumber(planVol,2)+' m³</td><td>'+planVolUtil.toFixed(1)+'%</td><td>'+volStatus+'</td></tr>';
   html += '<tr><td>货物总重量</td><td>'+ToolBox.formatNumber(planWeight,0)+' kg</td><td>'+planWeightUtil.toFixed(1)+'%</td><td>'+weightStatus+'</td></tr>';
   html += '</tbody></table>';
 
-  html += '<h3 style="margin-top:16px;">最优摆放方案</h3>';
+  html += '<h3 style="margin-top:16px;">估算摆放方案（统一朝向网格）</h3>';
   html += '<div class="data-grid">';
   html += '<div class="data-card"><div class="num">'+bestOrient.nx+'</div><div class="label">长度方向件数</div></div>';
   html += '<div class="data-card"><div class="num">'+bestOrient.ny+'</div><div class="label">宽度方向件数</div></div>';
   html += '<div class="data-card"><div class="num">'+bestOrient.nz+'</div><div class="label">高度方向件数</div></div>';
-  html += '<div class="data-card"><div class="num">'+bestFit+'</div><div class="label">体积满载件数</div></div>';
-  html += '<div class="data-card"><div class="num">'+maxByWeight+'</div><div class="label">重量满载件数</div></div>';
+  html += '<div class="data-card"><div class="num">'+bestFit+'</div><div class="label">体积上限件数</div></div>';
+  html += '<div class="data-card"><div class="num">'+maxByWeight+'</div><div class="label">重量上限件数</div></div>';
+  html += '<div class="data-card"><div class="num">'+(axleLimit>0?maxByAxle:'—')+'</div><div class="label">单轴/局部上限件数</div></div>';
   html += '<div class="data-card"><div class="num">'+ToolBox.formatNumber(maxQty*bWeight,0)+'</div><div class="label">满载总重 (kg)</div></div>';
   html += '</div>';
 
@@ -385,9 +441,16 @@ function calc(){
     html += '<div class="tip-box tip-warn" style="margin-top:12px;">计划件数 <strong>'+planQty+'</strong> 超出体积限制（最多 '+bestFit+' 件），重量尚有余量。属<strong>'+limitType+'</strong>，建议优化包装或换用更大车辆。</div>';
   } else if(overWeight){
     html += '<div class="tip-box tip-warn" style="margin-top:12px;">计划件数 <strong>'+planQty+'</strong> 超出载重限制（最多 '+maxByWeight+' 件），空间尚有余量。属<strong>'+limitType+'</strong>，注意超载违法风险。</div>';
+  } else if(overAxle){
+    html += '<div class="tip-box tip-warn" style="margin-top:12px;">计划件数 <strong>'+planQty+'</strong> 超出单轴/局部承载上限（最多 '+maxByAxle+' 件，按单件 '+ToolBox.formatNumber(bWeight,1)+' kg 折算）。总体载重与体积可能仍有余量，但局部承重点可能超限，须按轴距与载荷分布重新分配。</div>';
   } else {
-    html += '<div class="tip-box tip-success" style="margin-top:12px;">计划件数 <strong>'+planQty+'</strong> 件可安全装载，体积利用率 '+planVolUtil.toFixed(1)+'%，重量利用率 '+planWeightUtil.toFixed(1)+'%。</div>';
+    if(planQty === 0){
+    html += '<div class="tip-box tip-info" style="margin-top:12px;">计划件数为 <strong>0</strong>，未产生装载量；体积与重量利用率均为 0.0%。</div>';
+  } else {
+    html += '<div class="tip-box tip-success" style="margin-top:12px;">计划件数 <strong>'+planQty+'</strong> 件，按体积与重量上限估算可装；体积利用率 '+planVolUtil.toFixed(1)+'%，重量利用率 '+planWeightUtil.toFixed(1)+'%。这不等于实际装车安全结论。</div>';
   }
+  }
+  html += '<div class="tip-box tip-warn" style="margin-top:8px;">估算限制：按所选方向枚举统一朝向网格，不搜索同一车厢内混合朝向；间隙按每件均匀扣减，未建模托盘厚度、门框内缩、绑扎与前后轴实际分配。堆码层数/承压与单轴上限只做件数折算，实际装车前仍须按车型手册与轴荷要求复核，并建议再乘 0.90–0.95 的实装系数。</div>';
 
   var el = document.getElementById('result');
   const __g1=html;el.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));

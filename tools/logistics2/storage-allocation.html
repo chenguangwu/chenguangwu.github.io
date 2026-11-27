@@ -157,7 +157,7 @@
     </div>
 
     <h3 style="margin-top:16px;">商品列表（按出库频次自动ABC分类）</h3>
-    <div class="tip-box tip-info" style="margin-top:8px;">累计出库频次前70%为A类、70%-90%为B类、90%-100%为C类。</div>
+    <div class="tip-box tip-info" style="margin-top:8px;">以每件商品起档前的累计占比定档：&lt;70% 为 A 类、70%–90% 为 B 类、≥90% 为 C 类；跨阈值商品归入其起始档。</div>
     <div style="margin:8px 0;">
       <textarea id="skuInput" style="min-height:150px;" placeholder="每行一个商品，格式：名称,出库频次&#10;例如：&#10;矿泉水,1200&#10;纸巾,800&#10;洗发水,500&#10;锅具,60&#10;五金件,20" aria-label="SKU 数据"></textarea>
     </div>
@@ -203,11 +203,11 @@
 <h2>📚 深度解析：货位分配优化</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>ABC 分类：输入「品名,出库频次」逐行数据，按频次降序累计，累计占比≤70% 判为 A 类、≤90% 判为 B 类、其余为 C 类，输出各等级 SKU 数量与频次占比。</li>
-<li>货位分区：按 A/B/C 的 SKU 数量占比分摊排数——A 排数=round(总排数×A 数量÷总数量)、C 排数同理、B 排数取余数且至少 1 排；门在前端时 A 区占第 1~aRows 排、C 区占最末 cRows 排，门在后端时整体镜像（A 区靠近后端门口）。</li>
+<li>ABC 分类：输入「品名,出库频次」逐行数据，按频次降序，以每件商品起档前的累计占比定档（&lt;70% A、&lt;90% B、其余 C），跨 70%/90% 边界的商品归入起始档；单个高频品独占 95% 仍为 A 类。输出各等级 SKU 数量与频次占比。</li>
+<li>货位分区：按 A/B/C 的 SKU 数量占比分摊排数，每类至少 1 排并把尾差闭合到总排数；再按各排到出入口的排距排序，最近为 A、其次 B、其余 C。门在前端/后端为连续区间；门在中部时同一类别可跨中点两侧，每排只归一类，输出用逗号列出不连续排号。</li>
 <li>上架复核：结果为分区排号范围与各级频次，可直接转成上架表和复核清单；复核重点是大体积 A 类单品是否真的挤占了整区，以及频次口径是否与 ERP 一致。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：8 个 SKU 的 ABC 分区（10 排、门在前端）</div><div class="dd-ex-body">输入频次：1200、900、700、500、300、200、120、80，总出库频次 4000 次。降序累计占比：1200→30.0%(A)、900→52.5%(A)、700→70.0%(A)、500→82.5%(B)、300→90.0%(B)、200→95.0%(C)、120→98.0%(C)、80→100.0%(C)。A 类 3 个（频次合计 2800，占 70.0%）、B 类 2 个（800，20.0%）、C 类 3 个（400，10.0%）。分区：总排数 10 → A 排数=round(10×3÷8)=4、C 排数=4、B 排数=10−4−4=2。门在前端：A 区第 1~4 排、B 区第 5~6 排、C 区第 7~10 排；门在后端则 A 区第 7~10 排、C 区第 1~4 排。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：8 个 SKU 的 ABC 分区（10 排、门在前端）</div><div class="dd-ex-body">输入频次：1200、900、700、500、300、200、120、80，总出库频次 4000 次。按“起档前累计占比”定档：1200 起档 0%(A)、900 起档 30.0%(A)、700 起档 52.5%(B)、500 起档 70.0%(B)、300 起档 82.5%(C)、200 起档 90.0%(C)、120 起档 95.0%(C)、80 起档 98.0%(C)。A 类 2 个（2100，52.5%）、B 类 2 个（1200，30.0%）、C 类 4 个（700，17.5%）。分区：10 排按 2:2:4 分摊得 A 3 排、B 3 排、C 4 排。门在前端：A 区第 1-3 排、B 区第 4-6 排、C 区第 7-10 排；门在后端则 A 区第 8-10 排、B 区第 5-7 排、C 区第 1-4 排。中部入口按到中点距离分配：A 第 4-6 排、B 第 2、3、7 排、C 第 1、8-10 排（B/C 可跨两侧）。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>为什么按 SKU 数量而不是按频次分配排数？</dt><dd>工具按 SKU 个数占比分摊排数，可避免个别超高频单品把整个近门区占满、其他 A 类品被迫远置。代价是排数与体积脱钩：若某个 A 类单品体积特别大，实际放不下所分排数，应手工调整并把调整后的排号与原因记入输入快照，保证复核可追溯。</dd>
@@ -270,17 +270,23 @@ function clearAll(){
 function parseSkus(text){
   var lines = text.split('\n');
   var list = [];
+  var errors = [];
   for(var i=0;i<lines.length;i++){
     var line = lines[i].trim();
     if(!line) continue;
+    var lineNo = i + 1;
     var parts = line.split(/[,，\t]/);
-    if(parts.length < 2) continue;
+    if(parts.length < 2){ errors.push('第'+lineNo+'行：缺少出库频次列'); continue; }
     var name = parts[0].trim();
-    var freq = parseFloat(parts[1]);
-    if(!name || isNaN(freq) || freq <= 0) continue;
+    var rawFreq = String(parts[1]).trim();
+    if(!name){ errors.push('第'+lineNo+'行：商品名称为空'); continue; }
+    if(rawFreq === ''){ errors.push('第'+lineNo+'行：出库频次为空'); continue; }
+    if(!/^\d+(\.\d+)?$/.test(rawFreq)){ errors.push('第'+lineNo+'行：出库频次须为不含单位的非负数'); continue; }
+    var freq = Number(rawFreq);
+    if(!isFinite(freq) || freq <= 0){ errors.push('第'+lineNo+'行：出库频次须大于 0'); continue; }
     list.push({name:name, freq:freq});
   }
-  return list;
+  return {list:list, errors:errors};
 }
 
 function classifyABC(list){
@@ -289,22 +295,38 @@ function classifyABC(list){
   var sorted = list.slice().sort(function(a,b){ return b.freq - a.freq; });
   var cum = 0;
   sorted.forEach(function(it){
-    cum += it.freq;
-    var ratio = cum / total;
-    if(ratio <= 0.70) it.grade = 'A';
-    else if(ratio <= 0.90) it.grade = 'B';
+    // 用“本商品之前”的累计占比定档：覆盖 70%/90% 边界的商品归入其起始档，
+    // 单个高频品独占 95% 时仍为 A 类，不会因加总后才跨阈值被误判为 C。
+    var before = total > 0 ? cum / total : 0;
+    if(before < 0.70) it.grade = 'A';
+    else if(before < 0.90) it.grade = 'B';
     else it.grade = 'C';
+    cum += it.freq;
   });
   return {sorted:sorted, total:total};
 }
 
+function rangeLabel(rows){
+  if(!rows || !rows.length) return '—';
+  var runs = [], st = rows[0], prev = rows[0];
+  for(var i=1;i<rows.length;i++){
+    if(rows[i] === prev + 1){ prev = rows[i]; continue; }
+    runs.push(st === prev ? String(st) : st + '-' + prev);
+    st = prev = rows[i];
+  }
+  runs.push(st === prev ? String(st) : st + '-' + prev);
+  return '第 ' + runs.join('、') + ' 排';
+}
+
 function assignZones(sorted, totalRows, doorPos){
-  var rows = parseInt(totalRows) || 10;
-  if(rows < 3) rows = 3;
+  var rows = Number(totalRows);
   var counts = {A:0, B:0, C:0};
   sorted.forEach(function(it){ counts[it.grade] += 1; });
   var present = ['A','B','C'].filter(function(g){ return counts[g] > 0; });
   if(present.length === 0) present = ['A'];
+  if(!Number.isInteger(rows) || rows < present.length){
+    return {error:'货位总排数须为整数，且不少于有商品的类别数（当前 '+present.length+' 类）', rows:rows};
+  }
   var total = present.reduce(function(s,g){ return s + counts[g]; }, 0) || 1;
 
   // 按各类 SKU 数量占比分摊排数，每类至少 1 排
@@ -312,7 +334,6 @@ function assignZones(sorted, totalRows, doorPos){
   present.forEach(function(g){
     alloc[g] = Math.max(1, Math.round(rows * counts[g] / total));
   });
-  // 尾差闭合：三类排数之和必须恰好等于货位总排数
   function sumAlloc(){ return alloc.A + alloc.B + alloc.C; }
   while(sumAlloc() !== rows){
     if(sumAlloc() > rows){
@@ -326,57 +347,75 @@ function assignZones(sorted, totalRows, doorPos){
     }
   }
 
-  function zoneOf(grade){
-    if(grade === 'A'){
-      if(doorPos === 'back') return {from: rows - alloc.A + 1, to: rows};
-      if(doorPos === 'middle'){
-        var midStart = Math.floor((rows - alloc.A) / 2) + 1;
-        return {from: midStart, to: midStart + alloc.A - 1};
-      }
-      return {from: 1, to: alloc.A};
-    }
-    if(grade === 'C'){
-      if(doorPos === 'back') return {from: 1, to: alloc.C};
-      if(doorPos === 'middle'){
-        var midA = zoneOf('A');
-        return {from: midA.to + 1, to: Math.min(rows, midA.to + alloc.C)};
-      }
-      return {from: rows - alloc.C + 1, to: rows};
-    }
-    var from, to;
-    if(doorPos === 'back'){
-      from = alloc.C + 1; to = alloc.C + alloc.B;
-    } else if(doorPos === 'middle'){
-      var midA2 = zoneOf('A');
-      from = Math.max(1, midA2.from - alloc.B); to = midA2.from - 1;
-    } else {
-      from = alloc.A + 1; to = alloc.A + alloc.B;
-    }
-    return {from:from, to:to};
+  // 按“到出入口的排距”逐排分配：最近 aRows 排为 A，其次 bRows 排为 B，其余 C。
+  // 中部入口允许同一类别跨两侧；每排只属于一个类别，天然不重叠且全覆盖。
+  var center = (rows + 1) / 2;
+  var ranked = [];
+  for(var r=1;r<=rows;r++){
+    var dist = doorPos === 'back' ? (rows - r) : (doorPos === 'middle' ? Math.abs(r - center) : (r - 1));
+    ranked.push({row:r, dist:dist});
   }
+  ranked.sort(function(a,b){ return a.dist - b.dist || a.row - b.row; });
+  var zones = {A:[], B:[], C:[]};
+  ranked.forEach(function(x, i){
+    var g = i < alloc.A ? 'A' : (i < alloc.A + alloc.B ? 'B' : 'C');
+    zones[g].push(x.row);
+  });
+  ['A','B','C'].forEach(function(g){ zones[g].sort(function(a,b){ return a-b; }); });
+
+  var rowOwners = {};
+  ['A','B','C'].forEach(function(g){
+    zones[g].forEach(function(r){ rowOwners[r] = (rowOwners[r] || 0) + 1; });
+  });
+  var overlap = Object.keys(rowOwners).filter(function(r){ return rowOwners[r] > 1; }).length;
 
   sorted.forEach(function(it){
-    var z = zoneOf(it.grade);
-    it.zoneFrom = z.from;
-    it.zoneTo = z.to;
+    var zr = zones[it.grade];
+    it.zoneRows = zr;
+    it.zoneFrom = zr.length ? zr[0] : 0;
+    it.zoneTo = zr.length ? zr[zr.length - 1] : 0;
+    it.zoneLabel = rangeLabel(zr);
     it.freqPct = (it.freq / (sorted[0].freq) * 100);
   });
 
-  return {aRows:alloc.A, bRows:alloc.B, cRows:alloc.C, rows:rows};
+  return {aRows:alloc.A, bRows:alloc.B, cRows:alloc.C, rows:rows, zones:zones,
+    zoneLabels:{A:rangeLabel(zones.A), B:rangeLabel(zones.B), C:rangeLabel(zones.C)},
+    covered:Object.keys(rowOwners).length, overlap:overlap};
 }
 
 function calc(){
   var text = document.getElementById('skuInput').value;
-  var list = parseSkus(text);
-  if(list.length === 0){
-    ToolBox.showToast(i18nText('toast.msg818'), 'error');
-    document.getElementById('result').style.display = 'none';
+  var parsed = parseSkus(text);
+  var list = parsed.list;
+  var el0 = document.getElementById('result');
+  if(parsed.errors.length){
+    el0.innerHTML = '<div class="tip-box tip-error">发现 '+parsed.errors.length+' 行无法解析，已停止计算，请修正后重试：<br>'+parsed.errors.map(function(x){ return ToolBox.escHtml(x); }).join('<br>')+'</div>';
+    el0.style.display = 'block';
+    ToolBox.showToast('存在无效 SKU 行，未生成推荐', 'error');
     return;
   }
-  var totalRows = document.getElementById('totalRows').value;
+  if(list.length === 0){
+    ToolBox.showToast(i18nText('toast.msg818'), 'error');
+    el0.style.display = 'none';
+    return;
+  }
+  var rawRows = String(document.getElementById('totalRows').value).trim();
+  if(!/^\d+$/.test(rawRows) || Number(rawRows) < 3){
+    el0.innerHTML = '<div class="tip-box tip-error">货位总排数须为不少于 3 的整数，当前输入“'+ToolBox.escHtml(rawRows || '空')+'”。已停止计算，不会用默认值替代。</div>';
+    el0.style.display = 'block';
+    ToolBox.showToast('货位总排数无效', 'error');
+    return;
+  }
+  var totalRows = Number(rawRows);
   var doorPos = document.getElementById('doorPos').value;
   var r = classifyABC(list);
   var assign = assignZones(r.sorted, totalRows, doorPos);
+  if(assign.error){
+    el0.innerHTML = '<div class="tip-box tip-error">'+ToolBox.escHtml(assign.error)+'。已停止计算。</div>';
+    el0.style.display = 'block';
+    ToolBox.showToast(assign.error, 'error');
+    return;
+  }
 
   // 汇总一律由明细分组求和派生（单一数据源），避免汇总与明细各行各算一遍
   var groups = {
@@ -424,7 +463,7 @@ function calc(){
   ['A','B','C'].forEach(function(g){
     var info = groups[g];
     var meta = gradeInfo[g];
-    var zoneText = info.count > 0 ? '第 '+info.from+'-'+info.to+' 排' : '—';
+    var zoneText = info.count > 0 ? assign.zoneLabels[g] : '—';
     html += '<tr><td><span class="grade-tag '+meta.cls+'">'+meta.label+'</span></td><td>'+info.count+'</td><td>'+ToolBox.formatNumber(info.freq,0)+'</td><td>'+pct[g].toFixed(1)+'%</td><td>'+zoneText+'</td></tr>';
   });
   html += '<tr><td><strong>合计</strong></td><td>'+totalCount+'</td><td>'+ToolBox.formatNumber(detailFreq,0)+'</td><td>100.0%</td><td>'+rowSum+' 排</td></tr>';
@@ -435,7 +474,7 @@ function calc(){
   r.sorted.forEach(function(it){
     var tag = it.grade==='A'?'grade-excellent':(it.grade==='B'?'grade-good':'grade-pass');
     var bar = '<div class="bar-row" style="margin:0;"><div class="bar-bg" style="height:10px;"><div class="bar-fill" style="width:'+it.freqPct.toFixed(1)+'%"></div></div></div>';
-    html += '<tr><td>'+ToolBox.escHtml(it.name)+'</td><td>'+ToolBox.formatNumber(it.freq,0)+'</td><td><span class="grade-tag '+tag+'">'+it.grade+' 类</span></td><td>第 '+it.zoneFrom+'-'+it.zoneTo+' 排</td><td>'+bar+'</td></tr>';
+    html += '<tr><td>'+ToolBox.escHtml(it.name)+'</td><td>'+ToolBox.formatNumber(it.freq,0)+'</td><td><span class="grade-tag '+tag+'">'+it.grade+' 类</span></td><td>'+it.zoneLabel+'</td><td>'+bar+'</td></tr>';
   });
   html += '</tbody></table>';
 
@@ -444,14 +483,16 @@ function calc(){
   var checkPass = totalCount === r.sorted.length
     && Math.abs(detailFreq - r.total) < 1e-9
     && rowSum === assign.rows
+    && assign.covered === assign.rows
+    && assign.overlap === 0
     && Math.abs(pctSum - 100) < 0.01;
   html += '<div class="tip-box tip-success" style="margin-top:12px;">合计校验：'+(checkPass?'✓':'✗')+
     ' 商品数 '+totalCount+' 行 = 明细 '+r.sorted.length+' 行；频次 '+ToolBox.formatNumber(detailFreq,0)+
     ' = 明细合计 '+ToolBox.formatNumber(r.total,0)+'；排数 '+assign.aRows+'+'+assign.bRows+'+'+assign.cRows+
-    ' = '+assign.rows+'；占比合计 '+pctSum.toFixed(1)+'%</div>';
+    ' = '+assign.rows+'；已覆盖 '+assign.covered+'/'+assign.rows+' 排、重叠 '+assign.overlap+' 排；占比合计 '+pctSum.toFixed(1)+'%</div>';
 
   var efficiency = pct.A.toFixed(1);
-  html += '<div class="tip-box tip-success" style="margin-top:12px;">高频 A 类商品占出库频次的 <strong>'+efficiency+'%</strong>，集中存放于靠近出入口的 '+assign.aRows+' 排货位，可显著降低拣货行走距离。</div>';
+  html += '<div class="tip-box tip-success" style="margin-top:12px;">高频 A 类商品占出库频次的 <strong>'+efficiency+'%</strong>，按到出入口的排距分配在最近的 '+assign.aRows+' 排货位（'+assign.zoneLabels.A+'），可降低拣货行走距离。中部入口允许同一类别分布在两侧。</div>';
 
   var el = document.getElementById('result');
   const __g1=html;el.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
