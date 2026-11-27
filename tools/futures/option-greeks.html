@@ -298,9 +298,14 @@
 </div>
 
 <script>
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
 // 标准正态分布累积函数 N(x)
@@ -331,20 +336,26 @@ function getType(){
   return 'call';
 }
 
+var __option_greeksOk=false;
 function calc(){
   var S = getVal('spot');
   var K = getVal('strike');
-  var r = getVal('rate') / 100;
-  var sigma = getVal('vol') / 100;
+  var rRaw = getVal('rate');
+  var sigmaRaw = getVal('vol');
   var T = getVal('time');
-  var q = getVal('div') / 100;
+  var qRaw = getVal('div');
   var type = getType();
 
-  if(S <= 0 || K <= 0 || T <= 0 || sigma <= 0){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">所有参数需大于0</p>';
+  if(!isFiniteNum(S) || S <= 0 || !isFiniteNum(K) || K <= 0 || !isFiniteNum(rRaw) || !isFiniteNum(sigmaRaw) || sigmaRaw <= 0 || !isFiniteNum(T) || T <= 0 || !isFiniteNum(qRaw)){
+    __option_greeksOk=false;
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写标的价格、行权价、无风险利率、波动率、到期时间和股息率；数值不能为空</p>';
     document.getElementById('greeksGrid').innerHTML='';
+    var ch=document.getElementById('option_greeksChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('option_greeksTable'); if(tb) tb.innerHTML='';
     return;
   }
+  __option_greeksOk=true;
+  var r=rRaw/100, sigma=sigmaRaw/100, q=qRaw/100;
 
   var sqrtT = Math.sqrt(T);
   var d1 = (Math.log(S / K) + (r - q + sigma * sigma / 2) * T) / (sigma * sqrtT);
@@ -395,6 +406,7 @@ function calc(){
 }
 
 function copyResult(){
+  if(!__option_greeksOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText + '\n' + document.getElementById('greeksGrid').innerText;
   ToolBox.copyText(text, i18nText('msg050'));
 }
@@ -591,6 +603,7 @@ function __option_greeksRender(keys,rk,en){
     }catch(e3){}
 }
 function __option_greeksExtras(){
+  if(!__option_greeksOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__option_greeks_skip) return;
     var snap=__option_greeksSnap();
@@ -621,6 +634,7 @@ function __option_greeksExtras(){
     __option_greeksRender(keys,rk,en);
 }
 function __option_greeksExport(){
+  if(!__option_greeksOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#option_greeksTable');

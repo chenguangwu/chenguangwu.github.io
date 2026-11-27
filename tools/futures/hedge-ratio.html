@@ -298,9 +298,14 @@
 </div>
 
 <script>
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
 function getDirection(){
@@ -311,6 +316,7 @@ function getDirection(){
   return 'short';
 }
 
+var __hedge_ratioOk=false;
 function calc(){
   var sigmaS = getVal('sigmaS');
   var sigmaF = getVal('sigmaF');
@@ -320,11 +326,15 @@ function calc(){
   var futureMult = getVal('futureMult');
   var direction = getDirection();
 
-  if(sigmaF <= 0){
+  if(!isFiniteNum(sigmaS) || sigmaS <= 0 || !isFiniteNum(sigmaF) || sigmaF <= 0 || !isFiniteNum(rho) || rho < -1 || rho > 1 || !isFiniteNum(spotValue) || spotValue <= 0 || !isFiniteNum(futurePrice) || futurePrice <= 0 || !isFiniteNum(futureMult) || futureMult <= 0){
+    __hedge_ratioOk=false;
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">期货标准差需大于0</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写现货标准差、期货标准差、相关系数（-1 至 1）、现货价值、期货价格和合约乘数；数值不能为空</p>';
+    var ch=document.getElementById('hedge_ratioChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('hedge_ratioTable'); if(tb) tb.innerHTML='';
     return;
   }
+  __hedge_ratioOk=true;
 
   var hedgeRatio = rho * (sigmaS / sigmaF);
   var rSquared = rho * rho;
@@ -372,6 +382,7 @@ function calc(){
 }
 
 function copyResult(){
+  if(!__hedge_ratioOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText;
   ToolBox.copyText(text, i18nText('msg226'));
 }
@@ -526,6 +537,7 @@ function __hedge_ratioRender(keys,rk,en){
     }catch(e3){}
 }
 function __hedge_ratioExtras(){
+  if(!__hedge_ratioOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__hedge_ratio_skip) return;
     var snap=__hedge_ratioSnap();
@@ -556,6 +568,7 @@ function __hedge_ratioExtras(){
     __hedge_ratioRender(keys,rk,en);
 }
 function __hedge_ratioExport(){
+  if(!__hedge_ratioOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#hedge_ratioTable');

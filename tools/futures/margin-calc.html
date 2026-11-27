@@ -290,24 +290,39 @@
 </div>
 
 <script>
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
+var __margin_calcOk=false;
 function calc(){
   var price = getVal('price');
   var mult = getVal('multiplier');
-  var marginRate = getVal('marginRate') / 100;
+  var marginRateRaw = getVal('marginRate');
   var capital = getVal('capital');
-  var inputLots = getVal('lots');
-  var fee = getVal('fee');
+  var inputLotsRaw = getVal('lots');
+  var feeRaw = getVal('fee');
 
-  if(price <= 0 || mult <= 0 || marginRate <= 0){
+  if(!isFiniteNum(price) || price <= 0 || !isFiniteNum(mult) || mult <= 0 || !isFiniteNum(marginRateRaw) || marginRateRaw <= 0 || !isFiniteNum(capital) || capital < 0){
+    __margin_calcOk=false;
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">价格、乘数、保证金比例需大于0</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写价格、合约乘数、保证金比例和资金；数值不能为空</p>';
+    var ch=document.getElementById('margin_calcChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('margin_calcTable'); if(tb) tb.innerHTML='';
     return;
   }
+  __margin_calcOk=true;
+  var marginRate=marginRateRaw/100;
+  var inputLots = (inputLotsRaw===null || inputLotsRaw===undefined) ? null : inputLotsRaw;
+  if(inputLots!==null && (!isFiniteNum(inputLots) || inputLots < 0)) inputLots=null;
+  var fee = (feeRaw===null || feeRaw===undefined) ? 0 : feeRaw;
+  if(!isFiniteNum(fee) || fee < 0) fee = 0;
 
   var contractValue = price * mult;
   var perLotMargin = contractValue * marginRate;
@@ -371,6 +386,7 @@ function loadPreset(){
 }
 
 function copyResult(){
+  if(!__margin_calcOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText;
   ToolBox.copyText(text, i18nText('msg139'));
 }
@@ -519,6 +535,7 @@ function __margin_calcRender(keys,rk,en){
     }catch(e3){}
 }
 function __margin_calcExtras(){
+  if(!__margin_calcOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__margin_calc_skip) return;
     var snap=__margin_calcSnap();
@@ -549,6 +566,7 @@ function __margin_calcExtras(){
     __margin_calcRender(keys,rk,en);
 }
 function __margin_calcExport(){
+  if(!__margin_calcOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#margin_calcTable');
