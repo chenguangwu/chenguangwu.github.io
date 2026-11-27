@@ -115,6 +115,14 @@
         "@type": "Answer",
         "text": "产能利用率只看产出/理论产能，忽略停机、速度、质量损失；OEE 同时纳入可用率×性能率×合格率，更真实反映有效产出，是制造业更全面的效率指标。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "性能率超过 100% 说明什么？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "说明按当前节拍与运行时间算出的理论产量低于实际计数，至少有一项输入不一致（节拍填大、运行时间填短、产量含返工/重复计数或单位错）。本页主 OEE 仍按封顶 100% 展示，但会同时列出原始性能率与截断前 OEE，提示核对输入，不能把超 100% 当真实效率。"
+      }
     }
   ]
 }
@@ -154,7 +162,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="OEE = 可用率 × 性能率 × 合格率 (世界级 ≥85%)">OEE Production Efficiency Calculate</p>
     <div class="formula-box">
       <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">OEE = 可用率 × 性能 × 良率；可用率 = 运行时间/计划时间（运行=计划−停机）；性能 = 实际产量/理论产量（理论=运行×60/节拍）；良率 = 良品/总产量</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(1 - performance) × 100；performance = min(O ÷ idealCount, 1)（性能率封顶 100%，OEE 不会超过可用率×合格率）；(runTime × 60) ÷ CT">Key formulas: (1 - performance) × 100; performance = min(O / idealCount, 1) (capped at 100%); (runTime × 60) / CT</p>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(1 - performance) × 100；performance = O ÷ idealCount（保留原始比值；超过 100% 时另行提示输入不一致）；(runTime × 60) ÷ CT">Key formulas: (1 - performance) × 100; performance = min(O / idealCount, 1) (capped at 100%); (runTime × 60) / CT</p>
     </div>
 
     <p style="font-size:13px;margin-bottom:8px;">场景</p>
@@ -215,12 +223,14 @@
 <li>设备效率改善项目启动时，用 OEE 量化可用率、性能率、合格率三大损失，定位最大损耗环节。</li>
 <li>班前会设定 OEE 目标（世界级 ≥85%），对比各班组/产线，驱动 TPM 与小停顿治理。</li>
 <li>新设备验收或工艺改造前后，用 OEE 前后对比验证改善效果。</li>
+<li>当实际产量超过理论产量时，页面保留原始性能率并提示节拍/时间/计数不一致，同时给出封顶前后的 OEE，避免把超 100% 静默当作满产。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">OEE 测算示例</div><div class="dd-ex-body">某设备计划运行 480 分钟（8 小时班）、非计划停机 60 分钟、单件节拍 120 秒、产出 200 件、良品 195 件。可用率 = (480−60)÷480 = 87.5%；理论产量 = 420×60÷120 = 210 件，性能率 = 200÷210 ≈ 95.2%；合格率 = 195÷200 = 97.5%；OEE = 87.5%×95.2%×97.5% ≈ 81.2%（接近良好级）。损耗主要来自停机（12.5%）与微小速度损失。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>OEE 三个因子哪个最该优先改善？</dt><dd>先看损失最大的因子。可用率损失（停机/换型）通常改善空间最大，可推 TPM；性能率损失多来自小停顿与降速；合格率损失靠过程控制。世界级 OEE ≥85%（可用率≥90%、性能率≥95%、合格率≥99%）。</dd>
 <dt>OEE 和产能利用率有什么区别？</dt><dd>产能利用率只看产出/理论产能，忽略停机、速度、质量损失；OEE 同时纳入可用率×性能率×合格率，更真实反映有效产出，是制造业更全面的效率指标。</dd>
+<dt>性能率超过 100% 说明什么？</dt><dd>说明按当前节拍与运行时间算出的理论产量低于实际计数，至少有一项输入不一致（节拍填大、运行时间填短、产量含返工/重复计数或单位错）。本页主 OEE 仍按封顶 100% 展示，但会同时列出原始性能率与截断前 OEE，提示核对输入，不能把超 100% 当真实效率。</dd>
 </dl>
 </div>
 </section>
@@ -306,13 +316,16 @@ function calc() {
   const runTime = PT - DT; // 实际运行时间(分钟)
   const availability = runTime / PT;
   const idealCount = (runTime * 60) / CT; // 理论产量
-  const performance = Math.min(O / idealCount, 1);
+  const performanceRaw = O / idealCount;
+  const performance = Math.min(performanceRaw, 1);
+  const overPerf = performanceRaw > 1;
   const quality = O > 0 ? G / O : 0;
   const oee = availability * performance * quality;
+  const oeeRaw = availability * performanceRaw * quality;
 
-  // 损失分解
+  // 损失分解（性能率按封顶 100% 计损失，原始比值另列）
   const availLoss = (1 - availability) * 100;  // 停机损失%
-  const perfLoss = (1 - performance) * 100;
+  const perfLoss = Math.max(0, (1 - performance) * 100);
   const qualLoss = (1 - quality) * 100;
 
   let level = '⚠️ 较差';
@@ -334,8 +347,8 @@ function calc() {
     </div>
     <div class="result-block">
       <div class="result-label">性能率 (Performance)</div>
-      <div class="result-value">${(performance*100).toFixed(1)}%</div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">速度损失 ${perfLoss.toFixed(1)}%</p>
+      <div class="result-value">${(performanceRaw*100).toFixed(1)}%</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">速度损失 ${perfLoss.toFixed(1)}%${overPerf ? '（原始比值超 100%，主 OEE 已按 100% 封顶）' : ''}</p>
     </div>
     <div class="result-block">
       <div class="result-label">合格率 (Quality)</div>
@@ -343,6 +356,7 @@ function calc() {
       <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">缺陷损失 ${qualLoss.toFixed(1)}%</p>
     </div>
 
+    ${overPerf ? `<div class="tip-box tip-warn" style="margin-top:10px;">性能率原始比值 ${(performanceRaw*100).toFixed(1)}% 超过 100%：按实际产量 ${O.toLocaleString()} 件与理论产量 ${idealCount.toFixed(1)} 件，说明节拍时间、运行时间或计数至少有一项不一致。本页主 OEE 按封顶 100% 口径 ${(oee*100).toFixed(1)}%，截断前 OEE 为 ${(oeeRaw*100).toFixed(1)}%；请核对理论节拍、停机记录与产出计数，不能把超 100% 当作真实效率。</div>` : ''}
     <div style="background:var(--bg-card);padding:12px;border-radius:8px;margin-top:8px;">
       <h4 style="margin-bottom:6px;">🎯 提升建议</h4>
       <p style="font-size:13px;line-height:1.8;color:var(--text-secondary);">

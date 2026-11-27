@@ -41,7 +41,44 @@
 
 
 <script type="application/ld+json">
-{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "CPK 和 CP 有什么不同？", "acceptedAnswer": {"@type": "Answer", "text": "CP 只看公差宽度与过程离散度（潜力），不考虑均值偏移；CPK = min(CPU,CPL) 同时考虑偏移，更能反映实际能力。均值居中时 CPK=CP，偏移越大 CPK 越小。"}}, {"@type": "Question", "name": "CPK 达到多少算合格？", "acceptedAnswer": {"@type": "Answer", "text": "一般工业：CPK≥1.33 合格（推荐），≥1.67 能力过剩可放宽公差，1.0–1.33 临界需改进，<1.0 不足。汽车等行业常要求 ≥1.33 甚至 ≥1.67。"}}]}
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "CPK 和 CP 有什么不同？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "CP 只看公差宽度与过程离散度（潜力），不考虑均值偏移；CPK = min(CPU,CPL) 同时考虑偏移，更能反映实际能力。均值居中时 CPK=CP，偏移越大 CPK 越小。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "CPK 达到多少算合格？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "一般工业：CPK≥1.33 合格（推荐），≥1.67 能力过剩可放宽公差，1.0–1.33 临界需改进，<1.0 不足。汽车等行业常要求 ≥1.33 甚至 ≥1.67。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "理论良率 99.99% 就是 6σ 吗？1.5σ 漂移怎么处理？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不是。良率由本页输入的均值、短期 σ 与规格按正态分布积分得到；是否采用 1.5σ 漂移由“良率口径”选择，默认不漂移，选“采用 1.5σ 漂移”时把均值上移 1.5σ 再算。六西格玛常说的 3.4 DPMO 是“长期含 1.5σ 漂移”的约定口径，不能仅凭良率超过 99.99% 就标 6σ。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "样本数 n 会改变 CPK 吗？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不会改变 CPK 点估计，但会影响估计不确定性。本页给出 CPK 的 95% 近似区间；n 越小，区间越宽。PPK 在 n<30 时另有参考性提示。要判断过程是否稳定，仍需连续子组、控制图与时间序列，而不是只看 CPK。"
+      }
+    }
+  ]
+}
 </script>
 
 <script type="application/ld+json">
@@ -189,6 +226,13 @@
       <label for="sigmaOverall">长期/总体标准差 σ_总体（选填）</label>
       <input type="number" id="sigmaOverall" step="0.01" min="0.0001" placeholder="如 0.18（留空则 PPK 不计算）">
     </div>
+    <div class="input-row">
+      <label for="driftMode">良率口径（是否计入 1.5σ 漂移）</label>
+      <select id="driftMode">
+        <option value="0" selected>不采用 1.5σ 漂移（均值不变）</option>
+        <option value="1">采用 1.5σ 漂移（均值上移 1.5σ）</option>
+      </select>
+    </div>
 
     <div class="toolbar">
       <div id="quality_controlPresets"></div><button type="button" class="btn primary" onclick="calc()">⚖️ 计算 CPK</button><button class="btn" type="button" onclick="__quality_controlExport()">导出明细 CSV</button>
@@ -223,13 +267,15 @@
 <ul class="dd-list">
 <li>来料或过程质量判定时，用 CPK/CP 评估过程能力是否满足规格，决定接收或调整工艺。</li>
 <li>过程居中性核查时，用 CA 偏移系数判断均值是否偏离公差中心，指导设备/参数调校。</li>
-<li>长期稳定性监控时，用 PPK（长期）与 CPK（短期）对比，识别随时间漂移的特殊原因。</li>
+<li>长期波动对比时，用 PPK（长期 σ）与 CPK（短期 σ）的差距提示漂移风险；但能力指数本身不能证明过程稳定，稳定性须另看控制图/时间序列。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">轴径过程能力示例</div><div class="dd-ex-body">某轴径规格 9.5–10.5mm、实测均值 10.0mm、<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a> 0.1mm、样本 30 件。公差 T = 10.5−9.5 = 1.0mm；CP = 1.0÷(6×0.1) = 1.67；CPU = (10.5−10.0)÷(3×0.1) = 1.67，CPL = (10.0−9.5)÷0.3 = 1.67，CPK = min = 1.67；公差中心 10.0mm，CA = |10.0−10.0|÷(1.0÷2) = 0%（居中无偏移）；若另填长期/总体标准差 0.12mm（比短期 σ 大 20%），PPK = 1.0÷(6×0.12) = 1.389；未填长期 σ 时页面不计算 PPK（不以短期 σ 近似代替）。结论：CPK≥1.33 能力合格且居中良好。</div></div>
+<div class="dd-example"><div class="dd-ex-title">轴径过程能力示例</div><div class="dd-ex-body">某轴径规格 9.5–10.5mm、实测均值 10.0mm、<a class="term-link" href="/tools/it/standard-deviation.html">标准差</a> 0.1mm、样本 30 件。公差 T = 10.5−9.5 = 1.0mm；CP = 1.0÷(6×0.1) = 1.67；CPU = (10.5−10.0)÷(3×0.1) = 1.67，CPL = (10.0−9.5)÷0.3 = 1.67，CPK = min = 1.67；公差中心 10.0mm，CA = |10.0−10.0|÷(1.0÷2) = 0%（居中无偏移）；若另填长期/总体标准差 0.12mm（比短期 σ 大 20%），PPK = 1.0÷(6×0.12) = 1.389；未填长期 σ 时页面不计算 PPK（不以短期 σ 近似代替）。理论良率按正态、均值不变、双侧规格计算约 99.99966%（<a class="term-link" href="/tools/process/dpmo-calc.html">DPMO</a>≈3.4），这是该组 σ/均值下的模型结果，不是“CPK≥1.67 即 6σ 良率”的通用换算；若改选均值上移 1.5σ，良率会明显下降。结论：CPK≥1.33 能力合格且居中良好，但样本 30 件的区间仍宽，稳定性须看控制图。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>CPK 和 CP 有什么不同？</dt><dd>CP 只看公差宽度与过程离散度（潜力），不考虑均值偏移；CPK = min(CPU,CPL) 同时考虑偏移，更能反映实际能力。均值居中时 CPK=CP，偏移越大 CPK 越小。</dd>
 <dt>CPK 达到多少算合格？</dt><dd>一般工业：CPK≥1.33 合格（推荐），≥1.67 能力过剩可放宽公差，1.0–1.33 临界需改进，&lt;1.0 不足。汽车等行业常要求 ≥1.33 甚至 ≥1.67。</dd>
+<dt>理论良率 99.99% 就是 6σ 吗？1.5σ 漂移怎么处理？</dt><dd>不是。良率由本页输入的均值、短期 σ 与规格按<a class="term-link" href="/tools/it/normal-distribution.html">正态分布</a>积分得到；是否采用 1.5σ 漂移由“良率口径”选择，默认不漂移，选“采用 1.5σ 漂移”时把均值上移 1.5σ 再算。六西格玛常说的 3.4 DPMO 是“长期含 1.5σ 漂移”的约定口径，不能仅凭良率超过 99.99% 就标 6σ。</dd>
+<dt>样本数 n 会改变 CPK 吗？</dt><dd>不会改变 CPK 点估计，但会影响估计不确定性。本页给出 CPK 的 95% 近似区间；n 越小，区间越宽。PPK 在 n&lt;30 时另有参考性提示。要判断过程是否稳定，仍需连续子组、控制图与时间序列，而不是只看 CPK。</dd>
 </dl>
 </div>
 </section>
@@ -280,36 +326,70 @@ const TYPES = [
 let cur = 'cpk';
 function renderTypes() {
   const __g1=TYPES.map(m =>
-    `<div class="type-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderTypes();">${m.n}</div>`
+    `<div class="type-btn ${m.k===cur?'active':''}" onclick="cur='${m.k}';renderTypes();calc();">${m.n}</div>`
   ).join('');document.getElementById('typeGrid').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function calc() {
-  const USL = +document.getElementById('usl').value || 0;
-  const LSL = +document.getElementById('lsl').value || 0;
-  const mean = +document.getElementById('mean').value || 0;
-  const sigma = +document.getElementById('stddev').value || 0;
-  const n = +document.getElementById('n').value || 0;
-  const sOverall = parseFloat(document.getElementById('sigmaOverall').value);
-  if (sigma <= 0) { ToolBox.showToast(i18nText('toast.msg450'),'error'); return; }
-  if (USL <= LSL) { ToolBox.showToast(i18nText('toast.msg019'),'error'); return; }
-  if (document.getElementById('sigmaOverall').value !== '' && !(sOverall > 0)) {
-    ToolBox.showToast('长期标准差须大于 0（留空则不计算 PPK）','error'); return;
+  function bad(msg, id){
+    const r = document.getElementById('result');
+    r.innerHTML = '<p style="color:var(--danger);margin:8px 0;">⚠ ' + msg + '</p>';
+    r.style.display = 'block';
+    const tb = document.getElementById('quality_controlTable'); if (tb) tb.innerHTML = '';
+    if (id) {
+      const el = document.getElementById(id);
+      if (el && el.classList) el.classList.add('input-error');
+    }
+    ToolBox.showToast(msg, 'error');
   }
+  function req(id, label, min, integer, allowZero){
+    const el = document.getElementById(id);
+    const raw = String(el.value == null ? '' : el.value).trim();
+    if (raw === '') { bad('「' + label + '」不能为空，请明确填写（0 也是合法值）。', id); return null; }
+    if (!/^-?(?:\d+|\d*\.\d+)$/.test(raw)) { bad('「' + label + '」须为有限数值，不能含单位或字母。', id); return null; }
+    const v = Number(raw);
+    if (!isFinite(v)) { bad('「' + label + '」须为有限数值。', id); return null; }
+    if (integer && !Number.isInteger(v)) { bad('「' + label + '」须为整数。', id); return null; }
+    if (allowZero ? v < min : v <= min) { bad('「' + label + '」须' + (allowZero ? '不小于 ' : '大于 ') + min + '。', id); return null; }
+    return v;
+  }
+  const USL = req('usl', '规格上限 USL', -Infinity, false, true);
+  if (USL === null) return;
+  const LSL = req('lsl', '规格下限 LSL', -Infinity, false, true);
+  if (LSL === null) return;
+  const mean = req('mean', '样本平均值', -Infinity, false, true);
+  if (mean === null) return;
+  const sigma = req('stddev', '样本标准差 σ', 0, false, false);
+  if (sigma === null) return;
+  const n = req('n', '样本数', 1, true, false);
+  if (n === null) return;
+  const sRaw = String(document.getElementById('sigmaOverall').value == null ? '' : document.getElementById('sigmaOverall').value).trim();
+  let sOverall = null;
+  if (sRaw !== '') {
+    if (!/^\d+(?:\d*\.\d+)?$/.test(sRaw) || !(Number(sRaw) > 0)) { bad('「长期/总体标准差」须大于 0，留空则不计算 PPK。', 'sigmaOverall'); return; }
+    sOverall = Number(sRaw);
+  }
+  if (USL <= LSL) { bad('规格上限 USL 须大于规格下限 LSL。', 'usl'); return; }
 
-  const T = USL - LSL; // 公差
-  // CP 潜在能力
+  const drift = document.getElementById('driftMode').value === '1';
+  const T = USL - LSL;
   const CP = T / (6 * sigma);
-  // CPU, CPL
   const CPU = (USL - mean) / (3 * sigma);
   const CPL = (mean - LSL) / (3 * sigma);
   const CPK = Math.min(CPU, CPL);
-  // CA 偏移
   const M = (USL + LSL) / 2;
   const CA = Math.abs(mean - M) / (T / 2);
-  // 长期能力：须用总体/长期标准差；PP 仅看分散，PPK 还须计入均值偏移
-  const hasPPK = isFinite(sOverall) && sOverall > 0;
+  const hasPPK = sOverall !== null;
   const PP = hasPPK ? T / (6 * sOverall) : null;
   const PPK = hasPPK ? Math.min((USL - mean) / (3 * sOverall), (mean - LSL) / (3 * sOverall)) : null;
+  const shift = drift ? 1.5 * sigma : 0;
+  const effMean = mean + shift;
+  const yieldUSL = 1 - normalCdf((USL - effMean) / sigma);
+  const yieldLSL = normalCdf((LSL - effMean) / sigma);
+  const yieldTotal = Math.max(0, Math.min(1, 1 - yieldUSL - yieldLSL));
+  const dpmo = Math.round((1 - yieldTotal) * 1e6);
+  const cpkSe = Math.sqrt(1 / (9 * n) + (CPK * CPK) / (2 * (n - 1)));
+  const cpkLo = CPK - 1.96 * cpkSe;
+  const cpkHi = CPK + 1.96 * cpkSe;
 
   let level = '⚠️ 不足';
   let color = '#B91C1C';
@@ -317,55 +397,55 @@ function calc() {
   else if (CPK >= 1.33) { level = '✅ 合格 (推荐)'; color = '#22c55e'; }
   else if (CPK >= 1.0) { level = '🟡 临界 (需改进)'; color = '#92400E'; }
   else if (CPK >= 0.67) { level = '⚠️ 不足 (需改善)'; color = '#fb923c'; }
-  else { level = '❌ 严重不足'; color = '#B91C1C'; }
 
-  // 良率估算
-  const yieldUSL = 1 - normalCdf((USL - mean) / sigma);
-  const yieldLSL = normalCdf((LSL - mean) / sigma);
-  const yieldTotal = 1 - yieldUSL - yieldLSL;
+  const head = `<h3 style="text-align:center;margin-bottom:8px;">🎯 过程能力分析</h3>
+    <p style="text-align:center;font-size:12px;color:${color};margin-bottom:12px;">${level}</p>`;
+  const yieldBlock = `<div class="result-block">
+      <div class="result-label">理论良率（正态假设，${drift ? '计入 1.5σ 漂移' : '不计漂移'}）</div>
+      <div class="result-value">${(yieldTotal * 100).toFixed(3)}%</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">DPMO ≈ ${dpmo.toLocaleString()}；口径为${drift ? '均值上移 1.5σ 后' : '均值不变、'}双侧规格，不是“6σ=99.99%”的通用换算。</p>
+    </div>`;
+  const sampleBlock = `<div class="result-block">
+      <div class="result-label">样本数 ${n} 的估计约束</div>
+      <div class="result-value" style="font-size:15px;">CPK 95% 近似区间 ${cpkLo.toFixed(3)} – ${cpkHi.toFixed(3)}</div>
+      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">样本数只影响估计不确定性，不直接改变 CPK 点估计；n 越小，区间越宽，不宜据此单独判定稳定。</p>
+    </div>`;
+  let modeBody = '';
+  let modeTitle = '';
+  if (cur === 'cp') {
+    modeTitle = 'CP 潜在能力（未扣除均值偏移）';
+    modeBody = `<div class="result-block"><div class="result-label">CP (潜在能力)</div><div class="result-value">${CP.toFixed(3)}</div></div>
+      <p style="font-size:12px;color:var(--text-muted);">公差 T=${T}、σ=${sigma}；CP 只看离散度，均值偏移时 CPK 会低于 CP，不能用 CP 代替实际能力。</p>`;
+  } else if (cur === 'ca') {
+    modeTitle = 'CA 偏移系数（只看居中性）';
+    modeBody = `<div class="result-block"><div class="result-label">CA (偏移系数)</div><div class="result-value">${(CA * 100).toFixed(1)}%</div><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${CA < 0.1 ? '✅ 居中良好' : '⚠️ 中心偏移'}</p></div>
+      <p style="font-size:12px;color:var(--text-muted);">公差中心 M=${M}、均值 μ=${mean}、偏移量 ${Math.abs(mean - M)}；CA 不反映离散度，不能单独判断能力。</p>`;
+  } else if (cur === 'ppk') {
+    modeTitle = 'PPK 长期能力（需填 σ_总体）';
+    modeBody = hasPPK
+      ? `<div class="result-block"><div class="result-label">PPK (长期能力)</div><div class="result-value">${PPK.toFixed(3)}</div><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">PP=${PP.toFixed(2)} / PPU=${((USL - mean) / (3 * sOverall)).toFixed(2)} / PPL=${((mean - LSL) / (3 * sOverall)).toFixed(2)}</p></div>
+        <p style="font-size:12px;color:var(--text-muted);">PPK 使用长期/总体 σ，反映长期波动；与短期 CPK 对比可看漂移，但需连续子组/时间序列才能证明稳定。</p>`
+      : `<div class="result-block"><div class="result-label">PPK (长期能力)</div><div class="result-value" style="font-size:14px;color:var(--text-muted);">未计算（未填长期标准差）</div><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">本页不以短期 σ 近似代替长期 σ；请填写 σ_总体或改用 CPK 视图。</p></div>`;
+  } else {
+    modeTitle = 'CPK 综合能力（短期 σ，同时计入偏移）';
+    modeBody = `<div class="result-block"><div class="result-label">CPK (综合能力指数)</div><div class="result-value" style="color:${color};">${CPK.toFixed(3)}</div><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">CPU=${CPU.toFixed(2)} / CPL=${CPL.toFixed(2)}</p></div>
+      <div class="result-block"><div class="result-label">CP (潜在能力)</div><div class="result-value">${CP.toFixed(3)}</div><p style="font-size:11px;color:var(--text-muted);margin-top:4px;">CP 与 CPK 的差距反映均值偏移。</p></div>
+      <div class="result-block"><div class="result-label">PPK (长期能力)</div><div class="result-value">${hasPPK ? PPK.toFixed(3) : '<span style="font-size:14px;color:var(--text-muted);">未计算（未填长期标准差）</span>'}</div>${hasPPK ? '<p style="font-size:11px;color:var(--text-muted);margin-top:4px;">PP=' + PP.toFixed(2) + ' / PPU=' + ((USL - mean) / (3 * sOverall)).toFixed(2) + ' / PPL=' + ((mean - LSL) / (3 * sOverall)).toFixed(2) + '</p>' : ''}</div>`;
+  }
 
-  const __g2=`
-    <h3 style="text-align:center;margin-bottom:8px;">🎯 过程能力分析</h3>
-    <p style="text-align:center;font-size:12px;color:${color};margin-bottom:12px;">${level}</p>
-
-    <div class="result-block">
-      <div class="result-label">CPK (综合能力指数)</div>
-      <div class="result-value" style="color:${color};">${CPK.toFixed(3)}</div>
-    </div>
-    <div class="result-block">
-      <div class="result-label">CP (潜在能力)</div>
-      <div class="result-value">${CP.toFixed(3)}</div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">CPU=${CPU.toFixed(2)} / CPL=${CPL.toFixed(2)}</p>
-    </div>
-    <div class="result-block">
-      <div class="result-label">CA (偏移系数)</div>
-      <div class="result-value">${(CA*100).toFixed(1)}%</div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${CA < 0.1 ? '✅ 居中良好' : '⚠️ 中心偏移'}</p>
-    </div>
-    <div class="result-block">
-      <div class="result-label">PPK (长期能力)</div>
-      <div class="result-value">${hasPPK ? PPK.toFixed(3) : '<span style="font-size:14px;color:var(--text-muted);">未计算（未填长期标准差）</span>'}</div>
-      ${hasPPK ? '<p style="font-size:11px;color:var(--text-muted);margin-top:4px;">PP='+PP.toFixed(2)+' / PPU='+(((USL-mean)/(3*sOverall)).toFixed(2))+' / PPL='+(((mean-LSL)/(3*sOverall)).toFixed(2))+'</p>' : ''}
-      ${hasPPK && n > 0 && n < 30 ? '<p style="font-size:11px;color:var(--text-muted);margin-top:4px;">样本数 n&lt;30，长期能力估计参考性有限</p>' : ''}
-    </div>
-    <div class="result-block">
-      <div class="result-label">理论良率</div>
-      <div class="result-value">${(yieldTotal*100).toFixed(3)}%</div>
-      <p style="font-size:11px;color:var(--text-muted);margin-top:4px;">${(yieldTotal >= 0.9999) ? '99.99% 6σ' : (yieldTotal*100).toFixed(2)+'%'}</p>
-    </div>
-
+  const html = head + `<p style="font-size:12px;color:var(--text-muted);margin:0 0 8px;">当前视图：${modeTitle}</p>` + modeBody + yieldBlock + sampleBlock + `
     <div style="background:var(--bg-card);padding:12px;border-radius:8px;margin-top:8px;">
-      <h4 style="margin-bottom:6px;">📊 判定标准</h4>
+      <h4 style="margin-bottom:6px;">📊 判定与适用条件</h4>
       <p style="font-size:12px;line-height:1.8;color:var(--text-secondary);">
-        CPK ≥ 1.67 : 能力过剩<br>
-        1.33 ≤ CPK < 1.67 : 能力合格<br>
-        1.00 ≤ CPK < 1.33 : 能力临界<br>
-        CPK < 1.00 : 能力不足
+        CPK ≥ 1.67 : 能力过剩；1.33 ≤ CPK &lt; 1.67 : 合格；1.00 ≤ CPK &lt; 1.33 : 临界；CPK &lt; 1.00 : 不足。<br>
+        以上假设过程近似正态、短期 σ 可代表当前波动；良率与 CPK 不能证明过程稳定，稳定性须看控制图/时间序列。<br>
+        ${hasPPK && n < 30 ? '样本数 n&lt;30，长期能力估计参考性有限。<br>' : ''}
+        ${CA >= 0.1 ? 'CA 偏移较大，优先调均值再谈降σ。<br>' : ''}
       </p>
-    </div>
-  `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+    </div>`;
+  document.getElementById('result').innerHTML = html;
+  document.getElementById('result').style.display = 'block';
 }
-
 // 正态分布累积函数 (近似)
 function normalCdf(z) {
   const t = 1 / (1 + 0.2316419 * Math.abs(z));
@@ -549,7 +629,7 @@ else document.addEventListener('DOMContentLoaded', __quality_controlBoot);
   </div>
   <div class="tool-intro-body">
     <h4><span class="h4-icon">📝</span>工具简介</h4>
-    <p data-zh="输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估生产过程是否满足质量要求与稳定性">输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估生产过程是否满足质量要求与稳定性</p>
+    <p data-zh="输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估过程能力是否满足规格，不替代控制图稳定性判断">输入规格上下限、样本均值与标准差，计算制程能力指数CPK（合格线≥1.33），评估过程能力是否满足规格，不替代控制图稳定性判断</p>
     <h4><span class="h4-icon">✨</span>功能特点</h4>
     <ul class="intro-features">
       <li>支持多种生产参数</li>

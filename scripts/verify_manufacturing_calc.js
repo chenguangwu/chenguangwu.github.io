@@ -4,7 +4,7 @@ const { runCase } = require("./verify_it_calc.js");
 const CASES = [
   { slug: "manufacturing/capacity-planning", inputs: {"machines":"8","capacityPer":"250","shifts":"3","demand":"30000","workDays":"20"}, expect: ["理论月产能 120,000 件","日产能 6,000 件","产能利用率 25.0%"], ref: "月产能 8×250×20×3 = 120000、日产能 8×250×3 = 6000、利用率 30000/120000 = 25.0%（默认 5×200×22×2 = 44000、40.0%）；shifts 必须显式注入（harness 取首个 option=1，真机 selected=2）；本页仅有「计算」按钮绑定 ⇒ 命中通道为兜底 calc()（via=calc）" },
   { slug: "manufacturing/defect-rate", inputs: {"total":"5000","defects":"120","processes":"4"}, expect: ["不良率 (Defect Rate) 2.400%","滚动直通率 (RTY) - 4工序 90.74%","PPM (百万缺陷数) 24,000"], ref: "不良率 120/5000 = 2.400%、FTY 97.60%、RTY 0.976⁴ = 90.74%、PPM 24000、DPMO 6000（默认 0.500%/99.50%/97.52%/10000）；原 expect「建议加强质量控制」是页面常驻文案 ⇒ 逃生项（无 input 绑定，命中通道为兜底 calc()）" },
-  { slug: "manufacturing/inventory-calculator", inputs: {"annualDemand":"18000","orderCost":"150","holdCost":"15","dailyDemand":"50","leadTime":"10","stdDev":"12","serviceLevel":"2.33"}, expect: ["EOQ 经济订货量 600 件","年订货次数 30.0 次","最小总库存成本 ¥9,000"], ref: "EOQ = √(2×18000×150/15) = 600、年订 18000/600 = 30.0 次、周期 365/30 ≈ 12 天、总成本 √(2DSH) = 9000（默认 EOQ 490、24.5 次、¥6,928）；serviceLevel 必须显式注入（harness 取首个 option=1.28，真机 selected=1.65）；原 expect 是标签片段 ⇒ 逃生项" },
+  { slug: "manufacturing/inventory-calculator", inputs: {"annualDemand":"18000","orderCost":"150","holdCost":"15","dailyDemand":"50","leadTime":"10","stdDev":"12","serviceLevel":"2.33"}, expect: ["EOQ 经济订货量 600 件","年订货次数 30.0 次","EOQ 最优总成本（不含安全库存） ¥9,000"], ref: "EOQ = √(2×18000×150/15) = 600、年订 18000/600 = 30.0 次、周期 365/30 ≈ 12 天、总成本 √(2DSH) = 9000（默认 EOQ 490、24.5 次、¥6,928）；serviceLevel 必须显式注入（harness 取首个 option=1.28，真机 selected=1.65）；原 expect 是标签片段 ⇒ 逃生项" },
   { slug: "manufacturing/production-efficiency", inputs: {"plannedTime":"","downtime":"","cycleTime":"","output":"","goodOutput":""}, clicks: ["calc()"], expect: ["请填写计划时间与节拍时间后再计算 OEE。"], ref: "空计划时间/节拍不得保留默认 87.5%/59.5% 的旧 OEE 结果；默认 500/60/25/500/475 不含该提示。" },
   { slug: "manufacturing/production-efficiency", inputs: {"plannedTime":"420","downtime":"90","cycleTime":"25","output":"600","goodOutput":"570"}, expect: ["可用率 (Availability) 78.6%","性能率 (Performance) 75.8%","56.5% OEE"], ref: "运行 420−90 = 330 → 可用率 78.6%（默认 87.5%）；理论产量 330×60/25 = 792 → 性能率 600/792 = 75.8%（默认 59.5%）；OEE = 0.785714×0.757576×0.95 = 56.5%（默认 49.5%）。**注意**：合格率默认 475/500 与注入 570/600 同为 95.0% ⇒ 「合格率 (Quality) 95.0%」是逃生项，不可作 expect。原 expect「世界级标准」是提示文案常驻串 ⇒ 同样不可用" },
   { slug: "manufacturing/quality-control", inputs: {"usl":"10.8","lsl":"9.4","mean":"10.05","stddev":"0.12","n":"40","sigmaOverall":"0.18"}, expect: ["CPK (综合能力指数) 1.806","CP (潜在能力) 1.944","PPK (长期能力) 1.296"], ref: "T = 1.4、CP = 1.4/0.72 = 1.944；CPU = 0.75/0.36 = 2.083、CPL = 0.65/0.36 = 1.806 → CPK = 1.806；PPK 改用长期标准差 0.18：1.4/(6×0.18) = 1.296（旧口径用 σ_LT≈0.120256 得 1.940，已废弃）；未填 sigmaOverall 时结果为「未计算（未填长期标准差）」" },
@@ -91,9 +91,9 @@ const CASES = [
       "serviceLevel": "1.65"
     },
     "expect": [
-      "货量 年订货次数 4.6 次 订货周期约 80 天 平均库存 5 件 安全库存 449 件 Z=1.65 × 42 × √42"
+      "货量 年订货次数 4.6 次 订货周期约 80 天 周期平均库存（EOQ/2，不含安全库存） 5 件 安全库存（向上取整） 450 件 Z=1.65 × 42 × √42 = 449.12 件"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"annualDemand\":\"42\",\"orderCost\":\"42\",\"holdCost\":\"42\",\"dailyDemand\":\"42\",\"leadTime\":\"42\",\"stdDev\":\"42\",\"serviceLevel\":\"1.65\"}，输出区含「货量 年订货次数 4.6 次 订货周期约 80 天 平均库存 5 件 安全库存 …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"annualDemand\":\"42\",\"orderCost\":\"42\",\"holdCost\":\"42\",\"dailyDemand\":\"42\",\"leadTime\":\"42\",\"stdDev\":\"42\",\"serviceLevel\":\"1.65\"}，输出区含「货量 … 周期平均库存（EOQ/2，不含安全库存） 5 件 安全库存（向上取整） 450 件 …」；SS=1.65×42×√42=449.12，向上取整450；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "manufacturing/inventory-calculator",
@@ -124,6 +124,19 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"total\":\"42\",\"defects\":\"42\",\"processes\":\"42\"}，输出区含「量分析报告 投入 42 件 · 不良 42 件 · 42」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   }
+
+  ,
+  { slug: "manufacturing/quality-control", clicks: ["document.getElementById('mean').value='';calc();"], expect: ["「样本平均值」不能为空"], ref: "均值留空不得按 0 计算；旧实现 +value||0 会把空均值当 0 并输出 CPK/良率。默认均值 10.0 不命中。" },
+  { slug: "manufacturing/quality-control", inputs: {"usl":"0","lsl":"-1","mean":"-0.5","stddev":"0.1","n":"30"}, expect: ["CPK (综合能力指数) 1.667"], ref: "明确输入 0 与负数规格边界合法：T=1、CPU=0.5/0.3=1.667、CPL=0.5/0.3=1.667 ⇒ CPK=1.667。旧实现 +value||0 本身可算，但 0 校验缺失新分支须允许。" },
+  { slug: "manufacturing/quality-control", clicks: ["cur='cp';renderTypes();calc();"], expect: ["CP 潜在能力（未扣除均值偏移）","不能用 CP 代替实际能力"], ref: "切换 CP 模式后输出重点改为 CP 与适用条件，不再是同一组 CPK 结果；旧实现仅改选中样式。" },
+  { slug: "manufacturing/quality-control", inputs: {"sigmaOverall":""}, clicks: ["cur='ppk';renderTypes();calc();"], expect: ["PPK 长期能力（需填 σ_总体）","未计算（未填长期标准差）"], ref: "PPK 模式未填长期 σ 时明确不计算，不以短期 σ 近似；旧实现切换 PPK 后仍输出 CPK 全套。" },
+  { slug: "manufacturing/quality-control", inputs: {"n":"2.5"}, expect: ["「样本数」须为整数"], ref: "样本数小数拒绝；旧实现仅提示 PPK 小样本、不校验整数。" },
+  { slug: "manufacturing/capacity-planning", clicks: ["document.getElementById('demand').value='0';calc();"], expect: ["无订单/闲置","无订单：理论月产能"], ref: "需求 0 合法并显示闲置产能；旧实现 d<=0 直接报错。" },
+  { slug: "manufacturing/capacity-planning", clicks: ["cur='bottleneck';renderModes();calc();"], expect: ["瓶颈工序（按月产能升序） 装配","缺口 14,720 件"], ref: "默认多工序表：车削2×180×2×22=15,840、铣削1×150×2×22=6,600、装配1×120×2×22=5,280；需求20,000 ⇒ 瓶颈装配、缺口14,720。旧实现称单工序即瓶颈、无多工序比较。" },
+  { slug: "manufacturing/capacity-planning", clicks: ["document.getElementById('processTable').value='车削,2,abc,2';calc();"], expect: ["多工序产能表有误","第1行：单台班产能须大于 0"], ref: "多工序表逐行严格解析，非数字产能停止计算；旧实现无多工序表。" },
+  { slug: "manufacturing/inventory-calculator", inputs: {"leadTime":"-5"}, expect: ["平均日需求、交货期与需求标准差须为非负有限数"], ref: "负交期不得进入 √L 计算；0 合法、负数拒绝。默认 7 不命中。" },
+  { slug: "manufacturing/inventory-calculator", inputs: {"dailyDemand":"40","leadTime":"2","stdDev":"10","serviceLevel":"1.65"}, clicks: ["document.getElementById('roundMode').value='ceil';calc();"], expect: ["安全库存（向上取整） 24 件","23.33"], ref: "SS=1.65×10×√2=23.33；向上取整 24，四舍五入 23。默认交期7不命中。" },
+  { slug: "manufacturing/production-efficiency", inputs: {"plannedTime":"480","downtime":"0","cycleTime":"60","output":"500","goodOutput":"480"}, expect: ["性能率原始比值 104.2% 超过 100%","截断前 OEE 为 100.0%"], ref: "理想 480 件、产出500 ⇒ 原始104.17%，封顶100%；可用100%、合格96% ⇒ 主OEE96.0%、截断前100.0%。旧实现静默截断无提示。" }
 
 ];
 async function main() {
