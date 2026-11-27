@@ -112,9 +112,9 @@ const CASES = [
     "price": "0.8"
   },
   "expect": [
-    "20421.75"
+    "26255"
   ],
-  "ref": "auto-restore"
+  "ref": "5 台 × 14.39 kWh/台日 × 365 ≈ 26255 kWh；含默认速度 1.6、启停附加 10%、无再生"
 },
 {
   "slug": "property/energy",
@@ -277,7 +277,7 @@ const CASES = [
     "ref": "第1072批 N149：六维权重合计 30+20+15+15+15+15=110（默认合计 100）。旧实现 (totalW/100*100)+'%' 显示「110%」+label「权重总和」，误导用户以为配错；评分本身按 110 归一正常。新实现显示「110」+label「权重合计（已归一）」。锚「110 权重合计」数值+label 组合串：默认合计 100 不含该串、旧版显示「110% 权重总和」也不含 ⇒ 强判别零逃生。"
   },
 { slug:"property/assessor-manager-1", inputs:{"contractAmt":""}, expect:["请填写合同金额"], ref:"核心检测值留空不得给出合格/优秀评级（DETCLR）" },
-{ slug:"property/elevator-energy", inputs:{"liftCount":"","floors":"","floorHeight":"","power":"","loadRate":"","tripsPerDay":"","tripFloors":"","idleHours":"","idlePower":"","price":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+{ slug:"property/elevator-energy", inputs:{"liftCount":"","floors":"","floorHeight":"","power":"","loadRate":"","tripsPerDay":"","tripFloors":"","idleHours":"","idlePower":"","price":"","speed":"","startStop":"","regen":"","meterMonthly":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）；含新增速度/启停/再生字段" },
 ];
 async function main() {
   const only = process.argv.slice(2);
