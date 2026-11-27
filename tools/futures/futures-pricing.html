@@ -294,25 +294,38 @@
 </div>
 
 <script>
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
+var __futures_pricingOk=false;
 function calc(){
   var spot = getVal('spot');
-  var rate = getVal('rate') / 100;
+  var rateRaw = getVal('rate');
   var time = getVal('time');
-  var yld = getVal('yield') / 100;
-  var storage = getVal('storage') / 100;
+  var yldRaw = getVal('yield');
+  var storageRaw = getVal('storage');
   var method = document.getElementById('method').value;
-  var actualFuture = getVal('actualFuture');
+  var actualFutureRaw = getVal('actualFuture');
 
-  if(spot <= 0 || time <= 0){
+  if(!isFiniteNum(spot) || spot <= 0 || !isFiniteNum(rateRaw) || rateRaw < 0 || !isFiniteNum(time) || time <= 0 || !isFiniteNum(yldRaw) || yldRaw < 0 || !isFiniteNum(storageRaw) || storageRaw < 0){
+    __futures_pricingOk=false;
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">现货价格和到期时间需大于0</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请填写现货价格、无风险利率、到期时间、便利收益率和存储成本率；数值不能为空</p>';
+    var ch=document.getElementById('futures_pricingChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('futures_pricingTable'); if(tb) tb.innerHTML='';
     return;
   }
+  __futures_pricingOk=true;
+  var rate=rateRaw/100, yld=yldRaw/100, storage=storageRaw/100;
+  var actualFuture = (actualFutureRaw===null || actualFutureRaw===undefined) ? 0 : actualFutureRaw;
+  if(!isFiniteNum(actualFuture) || actualFuture < 0) actualFuture = 0;
 
   var carry = rate + storage - yld; // 净持有成本率
   var futurePrice, formula;
@@ -367,6 +380,7 @@ function calc(){
 }
 
 function copyResult(){
+  if(!__futures_pricingOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText;
   ToolBox.copyText(text, i18nText('msg440'));
 }
@@ -526,6 +540,7 @@ function __futures_pricingRender(keys,rk,en){
     }catch(e3){}
 }
 function __futures_pricingExtras(){
+  if(!__futures_pricingOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__futures_pricing_skip) return;
     var snap=__futures_pricingSnap();
@@ -556,6 +571,7 @@ function __futures_pricingExtras(){
     __futures_pricingRender(keys,rk,en);
 }
 function __futures_pricingExport(){
+  if(!__futures_pricingOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#futures_pricingTable');

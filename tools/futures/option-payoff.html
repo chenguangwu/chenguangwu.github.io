@@ -272,9 +272,14 @@ function switchType(type, side, btn){
   calc();
 }
 
+function isFiniteNum(v){ return typeof v === 'number' && isFinite(v); }
 function getVal(id){
   var el = document.getElementById(id);
-  return el ? (+el.value || 0) : 0;
+  if(!el) return null;
+  var raw = String(el.value == null ? '' : el.value).trim();
+  if(raw === '') return null;
+  var n = Number(raw);
+  return isFinite(n) ? n : NaN;
 }
 
 function profitAt(s, K, p, type, side){
@@ -285,14 +290,19 @@ function profitAt(s, K, p, type, side){
   return 0;
 }
 
+var __option_payoffOk=false;
 function calc(){
   var K = getVal('strike');
   var p = getVal('premium');
-  if(K <= 0 || p < 0){
+  if(!isFiniteNum(K) || K <= 0 || !isFiniteNum(p) || p < 0){
+    __option_payoffOk=false;
     document.getElementById('statGrid').innerHTML='';
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的行权价和权利金</p>';
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">请输入有效的行权价和权利金；数值不能为空</p>';
+    var ch=document.getElementById('option_payoffChart'); if(ch) ch.innerHTML='';
+    var tb=document.getElementById('option_payoffTable'); if(tb) tb.innerHTML='';
     return;
   }
+  __option_payoffOk=true;
   var bep = currentType === 'call' ? K + p : K - p;
   var typeName = (currentType === 'call' ? '看涨' : '看跌') + (currentSide === 'buy' ? '买方' : '卖方');
 
@@ -504,6 +514,7 @@ function drawChart(K, p, bep){
 }
 
 function copyResult(){
+  if(!__option_payoffOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
   var text = document.getElementById('result').innerText;
   ToolBox.copyText(text, i18nText('msg439'));
 }
@@ -657,6 +668,7 @@ function __option_payoffRender(keys,rk,en){
     }catch(e3){}
 }
 function __option_payoffExtras(){
+  if(!__option_payoffOk) return;
     if (typeof TBKit === 'undefined') return;
     if (__option_payoff_skip) return;
     var snap=__option_payoffSnap();
@@ -687,6 +699,7 @@ function __option_payoffExtras(){
     __option_payoffRender(keys,rk,en);
 }
 function __option_payoffExport(){
+  if(!__option_payoffOk){ try{ ToolBox.showToast('请先填写完整有效参数'); }catch(e){} return; }
     if (typeof TBKit === 'undefined') return;
     try{
         var box=document.querySelector('#option_payoffTable');
