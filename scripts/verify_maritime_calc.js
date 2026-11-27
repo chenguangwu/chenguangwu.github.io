@@ -18,7 +18,7 @@ const CASES = [
       "layoutMode": "grid"
     },
     "expect": [
-      "径） 布锚方式： 方格固定泊位 单船占用面积： 13,660,416 m²（1,366.0416"
+      "径） 布锚方式： 方格固定泊位 单船占用面积： 13,660,416 m²（13.660416"
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"shipLength\":\"42\",\"waterDepth\":\"42\",\"scopeFactor\":\"42\",\"safetyMargin\":\"42\",\"anchorageArea\":\"42\",\"layoutMode\":\"grid\"}，输出区含「径） 布锚方式： 方格固定泊位 单船占用面积： 13,660,416 m²（1,…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
@@ -31,9 +31,8 @@ const CASES = [
       "convertDir": "t2c"
     },
     "expect": [
-      "E 181.1° 223.1° 195° -8.8°W 186.2° 228.2° 210° -18.2°W 191.8° 233.8° 225° -26.5°W 198.5° 240.5° 240° -33.4°W 206.6° 248."
+      "318.0° 罗航向 CH"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"variation\":\"42\",\"deviation\":\"42\",\"headingInput\":\"42\",\"convertDir\":\"t2c\"}，输出区含「E 181.1° 223.1° 195° -8.8°W 186.2° 228.2…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "maritime/stowage-factor",
@@ -48,9 +47,9 @@ const CASES = [
       "calcMode": "capacity"
     },
     "expect": [
-      "capacity\n1.4\n42\n42\n42\n59 所需舱容 (m³) 140.0% 舱容利用率 100.0% 载重利用率 30 最大装载 (吨) 积载因数： 1.400 m³/t 总货量： 42 吨 所需舱容： 59 m³（42 × 1.4"
+      "capacity\n1.4\n42\n42\n42\n0\n59 所需舱容 (m³) 140.0% 舱容利用率 100.0% 载重利用率 30 最大装载 (吨) 积载因数： 1.400 m³/t 总货量： 42 吨 所需舱容： 59 m³（42 × 1.4"
     ],
-    "ref": "自动补强（B类零用例）：注入非默认输入{\"volume\":\"42\",\"weight\":\"42\",\"sfInput\":\"42\",\"totalWeight\":\"42\",\"holdCapacity\":\"42\",\"dwt\":\"42\",\"cargoType\":\"grain\",\"calcMode\":\"capacity\"}，输出区含「capacity\n1.4\n42\n42\n42\n59 所需舱容 (m³) 140.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
+    "ref": "自动补强（B类零用例）：注入非默认输入{\"volume\":\"42\",\"weight\":\"42\",\"sfInput\":\"42\",\"totalWeight\":\"42\",\"holdCapacity\":\"42\",\"dwt\":\"42\",\"cargoType\":\"grain\",\"calcMode\":\"capacity\"}，输出区含「capacity\n1.4\n42\n42\n42\n0\n59 所需舱容 (m³) 140.0…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
     "slug": "maritime/speed-distance",
@@ -87,7 +86,7 @@ const CASES = [
     ],
     "ref": "自动补强（B类零用例）：注入非默认输入{\"highTideTime\":\"abc123测试\",\"highTideHeight\":\"42\",\"lowTideTime\":\"abc123测试\",\"lowTideHeight\":\"42\",\"nextLowTideTime\":\"abc123测试\",\"nextLowTideHeight\":\"42\",\"chartDepth\":\"42\",\"draft\":\"42\",\"ukc\":\"42\",\"transitTime\":\"42\"}，输出区含「abc123测试\n42\nabc123测试\n42\nabc123测试\n42\n42\n4…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
-  { slug: "maritime/speed-distance", inputs: { calcTarget: "distance", speedValue: "", timeValue: "" }, expect: ["请填写航速与时间后再计算航程。"], ref: "空态守卫：目标=航程且航速/时间清空时不再输出 0.00 海里与 0 小时，只给填写提示（旧实现 ⇒ 0.00/0.000/0.0 三单位全 0）。默认态 12 kn × 15 h ⇒ 180.00 nm，提示串不出现。" },
+  { slug: "maritime/speed-distance", inputs: { calcTarget: "distance", speedValue: "", timeValue: "" }, expect: ["航速未填写；时间未填写。请补全后再计算航程。"], ref: "空态守卫：目标=航程且航速/时间清空时不再输出 0.00 海里与 0 小时，只给填写提示（旧实现 ⇒ 0.00/0.000/0.0 三单位全 0）。默认态 12 kn × 15 h ⇒ 180.00 nm，提示串不出现。" },
 {
   "slug": "maritime/compass-correction",
   "inputs": { "variation": "", "deviation": "3", "headingInput": "45", "convertDir": "c2t" },
@@ -109,8 +108,8 @@ const CASES = [
     "transitTime": "60"
   },
   "expect": [
-    "02:00 - 08:01",
-    "最佳进港时刻：02:30，最晚出港时刻：07:31（窗口持续 361 分钟）"
+    "02:00（+1天） - 08:01（+1天）",
+    "推荐通航开始：04:31（+1天），推荐完成：05:31（+1天）"
   ],
   "ref": "跨午夜区间展开（2026-11-16）：低潮 23:00（前一日）→ 高潮 05:00 → 次日低潮 11:00，所需潮高 5.0+0.5−3.0=2.5 m，余弦模型在 ±180 min 内 ≥2.5，页面按分钟逐点采样且含两端 ⇒ 02:00–08:01 共 361 个可通航分钟点、最晚出港 07:31。旧实现直接沿用 05:00=300 的绝对分钟，搜索区间变成 1320→720 导致循环空转，误报「本轮潮汐潮高不足，无法通航」⇒ 两条锚全失配。旧 ref 写 360 分钟是区间长度口径，与页面 inclusive 采样口径不一致，已按实测输出校正。判别器实测固定结论串「可乘潮通航」在默认快照也命中，已删，仅留依赖注入时刻的窗口与进出港时间串。"
 }

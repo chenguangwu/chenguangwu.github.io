@@ -140,7 +140,7 @@
     <h2 data-zh="🏎️ 航速航程换算">Speed & Distance Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="航海航速、航程、时间三量换算，支持节(knot)、km/h、m/s 多单位互转">Speed Distance</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">航海航速-航程-时间互换计算<br>三者关系：航程(海里) = 航速(节) × 时间(小时)<br>三种计算目标：求航程 / 求时间 / 求航速<br>单位归一：速度统一换算为节、时间统一为小时、距离统一为海里<br>航速换算：1 节 = 1.852 km/h = 0.5144 m/s<br>距离换算：1 海里 = 1.852 km = 1852 m<br>时间换算：天 = 小时 ÷ 24；分钟 = 小时 × 60<br>易读时间格式：天 + 小时 + 分（按总分钟拆分）<br>多单位结果并列展示节/km·h⁻¹/m·s⁻¹、海里/km/m、小时/天/分</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">航海航速-航程-时间互换计算<br>三者关系：航程(海里) = 航速(节) × 时间(小时)<br>三种计算目标：求航程 / 求时间 / 求航速<br>单位归一：速度统一换算为节、时间统一为小时、距离统一为海里<br>航速换算：1 节 = 1.852 km/h = 0.5144 m/s<br>距离换算：1 海里 = 1.852 km = 1852 m<br>时间换算：天 = 小时 ÷ 24；分钟 = 小时 × 60<br>易读时间格式：先四舍五入总分钟，再拆天 + 小时 + 分（59.5 分进位为 1 小时）<br>多单位结果并列展示节/km·h⁻¹/m·s⁻¹、海里/km/m、小时/天/分</div>
       <p class="formula-desc" data-zh="核心计算公式（按输入变量）：Math.floor((totalMin % 1440) ÷ 60)；Math.floor(totalMin ÷ 1440)；Math.round(totalMin % 60)">Key formulas: Math.floor((totalMin % 1440) ÷ 60); Math.floor(totalMin ÷ 1440); Math.round(totalMin % 60)</p>
     </div>
 
@@ -346,31 +346,36 @@ function toNm(val, unit){
 function calc(){
   var target = document.getElementById('calcTarget').value;
   var fmt = function(n, d){ return ToolBox.formatNumber(n, d != null ? d : 2); };
+  function raw(id){ return document.getElementById(id).value.trim(); }
+  function num(id){ var r=raw(id); return r===''?null:Number(r); }
 
   var speedKnot, timeHour, distNm;
-
+  var sv=num('speedValue'), tv=num('timeValue'), dv=num('distValue');
+  var bad=[];
+  function check(v,name,id,positive){
+    if(v===null) bad.push(name+'未填写');
+    else if(!isFinite(v)) bad.push(name+'无效');
+    else if(v<0) bad.push(name+'不得为负');
+    else if(positive && v===0) bad.push(name+'须大于 0');
+  }
   if(target === 'distance'){
-    speedKnot = toKnot(parseFloat(document.getElementById('speedValue').value) || 0, document.getElementById('speedUnit').value);
-    timeHour = toHour(parseFloat(document.getElementById('timeValue').value) || 0, document.getElementById('timeUnit').value);
+    check(sv,'航速','speedValue',false); check(tv,'时间','timeValue',false);
+    if(bad.length){ ToolBox.setResult('result','<div class="info-box"><strong>'+bad.join('；')+'。请补全后再计算航程。</strong></div>'); return; }
+    speedKnot = toKnot(sv, document.getElementById('speedUnit').value);
+    timeHour = toHour(tv, document.getElementById('timeUnit').value);
     distNm = speedKnot * timeHour;
   } else if(target === 'time'){
-    speedKnot = toKnot(parseFloat(document.getElementById('speedValue').value) || 0, document.getElementById('speedUnit').value);
-    distNm = toNm(parseFloat(document.getElementById('distValue').value) || 0, document.getElementById('distUnit').value);
-    timeHour = speedKnot > 0 ? distNm / speedKnot : 0;
-  } else { // speed
-    timeHour = toHour(parseFloat(document.getElementById('timeValue').value) || 0, document.getElementById('timeUnit').value);
-    distNm = toNm(parseFloat(document.getElementById('distValue').value) || 0, document.getElementById('distUnit').value);
-    speedKnot = timeHour > 0 ? distNm / timeHour : 0;
-  }
-
-  // 多单位展示
-  var needMsg = null;
-  if(target === 'distance' && (speedKnot <= 0 || timeHour <= 0)) needMsg = '请填写航速与时间后再计算航程。';
-  if(target === 'time' && (speedKnot <= 0 || distNm <= 0)) needMsg = '请填写航速与航程后再计算航行时间。';
-  if(target === 'speed' && (timeHour <= 0 || distNm <= 0)) needMsg = '请填写时间与航程后再计算航速。';
-  if(needMsg){
-    ToolBox.setResult('result', '<div class="info-box"><strong>' + needMsg + '</strong></div>');
-    return;
+    check(sv,'航速','speedValue',true); check(dv,'航程','distValue',false);
+    if(bad.length){ ToolBox.setResult('result','<div class="info-box"><strong>'+bad.join('；')+'。请补全后再计算航行时间。</strong></div>'); return; }
+    speedKnot = toKnot(sv, document.getElementById('speedUnit').value);
+    distNm = toNm(dv, document.getElementById('distUnit').value);
+    timeHour = distNm / speedKnot;
+  } else {
+    check(tv,'时间','timeValue',true); check(dv,'航程','distValue',false);
+    if(bad.length){ ToolBox.setResult('result','<div class="info-box"><strong>'+bad.join('；')+'。请补全后再计算航速。</strong></div>'); return; }
+    timeHour = toHour(tv, document.getElementById('timeUnit').value);
+    distNm = toNm(dv, document.getElementById('distUnit').value);
+    speedKnot = distNm / timeHour;
   }
 
   var speedKmh = speedKnot * KNOT_TO_KMH;
@@ -380,11 +385,11 @@ function calc(){
   var timeDay = timeHour / 24;
   var timeMin = timeHour * 60;
 
-  // 时间格式化（天时分）
-  var totalMin = timeHour * 60;
+  // 时间格式化（先按展示精度取整总分钟，再拆天/小时/分，避免 59.6 分显示成 60 分）
+  var totalMin = Math.round(timeHour * 60);
   var days = Math.floor(totalMin / 1440);
   var hours = Math.floor((totalMin % 1440) / 60);
-  var mins = Math.round(totalMin % 60);
+  var mins = totalMin % 60;
   var timeStr = (days > 0 ? days + '天 ' : '') + hours + '小时' + (mins > 0 ? ' ' + mins + '分' : '');
 
   var targetLabel = { distance: '航程', time: '航行时间', speed: '航速' }[target];
