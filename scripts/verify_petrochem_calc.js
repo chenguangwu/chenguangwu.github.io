@@ -45,14 +45,96 @@ const CASES = [
 },
 {
   "slug": "petrochem/distillation-yield",
+  "inputs": { "feed": "1500", "prodCount": "2" },
+  "clicks": ["buildList();document.getElementById('prod1').value='塔顶油';document.getElementById('prod2').value='塔底油';document.getElementById('amt1').value='1000';document.getElementById('amt2').value='400';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='DIST '+((h.indexOf('未闭合差额')>=0&&h.indexOf('1,400')>=0&&h.indexOf('100</strong>')>=0)?'OK':'BAD '+h);"],
+  "expect": [ "DIST OK" ],
+  "ref": "第1117批：产量留空不再按 0；进料 1500、产品 1000+400 ⇒ 总产品 1400、未闭合差额 100（6.67%），旧版显示「损失/残液 100」并称真实损失。"
+},
+{
+  "slug": "petrochem/distillation-yield",
+  "inputs": { "feed": "1000", "prodCount": "1" },
+  "clicks": ["buildList();document.getElementById('amt1').value='1050';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='DISTX '+((h.indexOf('物料平衡超额')>=0&&h.indexOf('50 吨')>=0&&h.indexOf('-50')<0)?'OK':'BAD '+h);"],
+  "expect": [ "DISTX OK" ],
+  "ref": "第1117批：产品超进料显示「物料平衡超额 50」，不再输出负损失/负残液。"
+},
+{
+  "slug": "petrochem/distillation-yield",
+  "inputs": { "feed": "1000", "prodCount": "2" },
+  "clicks": ["buildList();document.getElementById('amt1').value='600';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='DISTM '+((h.indexOf('未填写产量')>=0&&h.indexOf('总收率')<0)?'OK':'BAD '+h);"],
+  "expect": [ "DISTM OK" ],
+  "ref": "第1117批：一项产量留空即停止平衡计算并列明缺项，不把未知当 0。"
+},
+{
+  "slug": "petrochem/distillation-yield",
+  "inputs": { "feed": "1000", "prodCount": "1" },
+  "clicks": ["buildList();document.getElementById('prod1').value='<img src=x onerror=alert(1)>';document.getElementById('amt1').value='900';calc();var h=String(document.getElementById('result').innerHTML);document.getElementById('__tbProbe').textContent='DISTE '+(h.indexOf('&lt;img')>=0&&h.indexOf('<img')<0?'OK':'BAD '+h);"],
+  "expect": [ "DISTE OK" ],
+  "ref": "第1117批：产品名按纯文本转义，不把尖括号/事件属性拼进 innerHTML。"
+},
+{
+  "slug": "petrochem/pipe-pressure",
   "inputs": {
-    "feed": "1500",
-    "prodCount": "4",
-    "prod${i}": "${name}",
-    "amt${i}": "${amt}"
+    "flow": "100",
+    "diameter": "200",
+    "length": "500",
+    "density": "900",
+    "viscosity": "50",
+    "roughness": "0.1"
   },
-  "expect": [ "1,500 损失/残液" ],
-  "ref": "auto-restore"
+  "expect": [
+    "过渡区压降范围",
+    "17.6839 – 38.8389"
+  ],
+  "ref": "第1117批：Re 3183 过渡区给出层流端—湍流端范围，单点 f=0.0442 仅作湍流端参考。"
+},
+{
+  "slug": "petrochem/pipe-pressure",
+  "inputs": {
+    "flow": "75",
+    "diameter": "100",
+    "length": "500",
+    "density": "850",
+    "viscosity": "5",
+    "roughness": "-0.1"
+  },
+  "expect": [
+    "粗糙度须填写 ≥0 的有限数值"
+  ],
+  "ref": "第1117批：粗糙度负数不再按 -0.0001 m 参与计算，直接提示。"
+},
+{
+  "slug": "petrochem/catalyst-calc",
+  "inputs": {
+    "flow": "7500",
+    "lsv": "2",
+    "density": "850",
+    "bulkDensity": "700",
+    "voidage": "0.4",
+    "actualFlow": "7.5"
+  },
+  "clicks": ["calcLsv();document.getElementById('__tbProbe').textContent='CATRES '+document.getElementById('actualResNote').innerText;"],
+  "expect": ["空隙停留时间"],
+  "ref": "第1117批：补充空隙率与工况流量后估算真实空隙停留时间；不提供时只显示名义空间时间。"
+},
+{
+  "slug": "petrochem/api-gravity",
+  "inputs": {
+    "apiVal": "35",
+    "sgVal": "0.85"
+  },
+  "clicks": ["document.getElementById('waterTemp').value='0';calcApi();"],
+  "expect": ["水密度须为有限正值"],
+  "ref": "第1117批：水密度为 0 时清除结果并提示，不再用 0 乘出 0 密度。"
+},
+{
+  "slug": "petrochem/api-gravity",
+  "inputs": {
+    "apiVal": "35",
+    "sgVal": "0.85"
+  },
+  "clicks": ["document.getElementById('waterTemp').value='0.998';calcApi();"],
+  "expect": ["0.8482", "0.998 g/cm³"],
+  "ref": "第1117批：API 35、SG 0.8498 在 20℃ 水密度 0.998 下密度 0.8482 g/cm³，并标明基准与未做温度修正。"
 },
 {
   "slug": "petrochem/pipe-pressure",

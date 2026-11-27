@@ -130,7 +130,7 @@
     <h2 data-zh="🔄 API 度与密度换算">API Gravity Converter</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="原油 API 度、比重（SG）、密度互转，自动判定原油类别">API Gravity</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">比重 SG = 141.5 ÷ (API 度 + 131.5)；密度(g/cm³) = SG × 同温度水的密度，密度(kg/m³) = 前者 × 1000。合法性：未填提示输入 API 度，≤ −131.5 时分母非正、提示应大于 −131.5。原油分类：API &gt; 31.1 轻质原油、≥ 22.3 中质原油、≥ 10 重质原油、&lt; 10 超重质/沥青</div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">比重 SG = 141.5 ÷ (API 度 + 131.5)；密度(g/cm³) = SG × 所选水温纯水密度，密度(kg/m³) = 前者 × 1000。API/SG 均按 60°F（15.6℃）相对密度定义；本页不做其他温度→60°F 的换算。校验：API 未填或 ≤ −131.5 提示；SG 与所选水密度须为有限正值。原油分类：API &gt; 31.1 轻质原油、≥ 22.3 中质原油、≥ 10 重质原油、&lt; 10 超重质/沥青</div>
       <div class="formula-desc tb-bi"><span class="t-zh">输入原油 API 度、比重 SG 或密度三者之一，工具按公式 API=141.5/SG−131.5 自动换算其余两项，并依据 API 度判定原油属于轻质、中质、重质或特重质类别，便于原油品质快速归类</span><span class="t-en">Convert between API gravity, specific gravity, and density at reference temperature</span></div>
     </div>
 
@@ -221,13 +221,13 @@
 <h2>📚 深度解析：API 度与密度换算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>原油贸易与计价：不同产区原油以 API 度报价，需换算为比重(SG)与密度(g/cm³、kg/m³)才能计算质量、体积与船运配载；工具按 API↔SG 互算，输入任一即可得另一量。</li>
-<li>炼厂装置设计与混兑：原油调和时要按密度核算混合油比重，API 度越高表示越轻、经济价值通常越高；用 classify 可快速判断轻质/中质/重质/超重质。</li>
-<li>实验室与计量交接：交接计量常以 60°F(15.6℃) 标准密度为准，本工具以 60°F 水相对密度 1.0 为基准折算密度，便于与计量单对照。</li>
+<li>API↔SG 换算时，明确两者均按 60°F（15.6℃）相对密度定义；其他温度实测值需先换算至该基准。</li>
+<li><a class="term-link" href="/tools/life/density-converter.html">密度换算</a>使用所选水温的纯水密度；水密度缺失或非正时清除结果，不把无效值乘进去。</li>
+<li>本页不做温度修正；若用户在其他温度测量，结果仅为近似，不可暗示已完成修正。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">算例：API 度换算为相对密度与类别</div><div class="dd-ex-body">API=30 时 SG = 141.5/(30+131.5) = 0.8762，密度(水=1.0) = 0.8762 g/cm³ = 876.2 kg/m³；classify(30)：22.3≤30≤31.1 → 中质原油。
 API=35 时 SG = 141.5/166.5 = 0.8498，密度 0.8498 g/cm³，classify(35)&gt;31.1 → 轻质原油。
-反算：SG=0.85 → API = 141.5/0.85 - 131.5 = 34.97°API（轻质）。分类阈值：&gt;31.1 轻质、≥22.3 中质、≥10 重质、&lt;10 超重质/沥青。</div></div>
+反算：SG=0.85 → API = 141.5/0.85 - 131.5 = 34.97°API（轻质）。分类阈值：&gt;31.1 轻质、≥22.3 中质、≥10 重质、&lt;10 超重质/沥青。 基准说明：API/SG 为 60°F（15.6℃）相对密度，密度按所选水温纯水密度折算；本页不做其他温度向 60°F 的修正。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>API 度是怎么定义的？</dt><dd>API 度是美国石油学会的相对密度标度：°API = 141.5/SG - 131.5（SG 为 60°F 相对密度）。数值越大油越轻；°API=10 时 SG=1.0（与水等重），大于 10 比水轻、小于 10 比水重。</dd>
@@ -298,6 +298,10 @@ function classify(api){
 function calcApi(){
   const api = parseFloat(document.getElementById('apiVal').value);
   const waterD = parseFloat(document.getElementById('waterTemp').value);
+  if(!isFinite(waterD)||waterD<=0){
+    document.getElementById('resultApi').innerHTML='<p style="color:var(--danger);">水密度须为有限正值，请重新选择水温基准。</p>';
+    return;
+  }
   if(isNaN(api)){
     const __h0='<p style="color:var(--danger);">请输入 API 度</p>';if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('resultApi').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultApi').innerHTML=__h0;
     return;
@@ -323,12 +327,17 @@ function calcApi(){
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <p>原油类别：<span class="grade-tag ${cls.cls}">${cls.text}</span></p>
     <p>API 度越高，原油越轻、密度越小，经济价值通常越高</p>
+    <p style="font-size:12px;color:var(--text-muted);">基准：API/SG 按 60°F（15.6℃）相对密度定义；密度按所选水温纯水密度 ${fmt(waterD)} g/cm³ 折算。本页未做温度修正，若实测在其他温度请先换算至 60°F 基准。</p>
   `;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('resultApi').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultApi').innerHTML=__h2;
 }
 
 function calcSg(){
   const sg = parseFloat(document.getElementById('sgVal').value);
   const waterD = parseFloat(document.getElementById('waterTemp2').value);
+  if(!isFinite(waterD)||waterD<=0){
+    document.getElementById('resultSg').innerHTML='<p style="color:var(--danger);">水密度须为有限正值，请重新选择水温基准。</p>';
+    return;
+  }
   if(isNaN(sg) || sg <= 0){
     const __h3='<p style="color:var(--danger);">请输入有效的比重</p>';if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('resultSg').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultSg').innerHTML=__h3;
     return;
@@ -349,6 +358,7 @@ function calcSg(){
     ${rangeWarn}
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <p>原油类别：<span class="grade-tag ${cls.cls}">${cls.text}</span></p>
+    <p style="font-size:12px;color:var(--text-muted);">基准：API/SG 按 60°F（15.6℃）相对密度定义；密度按所选水温纯水密度 ${fmt(waterD)} g/cm³ 折算。本页未做温度修正。</p>
   `;if((typeof __h4==='number'&&!isFinite(__h4))||/Infinity/.test(String(__h4))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h4)){document.getElementById('resultSg').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('resultSg').innerHTML=__h4;
 }
 
