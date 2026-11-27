@@ -215,7 +215,7 @@
 <li>用 EOQ 求<a class="term-link" href="/tools/procurement/eoq.html">经济订货批量</a>与订货间隔，在订货成本与持有成本之间取平衡。</li>
 <li>录入当前库存后自动判断状态：低于安全库存、已达再订货点或库存充足。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">日均 20 kg 主料的安全库存</div><div class="dd-ex-body">日均 20 kg、最大日耗 30 kg、平均到货 3 天、最长到货 5 天：安全库存 = 30×5 − 20×3 = 90 kg；再订货点 = 20×3 + 90 = 150 kg。年需求 = 20×360 = 7 200 kg；每次订货成本 50 元、年单位持有成本 12 元 → EOQ = √(2×7 200×50÷12) ≈ 245 kg，年订货约 30 次、间隔约 12 天。当前库存 45 kg 时，可用约 2 天且低于安全库存，应立即补货。</div></div>
+<div class="dd-example"><div class="dd-ex-title">日均 20 kg 主料的安全库存</div><div class="dd-ex-body">日均 20 kg、最大日耗 30 kg、平均到货 3 天、最长到货 5 天：安全库存 = 30×5 − 20×3 = 90 kg；再订货点 = 20×3 + 90 = 150 kg。年需求 = 20×360 = 7 200 kg；订货成本 50 元、年单位持有成本 12 元 → EOQ = √(2×7 200×50÷12) ≈ 245 kg，年订货约 30 次、间隔约 12.2 天。当前库存 45 kg 时按日均消耗可用 2.3 天，已低于安全库存，应立即补货。若订货成本填 0，EOQ 无有限解，页面显示“不适用”，不能据此判断无需订货。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>安全库存为什么用&quot;最大&quot;减&quot;平均&quot;？</dt><dd>安全库存要覆盖&quot;用量比平时高、到货比平时慢&quot;同时发生的最坏情况，因此用 最大日耗×最长提前期 减 日均×平均提前期。若两者差异小，说明供应与需求都稳定，安全库存自然就低。</dd>
@@ -304,56 +304,58 @@ function calc(){
   // 年需求量
   const annualDemand=avgDaily*workDays;
   // 经济订货量 EOQ = sqrt(2 * D * S / H)
-  const eoq=holdCost>0?Math.sqrt(2*annualDemand*orderCost/holdCost):0;
-  // 订货次数
-  const orderTimes=eoq>0?Math.ceil(annualDemand/eoq):0;
-  // 订货间隔天数
-  const orderInterval=eoq>0&&avgDaily>0?Math.round(eoq/avgDaily):0;
+  const eoqApplicable=orderCost>0;
+  const eoq=eoqApplicable?Math.sqrt(2*annualDemand*orderCost/holdCost):null;
+  // 订货次数与间隔仅在 EOQ 适用时计算
+  const orderTimes=eoqApplicable?Math.ceil(annualDemand/eoq):null;
+  const orderInterval=eoqApplicable&&avgDaily>0?eoq/avgDaily:null;
   // 库存状态
   let status='status-ok';let statusText='库存充足';
-  let daysLeft=avgDaily>0?Math.round(currentStock/avgDaily):0;
+  const daysLeft=avgDaily>0?currentStock/avgDaily:0;
+  const daysLeftText=daysLeft.toFixed(1);
   if(currentStock<=safetyStock){status='status-due';statusText='⚠️ 低于安全库存！';}
   else if(currentStock<=reorderPoint){status='status-soon';statusText='已达再订货点';}
 
   let html=`<div class="stat-grid">
     <div class="stat-card"><div class="val">${safetyStock.toFixed(1)}</div><div class="lbl">安全库存（${unit}）</div></div>
     <div class="stat-card"><div class="val">${reorderPoint.toFixed(1)}</div><div class="lbl">再订货点（${unit}）</div></div>
-    <div class="stat-card"><div class="val">${eoq.toFixed(1)}</div><div class="lbl">经济订货量（${unit}）</div></div>
-    <div class="stat-card"><div class="val">${daysLeft}</div><div class="lbl">预计可用天数</div></div>
+    <div class="stat-card"><div class="val">${eoqApplicable?eoq.toFixed(1):'不适用'}</div><div class="lbl">经济订货量（${unit}）</div></div>
+    <div class="stat-card"><div class="val">${daysLeftText}</div><div class="lbl">预计可用天数（仅按日均消耗）</div></div>
   </div>`;
 
   html+=`<div class="result-box">
     <p><strong>库存状态：</strong><span class="grade-tag ${status==='status-ok'?'grade-excellent':status==='status-soon'?'grade-pass':'grade-fail'}">${statusText}</span></p>
     <p><strong>当前库存：</strong>${currentStock} ${unit}</p>
-    <p><strong>距再订货点：</strong>${(reorderPoint-currentStock).toFixed(1)} ${unit} ${currentStock<=reorderPoint?'（已达到/低于）':''}</p>
+    <p><strong>${currentStock<=reorderPoint?'距再订货点尚缺':'高于再订货点'}：</strong>${Math.abs(reorderPoint-currentStock).toFixed(1)} ${unit}</p>
   </div>`;
 
   html+=`<table style="margin-top:12px;"><thead><tr><th>指标</th><th>数值</th><th>说明</th></tr></thead><tbody>
     <tr><td>安全库存</td><td>${safetyStock.toFixed(1)} ${unit}</td><td>应对突发需求的最低缓冲量</td></tr>
     <tr><td>再订货点</td><td>${reorderPoint.toFixed(1)} ${unit}</td><td>库存降至此时应立即下单</td></tr>
-    <tr><td>经济订货量</td><td>${eoq.toFixed(1)} ${unit}</td><td>总成本最低的单次订货量</td></tr>
+    <tr><td>经济订货量</td><td>${eoqApplicable?eoq.toFixed(1)+' '+unit:'不适用'}</td><td>${eoqApplicable?'平衡订货与持有成本的参考批量':'单次订货成本为 0 时模型退化，不能据此判断无需订货'}</td></tr>
     <tr><td>年总需求</td><td>${annualDemand.toFixed(0)} ${unit}</td><td>按${workDays}天营业计算</td></tr>
-    <tr><td>建议订货次数</td><td>${orderTimes} 次/年</td><td>每次订${eoq.toFixed(1)}${unit}</td></tr>
-    <tr><td>订货间隔</td><td>约 ${orderInterval} 天</td><td>两次订货之间间隔</td></tr>
+    <tr><td>建议订货次数</td><td>${eoqApplicable?orderTimes+' 次/年':'不适用'}</td><td>${eoqApplicable?'每次订'+eoq.toFixed(1)+unit:'零固定成本下 EOQ 无有限解'}</td></tr>
+    <tr><td>订货间隔</td><td>${eoqApplicable?'约 '+orderInterval.toFixed(1)+' 天':'不适用'}</td><td>两次订货之间间隔</td></tr>
   </tbody></table>`;
 
   if(currentStock<=safetyStock){
-    html+=`<div class="tip-box tip-error" style="margin-top:12px;">🚨 当前库存已低于安全库存！建议立即补货 ${reorderPoint.toFixed(1)} ${unit}（至再订货点以上）。</div>`;
+    html+=`<div class="tip-box tip-error" style="margin-top:12px;">🚨 当前库存已低于安全库存！建议立即补货至再订货点 ${reorderPoint.toFixed(1)} ${unit} 以上；单次批量可参考 EOQ，零订货成本时按实际消耗补货。</div>`;
   }else if(currentStock<=reorderPoint){
-    html+=`<div class="tip-box tip-warn" style="margin-top:12px;">⚠️ 库存已达再订货点，建议尽快下单补货。建议订货量：${eoq.toFixed(1)} ${unit}。</div>`;
+    html+=`<div class="tip-box tip-warn" style="margin-top:12px;">⚠️ 库存已达再订货点，建议尽快下单补货。${eoqApplicable?'建议订货量：'+eoq.toFixed(1)+' '+unit+'。':'零订货成本下 EOQ 不适用，请按实际消耗与保质期决定批量。'}</div>`;
   }else{
-    html+=`<div class="tip-box tip-success" style="margin-top:12px;">✅ 库存充足，预计可使用 ${daysLeft} 天。下次订货建议在 ${(avgDaily>0?Math.round((currentStock-reorderPoint)/avgDaily):0)} 天后。</div>`;
+    html+=`<div class="tip-box tip-success" style="margin-top:12px;">✅ 库存充足，按日均消耗预计可使用 ${daysLeftText} 天。距再订货点还有 ${((currentStock-reorderPoint)/avgDaily).toFixed(1)} 天。</div>`;
   }
 
   html+=`<div class="tip-box tip-info" style="margin-top:8px;">
     <strong>💡 公式说明：</strong><br>
     • 安全库存 = 最大日消耗 × 最长到货天数 − 平均日消耗 × 平均到货天数<br>
     • 再订货点 = 平均日消耗 × 平均到货天数 + 安全库存<br>
-    • 经济订货量(EOQ) = √(2 × 年需求 × 订货成本 / 持有成本)
+    • 经济订货量(EOQ) = √(2 × 年需求 × 订货成本 / 持有成本)；订货成本为 0 时该模型退化，显示“不适用”<br>
+    • 预计可用天数 = 当前库存 ÷ 日均消耗，仅为按当前消耗速度的理论值；未考虑保质期、在途库存与需求波动。
   </div>`;
 
   const __g1=html;document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-  window._resultText=`${name} 库存分析\n安全库存: ${safetyStock.toFixed(1)}${unit}\n再订货点: ${reorderPoint.toFixed(1)}${unit}\n经济订货量: ${eoq.toFixed(1)}${unit}\n预计可用: ${daysLeft}天`;
+  window._resultText=`${name} 库存分析\n安全库存: ${safetyStock.toFixed(1)}${unit}\n再订货点: ${reorderPoint.toFixed(1)}${unit}\n经济订货量: ${eoqApplicable?eoq.toFixed(1)+unit:'不适用（零订货成本）'}\n预计可用: ${daysLeftText}天（仅按日均消耗）`;
 }
 
 function copyResult(){if(window._resultText)ToolBox.copyText(window._resultText,'tool.copy_ok');}

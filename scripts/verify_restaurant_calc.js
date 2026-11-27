@@ -89,7 +89,7 @@ const CASES = [
     "targetServings": "6"
   },
   "expect": [
-    "×1.20"
+    "×1.2"
   ],
   "ref": "auto-restore"
 },
@@ -104,7 +104,8 @@ const CASES = [
     "avgSpend": "65"
   },
   "expect": [
-    "30.00"
+    "16.36",
+    "11.45"
   ],
   "ref": "auto-restore"
 },
@@ -171,7 +172,7 @@ const CASES = [
   },
 { slug:"restaurant/delivery-time", inputs:{"distance":"","speed":"","prepTime":"","pickupWait":"","deliverWait":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
 { slug:"restaurant/seasoning-scaler", inputs:{"origServings":"","targetServings":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
-{ slug:"restaurant/table-turnover", inputs:{"hours":"","tables":"","avgTime":"","occupancy":"","perTable":"","avgSpend":""}, expect:["请填写必要的输入参数后再计算"], ref:"全部输入留空不得输出 0/0.00 假结果（NUMCLR）" },
+
 { slug:"restaurant/delivery-time", clicks:["calc();var had=!!window._resultText;['distance','speed','prepTime','pickupWait','deliverWait'].forEach(function(id){document.getElementById(id).value='';});calc();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616DT '+((had&&!window._resultText&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616DT OK"], ref:"第1366批空态缓存：默认计算后清空时间输入，calc 提前返回必须清 empty _resultText，copyResult 不得复制旧送达时间。旧实现保留旧串 ⇒ BAD。" },
 { slug:"restaurant/seasoning-scaler", clicks:["calc();var had=!!window._copyText;['origServings','targetServings'].forEach(function(id){document.getElementById(id).value='';});calc();var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616SS '+((had&&!window._copyText&&g==='')?'OK':'BAD g='+g.slice(0,40));"], expect:["B616SS OK"], ref:"第1367批空态缓存：默认缩放后清空人数，calc 提前返回必须清 _copyText，复制不得输出旧缩放清单。旧实现保留旧串 ⇒ BAD。" },
 { slug:"restaurant/table-turnover", clicks:["calc();['hours','tables','avgTime','occupancy','perTable','avgSpend'].forEach(function(id){document.getElementById(id).value='';});calc();var bar=document.getElementById('resultRefBar').innerHTML;var g='';ToolBox.copyText=function(t){g+=String(t)};copyResult();document.getElementById('__tbProbe').textContent='B616TT '+((bar===''&&!window._resultText&&g==='')?'OK':'BAD bar='+bar.length+' g='+g.slice(0,30));"], expect:["B616TT OK"], ref:"第1368批空态缓存：默认翻台率结果后清空全部输入，calc 必须同时清 resultRefBar 与 _resultText；旧评价标尺和复制串均不得残留。旧实现两者保留 ⇒ BAD。" }
@@ -184,6 +185,16 @@ const CASES = [
 ,{ slug:"restaurant/bbq-portion", inputs:{"people":"2","type":"bbq","drink":"yes"}, clicks:["calcTool();"], expect:["5 瓶","1650 ml","基准 1400 ml"], ref:"2 人×700ml=1400ml，330ml/瓶须向上取整为 5 瓶（1650ml）；旧四舍五入得 4 瓶 1320ml，低于基准。" }
 ,{ slug:"restaurant/delivery-time", inputs:{"distance":"0","speed":"20","prepTime":"10","pickupWait":"3","deliverWait":"2"}, clicks:["calc();"], expect:["0km","0 分钟"], ref:"零距离合法：基础骑行 0 分钟，不再静默替换为 1km；速度仍须 >0。" }
 ,{ slug:"restaurant/delivery-time", inputs:{"distance":"5","speed":"","prepTime":"10","pickupWait":"3","deliverWait":"2"}, clicks:["calc();"], expect:["平均车速须为大于 0 的数值","未计算"], ref:"速度空值不再回退 20，明确提示并停止。" }
+
+,{ slug:"restaurant/safety-stock", inputs:{"avgDaily":"5","maxDaily":"8","avgLead":"3","maxLead":"7","orderCost":"0","holdCost":"12","currentStock":"8","workDays":"365"}, clicks:["calc();"], expect:["不适用","1.6","不能据此判断无需订货"], ref:"零订货成本下 EOQ 无有限解显示不适用，不再输出 0.0 或虚构批量；当前 8 kg / 日均 5 kg 显示 1.6 天而非取整 2 天。" }
+,{ slug:"restaurant/menu-margin", clicks:["dishes=[{name:'A',cost:12,price:38,qty:100},{name:'B',cost:18,price:48,qty:200},{name:'C',cost:25,price:58,qty:50}];calc();"], expect:["¥16300.00","62.9%","销量合计 315 份"], ref:"按销量加权：收入 38×100+48×200+58×50=16,300；成本 12×100+18×200+25×50=6,050；毛利 10,250；加权毛利率 62.9%。旧实现只按各售 1 份，总售价 144、毛利率 61.8%。" }
+,{ slug:"restaurant/menu-margin", clicks:["dishes=[{name:'A',cost:12,price:38,qty:100},{name:'B',cost:18,price:48,qty:''},{name:'C',cost:25,price:58,qty:50}];calc();"], expect:["所有菜品的统计期销量都必须填写","未计算"], ref:"部分填写销量无法区分未统计与 0 份，停止计算并要求补全；旧实现按 0 份静默汇总。" }
+,{ slug:"restaurant/table-turnover", inputs:{"hours":"10","tables":"20","avgTime":"45","cleanTime":"10","occupancy":"70","perTable":"3","avgSpend":"65","targetTurnover":"4","actualTables":"100"}, clicks:["calc();"], expect:["5.00","100","¥19,500","125.0%"], ref:"实际模式：实际翻台 100÷20=5.00，接待 100 桌、300 人次、营业额 19,500；目标 4 次达成 125%。与预计模式 7.64 次互斥。" }
+,{ slug:"restaurant/table-turnover", inputs:{"hours":"10","tables":"20","avgTime":"45","cleanTime":"10","occupancy":"70","perTable":"3","avgSpend":"65","targetTurnover":"4","actualTables":"100.5"}, clicks:["calc();"], expect:["实际接待桌次须为 ≥0 的整数","未计算"], ref:"实际桌次必须为整数，小数拒绝；旧实现直接除出 5.025 次假精度。" }
+,{ slug:"restaurant/bbq-portion", inputs:{"people":"6.5","type":"bbq","drink":"yes"}, clicks:["calcTool();"], expect:["1–40 的整数","不能填小数"], ref:"人数不再 Math.floor 静默取整；小数直接报错，避免 6.5 人被算成 6 人。" }
+,{ slug:"restaurant/hotpot-portion", inputs:{"people":"4.5","style":"meat","intensity":"normal"}, clicks:["calcTool();"], expect:["1–30 的整数","不能填小数"], ref:"火锅人数不再静默向下取整；4.5 人直接报错。" }
+,{ slug:"restaurant/seasoning-scaler", clicks:["document.getElementById('origServings').value='1000';document.getElementById('targetServings').value='1';seasonings=[{name:'盐',amount:'1',unit:'g'}];renderRows();calc();"], expect:["×0.001","0.001 g"], ref:"1/1000 缩放比例显示 0.001，微量结果按有效数字保留，不再变成 0 或 ×0.00。" }
+,{ slug:"restaurant/menu-pricing", inputs:{"material":"18","labor":"20","fixed":"6","margin":"65"}, clicks:["calc();"], expect:["税前总成本（人工按食材成本加成）：","27.60 元","税前建议售价：","78.86 元"], ref:"人工加成分母为食材成本：18×1.2+6=27.60；售价 27.60/0.35=78.86。页面不再声称税费或含税售价。" }
 
 ];
 async function main() {

@@ -18,7 +18,7 @@
 <script src="/js/toolbox-stub.js"></script><!-- TOOLBOX-API-STUB -->
 <script src="../../js/common.js" defer></script>
 <style>
-.dish-row{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;}
+.dish-row{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:8px;}
 .dish-row .del-btn{width:38px;height:42px;border-radius:10px;border:1px solid var(--border);background:var(--card-bg);cursor:pointer;font-size:16px;color:var(--danger);flex-shrink:0;}
 .dish-row .del-btn:hover{background:rgba(239,68,68,0.08);}
 .margin-bar{height:24px;border-radius:6px;display:flex;align-items:center;padding-left:8px;color:#fff;font-size:12px;font-weight:600;transition:width 0.4s;}
@@ -217,7 +217,7 @@
 <li>季度调价前先看整体毛利率与单品毛利额分布，决定是提价还是替换食材。</li>
 <li>新品上架前用同类菜品的毛利率做对标，避免拉低整体盈利。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">三道菜的毛利对比</div><div class="dd-ex-body">A 成本 12 / 售价 38 → 毛利 26 元、毛利率 68.4%；B 成本 18 / 售价 48 → 毛利 30 元、毛利率 62.5%；C 成本 25 / 售价 58 → 毛利 33 元、毛利率 56.9%。汇总：总售价 144 元、总成本 55 元、总毛利 89 元、综合毛利率 61.8%。C 的毛利额最高（33 元）但毛利率最低，若它的销量也最高，整体毛利率会被拉到 61.8% 以下，应优先优化其成本或售价。</div></div>
+<div class="dd-example"><div class="dd-ex-title">三道菜按销量汇总</div><div class="dd-ex-body">A 成本 12 / 售价 38 / 销量 100 份：单份毛利 26 元、毛利率 68.4%、统计期毛利 2,600 元；B 成本 18 / 售价 48 / 销量 200 份：单份毛利 30 元、毛利率 62.5%、统计期毛利 6,000 元；C 成本 25 / 售价 58 / 销量 50 份：单份毛利 33 元、毛利率 56.9%、统计期毛利 1,650 元。按销量汇总：收入 16,300 元、成本 6,050 元、毛利 10,250 元、加权综合毛利率 62.9%。未填销量时页面按各售 1 份展示菜单结构，不称实际总额。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>毛利率和毛利额看哪个？</dt><dd>看结构用毛利率（反映定价与成本控制），看贡献用毛利额（反映实际赚多少）。低毛利额高毛利率的菜不赚钱，高毛利额低毛利率的菜可能才是利润主力，两者要结合销量一起判断。</dd>
@@ -264,11 +264,11 @@
 </div>
 <script>
 let dishes=[
-  {name:'宫保鸡丁',cost:12.5,price:38},
-  {name:'鱼香肉丝',cost:10.8,price:32},
-  {name:'水煮鱼',cost:28,price:68},
-  {name:'麻婆豆腐',cost:6,price:18},
-  {name:'红烧排骨',cost:18,price:48}
+  {name:'宫保鸡丁',cost:12.5,price:38,qty:''},
+  {name:'鱼香肉丝',cost:10.8,price:32,qty:''},
+  {name:'水煮鱼',cost:28,price:68,qty:''},
+  {name:'麻婆豆腐',cost:6,price:18,qty:''},
+  {name:'红烧排骨',cost:18,price:48,qty:''}
 ];
 let sortKey='margin';
 
@@ -279,22 +279,27 @@ function renderDishes(){
       <div><label>${idx===0?'菜品名称':''}</label><input type="text" value="${ToolBox.escHtml(d.name)}" oninput="updateDish(${idx},'name',this.value)"></div>
       <div><label>${idx===0?'成本(元)':''}</label><input type="number" value="${d.cost}" step="0.01" min="0" oninput="updateDish(${idx},'cost',this.value)" placeholder="如 ${d.cost}"></div>
       <div><label>${idx===0?'售价(元)':''}</label><input type="number" value="${d.price}" step="0.01" min="0" oninput="updateDish(${idx},'price',this.value)" placeholder="如 ${d.price}"></div>
+      <div><label>${idx===0?'统计期销量(份)':''}</label><input type="number" value="${d.qty==null?'':d.qty}" step="1" min="0" oninput="updateDish(${idx},'qty',this.value)" placeholder="${idx===0?'可空':''}" aria-label="${idx===0?'可空':''}"></div>
       <button type="button" class="del-btn" onclick="delDish(${idx})" aria-label="删除">✕</button>
     </div>
   `).join('');list.innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 
-function updateDish(idx,key,val){dishes[idx][key]=key==='name'?val:+val;calc();}
-function addDish(){dishes.push({name:'新菜品',cost:0,price:0});renderDishes();calc();}
+function updateDish(idx,key,val){dishes[idx][key]=val;calc();}
+function addDish(){dishes.push({name:'新菜品',cost:0,price:0,qty:''});renderDishes();calc();}
 function delDish(idx){dishes.splice(idx,1);renderDishes();calc();}
 function setSort(key,btn){sortKey=key;document.querySelectorAll('.sort-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');calc();}
 
 function __mmChart(){
   if (typeof TBKit === 'undefined' || !TBKit.chart) { return; }
   var en = TBKit.util.isEn();
-  var analyzed = dishes.map(function(d){
+  var qtyRaws = dishes.map(function(d){ return String(d.qty==null?'':d.qty).trim(); });
+  var useSales = qtyRaws.some(function(v){ return v!==''; });
+  var analyzed = dishes.map(function(d,i){
     var cost = +d.cost || 0, price = +d.price || 0;
-    return { name: d.name, cost: cost, price: price, profit: price - cost, margin: price > 0 ? ((price - cost) / price * 100) : 0 };
+    var qty = qtyRaws[i]===''?null:(+qtyRaws[i]||0);
+    var profit = price - cost;
+    return { name: d.name, cost: cost, price: price, qty: qty, profit: profit, margin: price > 0 ? (profit / price * 100) : 0 };
   });
   if (!analyzed.length) { return; }
   var sorters = {
@@ -308,14 +313,14 @@ function __mmChart(){
   var labels = [], prof = [], marg = [];
   analyzed.forEach(function(d, i){
     labels.push(en ? ('Dish ' + (i + 1)) : d.name);
-    prof.push(+d.profit.toFixed(2));
+    prof.push(+((d.profit*(useSales?(d.qty||0):1))).toFixed(2));
     marg.push(+d.margin.toFixed(1));
   });
   TBKit.chart.bar('#mmChart', {
-    title: en ? 'Profit and margin rate by dish (sorted)' : '各菜品毛利与毛利率对比（按当前排序）',
+    title: en ? (useSales?'Period profit (unit profit × sales) and margin by dish':'Menu structure example: unit profit and margin by dish') : (useSales?'各菜品统计期毛利（单份毛利×销量）与毛利率':'菜单结构示例：各售 1 份的单份毛利与毛利率'),
     labels: labels,
     series: [
-      { name: en ? 'Profit (CNY)' : '毛利(元)', data: prof },
+      { name: en ? (useSales?'Period profit (CNY)':'Unit profit (CNY)') : (useSales?'统计期毛利(元)':'单份毛利(元)'), data: prof },
       { name: en ? 'Margin (%)' : '毛利率(%)', data: marg }
     ]
   });
@@ -323,6 +328,9 @@ function __mmChart(){
 
 function calc(){
   const invalid=[];
+  const qtyRaws=dishes.map(d=>String(d.qty==null?'':d.qty).trim());
+  const anyQty=qtyRaws.some(v=>v!=='');
+  if(anyQty&&qtyRaws.some(v=>v==='')) invalid.push('已填写部分销量时，所有菜品的统计期销量都必须填写；留空无法区分“未统计”和“0 份”');
   const analyzed=dishes.map((d,i)=>{
     const costRaw=String(d.cost==null?'':d.cost).trim();
     const priceRaw=String(d.price==null?'':d.price).trim();
@@ -330,9 +338,12 @@ function calc(){
     const price=priceRaw===''?NaN:Number(priceRaw);
     if(costRaw===''||!isFinite(cost)||cost<0) invalid.push('第'+(i+1)+'行「'+(d.name||'未命名')+'」成本须为 ≥0 的数值');
     if(priceRaw===''||!isFinite(price)||price<0) invalid.push('第'+(i+1)+'行「'+(d.name||'未命名')+'」售价须为 ≥0 的数值');
+    const qtyRaw=qtyRaws[i];
+    const qty=qtyRaw===''?null:Number(qtyRaw);
+    if(qtyRaw!==''&&(!isFinite(qty)||!Number.isInteger(qty)||qty<0)) invalid.push('第'+(i+1)+'行「'+(d.name||'未命名')+'」销量须为 ≥0 的整数');
     const profit=price-cost;
     const margin=price>0?(profit/price*100):null;
-    return {...d,cost,price,profit,margin};
+    return {...d,cost,price,qty,profit,margin};
   });
   if(invalid.length){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);font-weight:600;">⚠ 菜品数据有误，未计算：</p><ul style="color:var(--danger);font-size:13px;line-height:1.8;">'+invalid.map(x=>'<li>'+ToolBox.escHtml(x)+'</li>').join('')+'</ul>';
@@ -348,34 +359,42 @@ function calc(){
   };
   analyzed.sort(sorters[sortKey]||sorters.margin);
 
-  const totalCost=analyzed.reduce((s,d)=>s+d.cost,0);
-  const totalRevenue=analyzed.reduce((s,d)=>s+d.price,0);
+  const useSales=anyQty;
+  const totalQty=useSales?analyzed.reduce((s,d)=>s+(d.qty||0),0):null;
+  const totalCost=analyzed.reduce((s,d)=>s+d.cost*(useSales?(d.qty||0):1),0);
+  const totalRevenue=analyzed.reduce((s,d)=>s+d.price*(useSales?(d.qty||0):1),0);
   const totalProfit=totalRevenue-totalCost;
   const margined=analyzed.filter(d=>d.margin!=null);
   const avgMargin=totalRevenue>0?(totalProfit/totalRevenue*100):null;
   const maxMargin=Math.max(...margined.map(d=>Math.abs(d.margin)),1);
+  const canAggregate=!useSales||totalQty>0;
 
   let html=`<div class="stat-grid">
-    <div class="stat-card"><div class="val">¥${totalRevenue.toFixed(2)}</div><div class="lbl">总售价</div></div>
-    <div class="stat-card"><div class="val">¥${totalCost.toFixed(2)}</div><div class="lbl">总成本</div></div>
-    <div class="stat-card"><div class="val">¥${totalProfit.toFixed(2)}</div><div class="lbl">总毛利</div></div>
-    <div class="stat-card"><div class="val">${avgMargin==null?'不适用':avgMargin.toFixed(1)+'%'}</div><div class="lbl">综合毛利率</div></div>
+    <div class="stat-card"><div class="val">¥${totalRevenue.toFixed(2)}</div><div class="lbl">${useSales?'统计期收入':'示例收入（各售 1 份）'}</div></div>
+    <div class="stat-card"><div class="val">¥${totalCost.toFixed(2)}</div><div class="lbl">${useSales?'统计期成本':'示例成本（各售 1 份）'}</div></div>
+    <div class="stat-card"><div class="val">¥${totalProfit.toFixed(2)}</div><div class="lbl">${useSales?'统计期毛利':'示例毛利（各售 1 份）'}</div></div>
+    <div class="stat-card"><div class="val">${canAggregate&&avgMargin!=null?avgMargin.toFixed(1)+'%':'不适用'}</div><div class="lbl">${useSales?'销量加权综合毛利率':'菜单结构示例毛利率'}</div></div>
   </div>`;
+  html+=`<p style="font-size:12px;color:var(--text-muted);margin-top:8px;">${useSales?'已按各菜统计期销量汇总；销量合计 '+totalQty+' 份。':'未填销量，以下总额按“每道菜各售 1 份”的菜单结构示例展示，不代表实际经营总额；填写各菜销量后才会按销量加权。'}</p>`;
+  if(!canAggregate){
+    html+=`<div class="tip-box tip-warn" style="margin-top:8px;">所有菜品销量均为 0，无法汇总实际收入与毛利；单品毛利率仍可参考。</div>`;
+  }
 
-  html+=`<table style="margin-top:12px;"><thead><tr><th>菜品</th><th>成本</th><th>售价</th><th>毛利</th><th>毛利率</th></tr></thead><tbody>`;
+  html+=`<table style="margin-top:12px;"><thead><tr><th>菜品</th><th>成本</th><th>售价</th><th>销量</th><th>单份毛利</th><th>毛利率</th></tr></thead><tbody>`;
   analyzed.forEach(d=>{
     const grade=d.margin==null?'':d.margin>=65?'grade-excellent':d.margin>=55?'grade-good':d.margin>=40?'grade-pass':'grade-fail';
     html+=`<tr>
       <td>${ToolBox.escHtml(d.name)}</td>
       <td>¥${d.cost.toFixed(2)}</td>
       <td>¥${d.price.toFixed(2)}</td>
+      <td>${useSales?(d.qty==null?'—':d.qty+' 份'):'—'}</td>
       <td>¥${d.profit.toFixed(2)}</td>
       <td>${d.margin==null?'<span class="grade-tag">不适用（售价 0）</span>':'<span class="grade-tag '+grade+'">'+d.margin.toFixed(1)+'%</span>'}</td>
     </tr>`;
   });
   html+=`</tbody></table>`;
 
-  html+=`<h3 style="margin-top:16px;">📊 毛利率可视化</h3>`;
+  html+=`<h3 style="margin-top:16px;">📊 毛利率可视化</h3><p style="font-size:12px;color:var(--text-muted);">条形长度为毛利率；饮品/套餐等高毛利与低毛利并排仅作结构对比。</p>`;
   margined.forEach(d=>{
     const w=Math.max(Math.abs(d.margin)/maxMargin*100,5);
     const color=d.margin>=65?'#065F46':d.margin>=55?'#1D4ED8':d.margin>=40?'#92400E':'#B91C1C';
@@ -385,6 +404,12 @@ function calc(){
     </div>`;
   });
 
+  if(useSales&&totalQty>0){
+    const topProfit=[...analyzed].filter(d=>d.margin!=null).sort((a,b)=>b.profit*(b.qty||0)-a.profit*(a.qty||0)).slice(0,3);
+    if(topProfit.length){
+      html+=`<div class="tip-box tip-info" style="margin-top:12px;">📌 按统计期毛利额（单份毛利×销量）排序前三：${topProfit.map(d=>ToolBox.escHtml(d.name)+'（¥'+(d.profit*(d.qty||0)).toFixed(2)+'）').join('、')}。销量结构会改变利润贡献，不只看毛利率。</div>`;
+    }
+  }
   const lowMargin=analyzed.filter(d=>d.margin!=null&&d.margin<55);
   const highMargin=analyzed.filter(d=>d.margin!=null&&d.margin>=65);
   if(lowMargin.length>0){
@@ -398,7 +423,7 @@ function calc(){
     </div>`;
   }
   html+=`<div class="tip-box tip-info" style="margin-top:8px;">
-    💡 餐饮行业综合毛利率建议保持在 55%-65%。可搭配高毛利菜品引流，低毛利菜品提价或降本。
+    💡 餐饮行业综合毛利率建议保持在 55%-65%。综合毛利率只覆盖食材成本与售价，未包含人工、房租、能耗、平台佣金等经营费用。可搭配高毛利菜品引流，低毛利菜品提价或降本。
   </div>`;
 
   const __g2=html;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
