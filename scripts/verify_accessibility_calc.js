@@ -18,10 +18,28 @@ const CASES = [
     "caseSel": "upper"
   },
   "expect": [
-    "⠁⠃",
-    "原文： AB 字母 2 个 · 数字 0 个 · 盲文符号 2 格"
+    "⠠⠁⠠⠃",
+    "原文： AB 字母 2 个 · 数字 0 个 · 盲文符号 4 格"
   ],
-  "ref": "盲文翻译：注入 ab + caseSel=upper ⇒ 结果区渲染盲文点字符 ⠁⠃（A=点1、B=点1+2），统计串为「原文： AB 字母 2 个 · 数字 0 个 · 盲文符号 2 格」。默认态是 hello 2026 ⇒ ⠓⠑⠇⠇⠕ ⠼⠃⠚⠃⠋ / 字母 5 个 · 数字 4 个 · 盲文符号 11 格，双态强判别。旧锚 expect [\"upper\"] 是输入值回显、零判别力，已替换。"
+  "ref": "盲文翻译：注入 ab + caseSel=upper ⇒ 全部大写模式对每个字母加大写符 ⠠（点6），输出 ⠠⠁⠠⠃，统计 4 格。旧用例期望 ⠁⠃/2 格，正是「全部大写遗漏大写符」的回归锚点，已按修复后语义更新。默认态 hello 2026 不含该串。"
+},
+{
+  "slug": "accessibility/braille-translator",
+  "inputs": {"srcInput": "1a"},
+  "expect": ["⠼⠁⠰⠁", "4 格"],
+  "ref": "数字后接字母边界：1a ⇒ 数字符 ⠼ + 数字 1 的 ⠁ + 字母符 ⠰（点5,6）+ 字母 a 的 ⠁ = ⠼⠁⠰⠁，共 4 格。若不加字母符，第二个 ⠁ 会被误读为数字 1；默认 hello 2026 不含字母符。"
+},
+{
+  "slug": "accessibility/braille-translator",
+  "inputs": {"srcInput": "中文"},
+  "expect": ["未支持字符", "「中」"],
+  "ref": "未支持字符显式提示：输入中文「中文」⇒ 只做拉丁字母/数字/空格映射，结果区列出未支持字符「中」「文」，不把汉字原样混进盲文串。默认 hello 2026 不含该提示。"
+},
+{
+  "slug": "accessibility/braille-translator",
+  "inputs": {"srcInput": "A", "caseSel": "keep"},
+  "expect": ["⠠⠁"],
+  "ref": "保留原样模式：大写 A ⇒ 大写符 ⠠ + a 的 ⠁；小写 a 不应带大写符。与 upper 模式用例共同覆盖三种大小写模式。"
 },
 {
   "slug": "accessibility/braille-translator",
@@ -83,10 +101,52 @@ const CASES = [
   "ref": "第830批：英文检索需匹配英文词/别名并渲染英文卡片。mom 命中「妈妈」的 enAlias；卡片输出 Mother、英文动作说明与 Terms of address。中文态默认 43 条不含该组串，零逃生。"
 },
 {
+  "slug": "accessibility/sign-language",
+  "clicks": ["applySignPreset('greet');var a=document.getElementById('searchInput').value;applySignPreset('family');var b=document.getElementById('searchInput').value;applySignPreset('help');var c=document.getElementById('searchInput').value;document.getElementById('searchInput').value='SIGNPRESET '+((a==='你好'&&b==='妈妈'&&c==='医院')?'OK':'BAD '+a+'/'+b+'/'+c);"],
+  "expect": ["SIGNPRESET OK"],
+  "ref": "三个预设必须与按钮标签一致：问候→你好、家庭称谓→妈妈、医疗求助→医院。旧实现 help 分支写死“谢谢”，探针会红；医院是词表已存在词条，不在本页新造未核验词。"
+},
+{
+  "slug": "accessibility/ramp-slope",
+  "clicks": ["document.getElementById('height').value='90';document.getElementById('ratio').value='10';document.getElementById('sceneSel').value='resident';calc();var __tip=document.getElementById('tipBox').textContent;document.getElementById('height').value='';calc();var __r=document.getElementById('result').innerHTML;var __g=document.getElementById('grid').innerHTML;var __s=document.getElementById('rampSvg').innerHTML;var __t=document.getElementById('tipBox').innerHTML;document.getElementById('tipBox').innerHTML='RAMPCLR '+((__g===''&&__s===''&&__t===''&&__r.indexOf('请输入有效')>=0&&__r.indexOf('符合无障碍坡道规范')<0)?'OK':'BAD '+__g+'/'+__s+'/'+__t);"],
+  "expect": ["RAMPCLR OK"],
+  "ref": "输入失效清空：先用 90/1:10/居住区算出旧提示与图形，再把高差清空并 calc ⇒ 结果区只显示“请输入有效的高差与坡度比”，tipBox、grid、rampSvg 全部清空，旧“符合无障碍坡道规范要求”不得残留。旧实现只替换 #result 后 return，探针必红。"
+},
+{
+  "slug": "accessibility/ramp-slope",
+  "inputs": {"height":"40","ratio":"12","sceneSel":"general"},
+  "expect": ["只校核坡度与单段高差", "未校核项：净宽、扶手"],
+  "ref": "结论限定：默认 40cm/1:12 的提示只声明坡度与单段高差通过，并列出未校核的净宽、扶手、防滑、平台尺寸、入口衔接等；不得再输出“符合无障碍坡道规范要求”这种整体合规措辞。"
+},
+{
   "slug": "accessibility/accessible-restroom",
-  "clicks": ["updateScope();document.getElementById('__tbProbe').textContent='SCOPE830 '+((document.getElementById('scopeNotice').textContent.indexOf('GB 55019-2021 现行版本')>=0&&document.getElementById('scopeNotice').textContent.indexOf('旧版对照')>=0)?'OK':'BAD');"],
-  "expect": ["SCOPE830 OK"],
-  "ref": "第830批：按所在地/项目类型给出适用规范提示；中国大陆默认提示查阅 GB 55019-2021 现行版本并将 GB 50763-2012 标为旧版对照。旧版无 updateScope 与 scopeNotice，探针必红。"
+  "clicks": ["document.getElementById('scopeRegion').value='us';updateScope();"],
+  "expect": ["32 in", "33–36 in", "60 in"],
+  "ref": "地区切换必须作用于卡片与清单：美国 ⇒ 门净宽 ≥32 in（0.815 m）、扶手 33–36 in（0.84–0.91 m）、回转 60 in（1.525 m）。默认中国大陆为 0.80m/0.70m/1.50m，三个串均不出现，强判别。"
+},
+{
+  "slug": "accessibility/accessible-restroom",
+  "clicks": ["document.getElementById('scopeRegion').value='other';updateScope();"],
+  "expect": ["按当地规范", "本页不提供可直接验收数值"],
+  "ref": "其他地区不得继续呈现中国数值：卡片统一显示“按当地规范 / 本页不提供可直接验收数值”，提示“本页数值不适用”。默认中国大陆不出现该串。"
+},
+{
+  "slug": "accessibility/accessible-restroom",
+  "clicks": ["document.getElementById('scopeRegion').value='cn';document.getElementById('scopeType').value='home';updateScope();"],
+  "expect": ["住宅改造：确认门洞", "住宅改造：紧急呼叫按钮"],
+  "ref": "项目类型必须作用于清单：住宅适老化改造追加门洞改造、紧急呼叫响应、照护者试用三条；公共建筑默认不含这些条目。"
+},
+{
+  "slug": "accessibility/accessible-restroom",
+  "clicks": ["document.getElementById('scopeRegion').value='cn';document.getElementById('scopeType').value='home';updateScope();exportChecklist();"],
+  "expect": ["项目所在地：中国大陆", "项目类型：住宅适老化改造", "页面核验日期：2026-11-27", "核验：待核验"],
+  "ref": "导出必须包含选择、限制和核验日期：buildExportText 生成文本后写入 #exportPreview，并由 exportChecklist 复制；文本含地区、项目类型、GB 55019-2021、页面核验日期 2026-11-27、逐项“核验：待核验”。旧实现固定文本且无预览，探针会红。"
+},
+{
+  "slug": "accessibility/voice-synthesis",
+  "clicks": ["supported=true;globalThis.speechSynthesis={getVoices:function(){return [{name:'Only English',lang:'en-US'}];},speaking:false,paused:false,speak:function(){},cancel:function(){},pause:function(){},resume:function(){}};document.getElementById('langFilter').value='zh';loadVoices();var __n=document.getElementById('voiceNotice').textContent;var __d=document.getElementById('voiceSel').disabled;var __o=document.getElementById('voiceSel').textContent;document.getElementById('langFilter').value='';loadVoices();var __all=document.getElementById('voiceSel').value;document.getElementById('status').textContent='VOICEFILTER '+((__n.indexOf('没有匹配')>=0&&__n.indexOf('不再静默回退')>=0&&__d&&__o.indexOf('Only English')<0&&__all==='Only English')?'OK':'BAD '+__n+'/'+__o+'/'+__all);"],
+  "expect": ["VOICEFILTER OK"],
+  "ref": "无匹配不回退：桩只有 en-US 语音，筛选 zh ⇒ 列表显示“没有匹配的中文（zh）语音”并禁用，提示明确不回退为全部；切回“全部”后才出现 Only English 并可主动选择。旧实现静默 filtered=voices，探针会红。"
 }
 ];
 async function main() {
