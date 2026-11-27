@@ -83,18 +83,26 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "码率越高画质一定越好吗？",
+      "name": "实际码率和同画质参考有什么区别？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "通常码率越高细节保留越多、文件越大，但受编码器效率与画面复杂度影响；过高码率收益递减。"
+        "text": "实际码率口径直接用你输入的视频码率计算，不按编码格式折减，适合已知设备录制规格的容量规划；同画质参考口径按 50%/60%/70% 折减视频码率，只是可调假设，不代表具体编码器的实际输出。"
       }
     },
     {
       "@type": "Question",
-      "name": "H.265 为什么能省空间？",
+      "name": "为什么文件大小用十进制 GB？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "HEVC 在同画质下约比 H.264 节省 40%–50% 码率，但编码/解码算力开销更大，老旧设备可能不兼容。"
+        "text": "1 GB 按 10^9 字节计算，与存储卡、硬盘标称容量口径一致；若用 1024 进制，页面与复制结果会相差约 2.4%，本工具页面和复制共用同一十进制结果。"
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "分钟为什么必须是 0–59 的整数？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "时长按“小时×3600+分钟×60”换算；分钟超过 59 应进位到小时，小数分钟会引入未显示的秒数，因此统一拒绝，避免结果与显示不一致。"
       }
     }
   ]
@@ -138,8 +146,8 @@
     <h2 data-zh="🧮 视频存储计算">Video Storage Calculate</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="根据分辨率、帧率、码率、时长估算视频文件大小">Video Storage Calculate</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文件大小(十进制 GB) = (视频码率×编码因子 + 音频码率÷1000) × 总秒数 ÷ 8 ÷ 1000；存储卡可录时长 = 标称十进制容量 ÷ 文件大小 × 总秒数；编码因子仅作用于视频码率，且为近似假设</div>
-      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(vBitrate×codecFactor+aBitrate÷1000)×totalSec÷8÷1000；hrs×3600+mins×60">Key formulas: totalBitrateMbps×totalSec÷8÷1024×codecFactor; vBitrate+aBitrate÷1000; hrs×3600+mins×60</p>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">文件大小(十进制 GB) = (视频码率×折减系数 + 音频码率÷1000) × 总秒数 ÷ 8 ÷ 1000；存储卡可录时长 = 标称十进制容量 ÷ 文件大小 × 总秒数；折减系数仅在同画质参考口径生效，默认 1（按实际码率）</div>
+      <p class="formula-desc" data-zh="核心计算公式（按输入变量）：(vBitrate×factor+aBitrate÷1000)×totalSec÷8÷1000；hrs×3600+mins×60">Key formulas: totalBitrateMbps×totalSec÷8÷1000; vBitrate×factor+aBitrate÷1000; hrs×3600+mins×60</p>
     </div>
 
     <div class="input-row">
@@ -188,12 +196,12 @@
         <input type="number" id="audioBitrate" value="128" min="32" step="32" oninput="calc()" placeholder="如 128">
       </div>
       <div>
-        <label for="codec">编码压缩</label>
+        <label for="codec">码率口径 / 参考折减</label>
         <select id="codec" onchange="calc()">
-          <option value="1">H.264 (基准)</option>
-          <option value="0.5">H.265/HEVC (省50%)</option>
-          <option value="0.6">AV1 (省40%)</option>
-          <option value="0.7">ProRes (高效)</option>
+          <option value="1">实际码率（直接计算，不折减）</option>
+          <option value="0.5">H.265 同画质参考（按 50%）</option>
+          <option value="0.6">AV1 同画质参考（按 60%）</option>
+          <option value="0.7">自定义参考（按 70%）</option>
         </select>
       </div>
     </div>
@@ -206,7 +214,7 @@
     <div class="result-box" id="result"></div> <div id="video_storageTable"></div> <div id="video_storageDiff"></div> <div id="video_storageChart"></div> <div id="video_storageHist"></div>
 
     <div class="tip-box tip-info" style="margin-top:16px;">
-      <strong>计算公式：</strong> 文件大小 = (视频码率 + 音频码率) × 时长(秒) ÷ 8 × 编码系数；结果区显示乘系数后的等效总码率。若已填写编码器实测码率，编码系数应设为 1，避免重复折算。
+      <strong>计算公式：</strong> 文件大小 = (视频码率 × 折减系数 + 音频码率÷1000) × 时长(秒) ÷ 8 ÷ 1000（十进制 GB）。默认“实际码率”折减系数为 1，直接按输入码率计算；选“同画质参考”时才按 50%/60%/70% 折减，属于可调假设，不代表具体编码器输出。
     </div>
   </div>
 
@@ -232,15 +240,16 @@
 <h2>📚 深度解析：视频存储计算</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>婚礼、活动跟拍前估算 4K/30fps 一小时占用的存储卡容量，决定携带几张卡与备份策略。</li>
+<li>婚礼、活动跟拍前按设备实际录制码率估算 4K/30fps 一小时占用的存储卡容量，决定带几张卡与备份策略。</li>
 <li>户外延时或长录制按码率与时长预算硬盘空间，避免录制中途容量耗尽。</li>
-<li>在画质与体积间权衡：选 H.265/HEVC 可省约一半空间，但需确认播放端兼容性。</li>
+<li>需要比较编码格式时，把“码率口径”切到同画质参考，按明确折减系数估算，并知道这不是实际编码输出。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">1080P 一小时文件大小</div><div class="dd-ex-body">以 1080P、30fps、<a class="term-link" href="/tools/it/video-bitrate.html">视频码率</a> 20Mbps、音频 128kbps、录制 1 小时、H.264 编码为例：文件大小=(20+0.128)×3600÷8÷1024≈8.85GB；一张 32GB 存储卡约可录制 3.6 小时。改用 H.265 约 4.42GB；若升级到 4K、100Mbps 则一小时约 44GB。</div></div>
+<div class="dd-example"><div class="dd-ex-title">1080P 一小时文件大小（实际码率口径）</div><div class="dd-ex-body">以 1080P、30fps、视频实际码率 20Mbps、音频 128kbps、录制 1 小时、码率口径“实际码率”为例：文件大小=(20+0.128)×3600÷8÷1000≈9.06GB（十进制）。一张 32GB 存储卡约可录制 3.5 小时。若把口径切到 H.265 同画质参考（<a class="term-link" href="/tools/it/video-bitrate.html">视频码率</a>按 50%），则约 4.56GB；若升级到 4K、100Mbps，实际码率口径下一小时约 45.3GB。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>码率越高画质一定越好吗？</dt><dd>通常码率越高细节保留越多、文件越大，但受编码器效率与画面复杂度影响；过高码率收益递减。</dd>
-<dt>H.265 为什么能省空间？</dt><dd>HEVC 在同画质下约比 H.264 节省 40%–50% 码率，但编码/解码算力开销更大，老旧设备可能不兼容。</dd>
+<dt>实际码率和同画质参考有什么区别？</dt><dd>实际码率口径直接用你输入的视频码率计算，不按编码格式折减，适合已知设备录制规格的容量规划；同画质参考口径按 50%/60%/70% 折减视频码率，只是可调假设，不代表具体编码器的实际输出。</dd>
+<dt>为什么文件大小用十进制 GB？</dt><dd>1 GB 按 10^9 字节计算，与存储卡、硬盘标称容量口径一致；若用 1024 进制，页面与复制结果会相差约 2.4%，本工具页面和复制共用同一十进制结果。</dd>
+<dt>分钟为什么必须是 0–59 的整数？</dt><dd>时长按“小时×3600+分钟×60”换算；分钟超过 59 应进位到小时，小数分钟会引入未显示的秒数，因此统一拒绝，避免结果与显示不一致。</dd>
 </dl>
 </div>
 </section>
@@ -291,48 +300,54 @@ function onResChange(){
   calc();
 }
 
-function calc(){
+function __enVS(){return !!(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());}
+function readStorageInputs(){
+  var en=__enVS();
+  var ids=['hours','minutes','bitrate','audioBitrate','fps'],raw={};
+  ids.forEach(function(id){raw[id]=String(document.getElementById(id).value||'').trim();});
+  if(ids.some(function(id){return raw[id]==='';})) return {error:en?'Fill in hours, minutes, video bitrate, audio bitrate and frame rate.':'请完整填写时、分、视频码率、音频码率与帧率。'};
   var res=document.getElementById('resolution').value.split(',');
   var w=+res[0],h=+res[1];
-  var fps=+document.getElementById('fps').value;
-  var vBitrate=+document.getElementById('bitrate').value||0;
-  var aBitrate=+document.getElementById('audioBitrate').value||0;
-  var hrs=+document.getElementById('hours').value||0;
-  var mins=+document.getElementById('minutes').value||0;
-  var codecFactor=+document.getElementById('codec').value;
-
-  var totalSec=hrs*3600+mins*60;
-  if(!(w>0)||!(h>0)||!(fps>0)||!(vBitrate>0)||!(aBitrate>=0)||!(hrs>=0)||!(mins>=0)||!(totalSec>0)||!(codecFactor>0)){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 时长、码率与分辨率须有效（总时长>0，码率>0，分辨率与帧率>0）。</p>';
-    return;
+  var fps=Number(raw.fps),vBitrate=Number(raw.bitrate),aBitrate=Number(raw.audioBitrate);
+  var hrs=Number(raw.hours),mins=Number(raw.minutes);
+  var factor=Number(document.getElementById('codec').value);
+  if(!Number.isInteger(hrs)||hrs<0) return {error:en?'Hours must be a non-negative integer.':'小时须为非负整数。'};
+  if(!Number.isInteger(mins)||mins<0||mins>59) return {error:en?'Minutes must be an integer from 0 to 59.':'分钟须为 0–59 的整数。'};
+  if(!(w>0)||!(h>0)||!isFinite(fps)||fps<=0||!isFinite(vBitrate)||vBitrate<=0||!isFinite(aBitrate)||aBitrate<0||!isFinite(factor)||factor<=0){
+    return {error:en?'Video bitrate and resolution/frame rate must be positive; audio bitrate cannot be negative.':'视频码率、分辨率与帧率须大于 0，音频码率不能为负。'};
   }
-  var effectiveVideoMbps=vBitrate*codecFactor;
-  var totalBitrateMbps=effectiveVideoMbps+aBitrate/1000;
-  var sizeGB=totalBitrateMbps*totalSec/8/1000; // 十进制 GB：1 GB = 10^9 bytes
-  var sizeMB=sizeGB*1000;
-
-  var pixelsPerFrame=w*h;
-  var totalFrames=fps*totalSec;
-
-  const __g1='<div class="stat-grid">'+
-    '<div class="stat-card"><div class="val">'+fmtSize(sizeMB)+'</div><div class="lbl">文件大小</div></div>'+
-    '<div class="stat-card"><div class="val">'+totalBitrateMbps.toFixed(2)+'</div><div class="lbl">折算后总码率 Mbps</div></div>'+
-    '<div class="stat-card"><div class="val">'+fmtTime(totalSec)+'</div><div class="lbl">录制时长</div></div>'+
+  var totalSec=hrs*3600+mins*60;
+  if(!(totalSec>0)) return {error:en?'Total duration must be greater than 0.':'录制总时长须大于 0。'};
+  var totalBitrateMbps=vBitrate*factor+aBitrate/1000;
+  var sizeGB=totalBitrateMbps*totalSec/8/1000;
+  return {w:w,h:h,fps:fps,vBitrate:vBitrate,aBitrate:aBitrate,hrs:hrs,mins:mins,totalSec:totalSec,factor:factor,totalBitrateMbps:totalBitrateMbps,sizeGB:sizeGB,sizeMB:sizeGB*1000,en:en};
+}
+function calc(){
+  var d=readStorageInputs();
+  if(d.error){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ '+d.error+'</p>';return;}
+  var en=d.en,ref=d.factor!==1;
+  var pixelsPerFrame=d.w*d.h;
+  var totalFrames=d.fps*d.totalSec;
+  var __g1='<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+fmtSize(d.sizeMB)+'</div><div class="lbl">'+(en?'File size':'文件大小')+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.totalBitrateMbps.toFixed(2)+'</div><div class="lbl">'+(en?(ref?'Adjusted total bitrate (Mbps)':'Total bitrate incl. audio (Mbps)'):(ref?'参考折算后总码率 Mbps':'总码率（含音频）Mbps'))+'</div></div>'+
+    '<div class="stat-card"><div class="val">'+fmtTime(d.totalSec)+'</div><div class="lbl">'+(en?'Duration':'录制时长')+'</div></div>'+
     '</div>'+
-    '<p>分辨率：<strong>'+w+'×'+h+'</strong>（'+(pixelsPerFrame/1000000).toFixed(1)+'MP/帧）</p>'+
-    '<p>总帧数：<strong>'+ToolBox.formatNumber(Math.round(totalFrames))+'</strong> 帧 @'+fps+'fps</p>'+
-    '<p>每分钟存储：<strong>'+fmtSize(sizeMB/(totalSec||1)*60)+'</strong></p>'+
-    '<p>每小时存储：<strong>'+fmtSize(sizeMB/(totalSec||1)*3600)+'</strong></p>'+
-    '<p style="font-size:12px;color:var(--text-muted);">口径：文件大小按十进制 GB（1 GB=10^9 字节）估算；存储卡标称容量通常也按十进制。编码因子 '+(codecFactor)+' 仅作用于视频码率，是经验近似，不保证与具体编码器/素材一致。</p>'+'<div style="margin-top:12px;">'+
-    '<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">存储卡容量参考：</p>'+
-    '<table><thead><tr><th>存储卡</th><th>可录时长</th></tr></thead><tbody>'+
-    '<tr><td>32 GB</td><td>'+fmtTime(32/sizeGB*totalSec||0)+'</td></tr>'+
-    '<tr><td>64 GB</td><td>'+fmtTime(64/sizeGB*totalSec||0)+'</td></tr>'+
-    '<tr><td>128 GB</td><td>'+fmtTime(128/sizeGB*totalSec||0)+'</td></tr>'+
-    '<tr><td>256 GB</td><td>'+fmtTime(256/sizeGB*totalSec||0)+'</td></tr>'+
-    '<tr><td>512 GB</td><td>'+fmtTime(512/sizeGB*totalSec||0)+'</td></tr>'+
+    '<p>'+(en?'Resolution: ':'分辨率：')+'<strong>'+d.w+'×'+d.h+'</strong>（'+(pixelsPerFrame/1000000).toFixed(1)+'MP/'+(en?'frame':'帧')+'）</p>'+
+    '<p>'+(en?'Total frames: ':'总帧数：')+'<strong>'+ToolBox.formatNumber(Math.round(totalFrames))+'</strong> '+(en?'frames':'帧')+' @'+d.fps+'fps</p>'+
+    '<p>'+(en?'Storage per minute: ':'每分钟存储：')+'<strong>'+fmtSize(d.sizeMB/d.totalSec*60)+'</strong></p>'+
+    '<p>'+(en?'Storage per hour: ':'每小时存储：')+'<strong>'+fmtSize(d.sizeMB/d.totalSec*3600)+'</strong></p>'+
+    '<p style="font-size:12px;color:var(--text-muted);">'+(en?('Basis: decimal GB (1 GB = 10^9 bytes); card capacity is usually decimal. '+(ref?('Same-quality reference only: video bitrate is reduced to '+(d.factor*100).toFixed(0)+'%; this is an adjustable assumption, not the actual encoder output.'):'Calculated directly from the actual video bitrate; no codec discount is applied.')):('口径：文件大小按十进制 GB（1 GB=10^9 字节）估算；存储卡标称容量通常也按十进制。'+(ref?('当前为同画质参考估算，视频码率按 '+(d.factor*100).toFixed(0)+'% 折减；这只是可调假设，不代表具体编码器的实际输出。'):'当前按输入的实际视频码率直接计算，不再按编码格式折减。')))+'</p>'+'<div style="margin-top:12px;">'+
+    '<p style="font-size:12px;color:var(--text-muted);margin-bottom:6px;">'+(en?'Card capacity reference:':'存储卡容量参考：')+'</p>'+
+    '<table><thead><tr><th>'+(en?'Card':'存储卡')+'</th><th>'+(en?'Recording time':'可录时长')+'</th></tr></thead><tbody>'+
+    '<tr><td>32 GB</td><td>'+fmtTime(32/d.sizeGB*d.totalSec||0)+'</td></tr>'+
+    '<tr><td>64 GB</td><td>'+fmtTime(64/d.sizeGB*d.totalSec||0)+'</td></tr>'+
+    '<tr><td>128 GB</td><td>'+fmtTime(128/d.sizeGB*d.totalSec||0)+'</td></tr>'+
+    '<tr><td>256 GB</td><td>'+fmtTime(256/d.sizeGB*d.totalSec||0)+'</td></tr>'+
+    '<tr><td>512 GB</td><td>'+fmtTime(512/d.sizeGB*d.totalSec||0)+'</td></tr>'+
     '</tbody></table>'+
-    '</div>';document.getElementById('result').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
+    '</div>';
+  document.getElementById('result').innerHTML=__g1.replace(/Infinity|NaN/g,'—');
 }
 
 function fmtSize(mb){
@@ -342,34 +357,25 @@ function fmtSize(mb){
 }
 
 function fmtTime(sec){
-  if(!isFinite(sec)||sec<=0) return '0分';
+  var en=__enVS();
+  if(!isFinite(sec)||sec<=0) return en?'0 min':'0分';
   var h=Math.floor(sec/3600);
   var m=Math.floor((sec%3600)/60);
   var s=Math.round(sec%60);
-  if(h>0) return h+'时'+m+'分';
-  if(m>0) return m+'分'+s+'秒';
-  return s+'秒';
+  if(h>0) return en?(h+' h '+m+' min'):(h+'时'+m+'分');
+  if(m>0) return en?(m+' min '+s+' s'):(m+'分'+s+'秒');
+  return en?(s+' s'):(s+'秒');
 }
 
 function copyResult(){
-  var res=document.getElementById('resolution').value.split(',');
-  var vBitrate=+document.getElementById('bitrate').value||0;
-  var aBitrate=+document.getElementById('audioBitrate').value||0;
-  var hrs=+document.getElementById('hours').value||0;
-  var mins=+document.getElementById('minutes').value||0;
-  var totalSec=hrs*3600+mins*60;
-  var totalBitrateMbps=vBitrate+aBitrate/1000;
-  var codecFactor=+document.getElementById('codec').value;
-  if(!(vBitrate>0)||!(aBitrate>=0)||!(hrs>=0)||!(mins>=0)||!(totalSec>0)||!(codecFactor>0)){
-    ToolBox.showToast('请先输入有效的时长、码率与编码参数','warning');
-    return;
-  }
-  var sizeGB=totalBitrateMbps*totalSec/8/1024*codecFactor;
-  var txt='视频存储：'+res[0]+'x'+res[1]+' | '+vBitrate+'Mbps | '+fmtTime(totalSec)+' | 文件大小：'+sizeGB.toFixed(2)+'GB';
-  ToolBox.copyText(txt, i18nText('msg281'));
+  var d=readStorageInputs();
+  if(d.error){ToolBox.showToast(d.error,'warning');return;}
+  var en=d.en,ref=d.factor!==1;
+  var txt=(en?'Video storage: ':'视频存储：')+d.w+'x'+d.h+' | '+d.vBitrate+'Mbps | '+fmtTime(d.totalSec)+' | '+(en?'file size: ':'文件大小：')+fmtSize(d.sizeMB)+(en?' (decimal GB)':'（十进制）')+(ref?(en?(' | same-quality reference, video bitrate ×'+(d.factor*100).toFixed(0)+'%'):(' | 同画质参考估算，视频码率按 '+(d.factor*100).toFixed(0)+'% 折减')):(en?' | based on actual bitrate':' | 按实际码率计算'));
+  ToolBox.copyText(txt, en?'Copied':'已复制');
 }
-
-calc();
+function __initVS(){calc();}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',__initVS);else __initVS();
 ToolBox.initToolTheme();
 </script>
 

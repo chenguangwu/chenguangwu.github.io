@@ -196,7 +196,7 @@ window.INDUSTRY_INFO = {
   'gardening2'           : { name: '园艺养护', icon: '🌿', hot: 34693 },
   'chinese'              : { name: '中华文化', icon: '🀄', hot: 34182 },
   'antiques'             : { name: '古董鉴定', icon: '🏺', hot: 33206 },
-  'photo2'               : { name: '摄影后期', icon: '🎞️', hot: 33159 },
+  'photo2'               : { name: '摄影后期', icon: '🎞️', hot: 33157 },
   'edu2'                 : { name: '教学辅助', icon: '📚', hot: 32975 },
   'aquaculture'          : { name: '水产养殖', icon: '🐟', hot: 32180 },
   'fengshui'             : { name: '风水命理', icon: '🏔️', hot: 31782 },
