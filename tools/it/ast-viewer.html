@@ -100,6 +100,11 @@
   .type-count-row .tc-num{width:36px;text-align:right;font-weight:600;color:var(--text);flex-shrink:0;}
 
   /* 错误提示 */
+  .ast-comments{border-top:1px solid var(--border);margin-top:12px;padding-top:2px;}
+  .ast-comment{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;padding:6px 0;font-size:12px;line-height:1.7;border-bottom:1px dashed var(--border);}
+  .ast-comment-type{flex:0 0 auto;color:var(--info);font-weight:600;}
+  .ast-comment code{flex:1 1 240px;white-space:pre-wrap;word-break:break-all;font-family:'SF Mono','Courier New',monospace;color:var(--text);}
+  .ast-comment .ast-pos{flex:0 0 auto;}
   .ast-error{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:14px 16px;margin-bottom:12px;color:#B91C1C;font-size:13px;line-height:1.7;}
   .ast-error .err-title{font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px;}
   .ast-error .err-pos{font-size:12px;color:var(--text-muted);margin-top:4px;font-family:'SF Mono','Courier New',monospace;}
@@ -203,7 +208,7 @@
 </script>
 <meta property="og:site_name" content="ToolBox">
 </head>
-<body>
+<body data-no-persist>
 <h1 class="sr-only">AST抽象语法树查看器</h1>
 <div class="nav">
   <a href="../../index.html">← ToolBox</a>
@@ -262,6 +267,11 @@
     <div class="ast-checkbox-row">
       <label><input type="checkbox" id="optLocations"> 保留位置信息 (locations)</label>
       <label><input type="checkbox" id="optComments"> 保留注释 (comments)</label>
+      <label><input type="checkbox" id="optPersist"> 在本机保留代码与设置</label>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+      <button type="button" class="btn" id="btnClearSaved">清除本地保存</button>
+      <span style="font-size:12px;color:var(--text-muted);">默认不保存源码；勾选后才会写入本机 localStorage，关闭页面仍可恢复。</span>
     </div>
 
     <div data-tb="preset" data-tb-presets='[{"label":"箭头函数与解构","labelEn":"Arrow and destructuring","values":{"ecmaVersion":"2022","sourceType":"script","optLocations":false,"optComments":false,"codeInput":"const users = [\n  { name: \"Ann\", age: 20 },\n  { name: \"Bob\", age: 31 }\n];\nconst names = users.map(({ name }) => name);\nconsole.log(names);"}},{"label":"类与继承","labelEn":"Class and extends","values":{"ecmaVersion":"2015","sourceType":"script","optLocations":false,"optComments":false,"codeInput":"class Animal {\n  constructor(name) {\n    this.name = name;\n  }\n  speak() {\n    return this.name + \" makes a sound\";\n  }\n}\nclass Dog extends Animal {\n  speak() {\n    return this.name + \" barks\";\n  }\n}"}},{"label":"模块导入导出","labelEn":"Module import export","values":{"ecmaVersion":"2022","sourceType":"module","optLocations":true,"optComments":false,"codeInput":"import { readFile } from \"node:fs\";\nexport const config = { retries: 3 };\nexport function load(path) {\n  return readFile(path, \"utf8\", () => {});\n}"}},{"label":"ES5 循环","labelEn":"ES5 loop","values":{"ecmaVersion":"5","sourceType":"script","optLocations":false,"optComments":false,"codeInput":"var total = 0;\nfor (var i = 1; i <= 5; i++) {\n  total += i;\n}\nfunction square(x) {\n  return x * x;\n}"}}]'></div>
@@ -313,6 +323,11 @@
 
     <div class="view-pane" id="paneJson">
       <div class="ast-json" id="astJson">解析后将显示 AST 的 JSON 数据</div>
+    </div>
+
+    <div class="ast-comments" id="commentPanel" style="display:none;">
+      <h4 style="margin:10px 0 6px;font-size:14px;">💬 注释（独立列表）</h4>
+      <div id="commentList"></div>
     </div>
   </div>
 
@@ -484,6 +499,7 @@
 (function(){
   "use strict";
   const esc = ToolBox.escHtml;
+  function __astL(en, zh){ return (typeof TBKit!=='undefined' && TBKit.util && TBKit.util.isEn && TBKit.util.isEn()) ? en : zh; }
 
   const codeInput = document.getElementById('codeInput');
   const ecmaSel = document.getElementById('ecmaVersion');
@@ -500,6 +516,8 @@
   const statTypes = document.getElementById('statTypes');
   const statLines = document.getElementById('statLines');
   const statChars = document.getElementById('statChars');
+  const cmtPanel = document.getElementById('commentPanel');
+  const cmtList = document.getElementById('commentList');
 
   let currentAst = null;
   let currentComments = [];
@@ -688,10 +706,17 @@ class Counter {
     if (typeof v === 'bigint') return v.toString() + 'n';
     try { return JSON.stringify(v); } catch(e) { return String(v); }
   }
+  function astExportValue(ast){
+    // 注释作为独立列表与 AST 并列导出，避免把 acorn 的 onComment 结果塞进节点破坏 ESTree 形状。
+    if (cmtChk && cmtChk.checked && currentComments.length){
+      return { ast: ast, comments: currentComments };
+    }
+    return ast;
+  }
   function renderJson(ast){
     if (!ast){ jsonBox.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"The parsed AST JSON data will be displayed":"解析后将显示 AST 的 JSON 数据"); return; }
     let jsonStr;
-    try { jsonStr = astJsonStringify(ast); }
+    try { jsonStr = astJsonStringify(astExportValue(ast)); }
     catch(err){ jsonStr = '⚠ JSON 序列化失败：' + (err && err.message ? err.message : String(err)); }
     const highlighted=esc(jsonStr).replace(
       /("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)/g,
@@ -764,6 +789,37 @@ class Counter {
     const __h7=html;if((typeof __h7==='number'&&!isFinite(__h7))||/Infinity/.test(String(__h7))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h7)){typeCountList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}typeCountList.innerHTML=__h7;
   }
 
+  function __astCharWidth(ch){
+    if(ch === '\t') return 0;
+    var cp = ch.codePointAt(0);
+    if(cp >= 0x0300 && cp <= 0x036F) return 0;
+    if((cp >= 0x1100 && cp <= 0x115F) || (cp >= 0x2E80 && cp <= 0xA4CF) || (cp >= 0xAC00 && cp <= 0xD7A3) || (cp >= 0xF900 && cp <= 0xFAFF) || (cp >= 0xFE10 && cp <= 0xFE19) || (cp >= 0xFE30 && cp <= 0xFE6F) || (cp >= 0xFF00 && cp <= 0xFF60) || (cp >= 0xFFE0 && cp <= 0xFFE6) || (cp >= 0x1F300 && cp <= 0x1FAFF)) return 2;
+    return 1;
+  }
+  function __astDisplayWidth(text){
+    var width = 0;
+    Array.from(String(text)).forEach(function(ch){
+      if(ch === '\t') width += 4 - (width % 4);
+      else width += __astCharWidth(ch);
+    });
+    return width;
+  }
+  function __astExpandTabs(text){
+    var out = '';
+    var width = 0;
+    Array.from(String(text)).forEach(function(ch){
+      if(ch === '\t'){
+        var n = 4 - (width % 4);
+        out += ' '.repeat(n);
+        width += n;
+      }else{
+        out += ch;
+        width += __astCharWidth(ch);
+      }
+    });
+    return out;
+  }
+
   // 显示错误
   function showError(err){
     const code = codeInput.value;
@@ -774,17 +830,49 @@ class Counter {
       const lineStart = prefix.lastIndexOf('\n') + 1;
       let lineEnd = code.indexOf('\n', err.pos);
       if (lineEnd === -1) lineEnd = code.length;
-      const col = err.pos - lineStart;
+      const col = Math.max(0, Math.min(err.pos - lineStart, lineEnd - lineStart));
       const lineText = code.slice(lineStart, lineEnd);
-      const caret = new Array(col).join(' ') + '^';
+      const shownLine = __astExpandTabs(lineText);
+      const caretWidth = __astDisplayWidth(lineText.slice(0, col));
+      const caret = ' '.repeat(caretWidth) + '^';
       html += '<div class="err-pos">位置：第 ' + lineNum + ' 行，第 ' + (col + 1) + ' 列（字符偏移 ' + err.pos + '）</div>';
-      html += '<div class="err-line">' + esc(lineText) + '\n<span class="err-caret">' + caret + '</span></div>';
+      html += '<div class="err-line">' + esc(shownLine) + '\n<span class="err-caret">' + caret + '</span></div>';
     }
     html += '</div>';
     const __h8=html;if((typeof __h8==='number'&&!isFinite(__h8))||/Infinity/.test(String(__h8))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h8)){errorBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}errorBox.innerHTML=__h8;
   }
 
   function clearError(){ const __h9='';if((typeof __h9==='number'&&!isFinite(__h9))||/Infinity/.test(String(__h9))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h9)){errorBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}errorBox.innerHTML=__h9; }
+
+  function renderComments(){
+    if(!cmtPanel || !cmtList) return;
+    if(!cmtChk.checked || currentComments.length === 0){
+      cmtPanel.style.display = 'none';
+      cmtList.innerHTML = '';
+      return;
+    }
+    cmtPanel.style.display = 'block';
+    cmtList.innerHTML = currentComments.map(function(c){
+      var type = c.type === 'Block' ? __astL('Block comment','块注释') : __astL('Line comment','行注释');
+      var pos = c.loc && c.loc.start ? 'L' + c.loc.start.line + ':' + c.loc.start.column : '[' + c.start + '..' + c.end + ']';
+      return '<div class="ast-comment"><span class="ast-comment-type">' + esc(type) + '</span><code>' + esc(c.value || '') + '</code><span class="ast-pos">' + esc(pos) + '</span></div>';
+    }).join('');
+  }
+
+  function invalidateAst(message){
+    var msg = message || __astL('Input or options changed; parse again','输入或选项已改变，请重新解析');
+    currentAst = null;
+    currentComments = [];
+    if(cmtPanel) cmtPanel.style.display = 'none';
+    if(cmtList) cmtList.innerHTML = '';
+    treeBox.innerHTML = '<div class="ast-tree-empty">' + esc(msg) + '</div>';
+    jsonBox.textContent = msg;
+    typeCountList.innerHTML = '<div class="ast-tree-empty">' + esc(msg) + '</div>';
+    statNodes.textContent = '0';
+    statTypes.textContent = '0';
+    selectedSrc.innerHTML = '';
+    clearError();
+  }
 
   // 解析
   function parseCode(silent){
@@ -817,9 +905,12 @@ class Counter {
       renderTree(ast);
       renderJson(ast);
       renderStats(ast);
+      renderComments();
       if(!silent) ToolBox.showToast('解析成功，共 ' + statNodes.textContent + ' 个节点', 'success');
     } catch(err){
       currentAst = null;
+      if(cmtPanel) cmtPanel.style.display = 'none';
+      if(cmtList) cmtList.innerHTML = '';
       const __h11='<div class="ast-tree-empty">解析失败，请查看错误提示</div>';if((typeof __h11==='number'&&!isFinite(__h11))||/Infinity/.test(String(__h11))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h11)){treeBox.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}treeBox.innerHTML=__h11;
       jsonBox.textContent = ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?"Parse failed; see the error message":"解析失败，请查看错误提示");
       const __h12='<div class="ast-tree-empty">解析失败</div>';if((typeof __h12==='number'&&!isFinite(__h12))||/Infinity/.test(String(__h12))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h12)){typeCountList.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}typeCountList.innerHTML=__h12;
@@ -884,7 +975,7 @@ class Counter {
       return;
     }
     let jsonStr;
-    try { jsonStr = astJsonStringify(currentAst); }
+    try { jsonStr = astJsonStringify(astExportValue(currentAst)); }
     catch(err){ jsonStr = '⚠ JSON 序列化失败：' + (err && err.message ? err.message : String(err)); }
     ToolBox.copyText(jsonStr, i18nText());
   });
@@ -926,6 +1017,19 @@ class Counter {
     TBKit.util.exportTable('#astHidden', en?'ast-stats.csv':'AST统计.csv');
   });
 
+  // 输入或解析选项变化后旧 AST 立即过期：树、JSON、统计、注释全部清空，复制/定位不再使用旧偏移。
+  function markAstStale(){
+    if(currentAst || currentComments.length) invalidateAst();
+  }
+  codeInput.addEventListener('input', markAstStale);
+  [ecmaSel, srcSel, locChk, cmtChk].forEach(function(el){
+    if(el) el.addEventListener('change', markAstStale);
+  });
+  document.addEventListener('tb:ast-restored', function(){
+    if(codeInput.value.trim()) parseCode(true);
+    else invalidateAst(__astL('Input is empty; paste code and parse again','输入为空，请粘贴代码后解析'));
+  });
+
   // 介绍区折叠
   const intro = document.getElementById('toolIntro');
   if (intro){
@@ -942,6 +1046,7 @@ class Counter {
       const en = this.selectionEnd;
       this.value = this.value.slice(0, s) + '  ' + this.value.slice(en);
       this.selectionStart = this.selectionEnd = s + 2;
+      this.dispatchEvent(new Event('input', {bubbles:true}));
     }
   });
 
@@ -954,6 +1059,15 @@ class Counter {
   });
 
   // 初始化
+  window.__astParse = parseCode;
+  window.__astDisplayWidth = __astDisplayWidth;
+  window.__astInvalidate = invalidateAst;
+  window.__astState = function(){ return { hasAst: !!currentAst, comments: currentComments.length, stale: !currentAst && currentComments.length === 0 }; };
+  window.__astLastCaret = function(){
+    var t = errorBox.textContent;
+    var last = t.split(String.fromCharCode(10)).pop();
+    return last.length - last.trimStart().length;
+  };
   codeInput.value = SAMPLE;
   parseCode(true);
 })();
@@ -962,15 +1076,44 @@ class Counter {
 <script>
 (function(){try{
   var NS="tools/it/ast-viewer.html";
-  function k(id){return 'tb_uxp_'+NS+'#'+id;}
+  var OPT_KEY='tb_ast_persist_optin';
+  function k(id){return 'tb_ast_persist_'+id;}
+  function persistOn(){
+    var el=document.getElementById('optPersist');
+    return !!(el && el.checked);
+  }
+  function clearSaved(){
+    try{
+      var prefix='tb_ast_persist_';
+      Object.keys(localStorage).forEach(function(key){
+        if(key.indexOf(prefix)===0) localStorage.removeItem(key);
+      });
+      localStorage.removeItem(OPT_KEY);
+    }catch(e){}
+  }
   function save(el){try{
+    if(el.id==='optPersist'){
+      localStorage.setItem(OPT_KEY, el.checked?'1':'0');
+      if(!el.checked) clearSaved();
+      return;
+    }
+    if(!persistOn()) return;
     if(el.type==='checkbox'){localStorage.setItem(k(el.id),el.checked?'1':'0');}
     else if(el.type==='radio'){if(el.checked)localStorage.setItem(k(el.id),el.value);}
     else{localStorage.setItem(k(el.id),el.value);}
   }catch(e){}}
   function restore(){try{
+    var opt=document.getElementById('optPersist');
+    var on=localStorage.getItem(OPT_KEY)==='1';
+    if(opt) opt.checked=on;
+    if(!on){
+      // 迁移清理：旧版本会无条件自动保存源码，未主动勾选时必须删掉遗留数据。
+      clearSaved();
+      document.dispatchEvent(new Event('tb:ast-restored'));
+      return;
+    }
     document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
-      if(!el.id)return;
+      if(!el.id || el.id==='optPersist')return;
       var v=localStorage.getItem(k(el.id));if(v===null)return;
       try{
         if(el.type==='checkbox'){el.checked=(v==='1');}
@@ -980,11 +1123,21 @@ class Counter {
         el.dispatchEvent(new Event('change',{bubbles:true}));
       }catch(e){}
     });
+    document.dispatchEvent(new Event('tb:ast-restored'));
   }catch(e){}}
   document.querySelectorAll('input:not([type=password]):not([readonly]):not([disabled]),textarea:not([readonly]):not([disabled]),select').forEach(function(el){
     if(!el.id)return;
     el.addEventListener('input',function(){save(el);});
     el.addEventListener('change',function(){save(el);});
+  });
+  window.__astPersistSave = save;
+  window.__astPersistClear = clearSaved;
+  var clearBtn=document.getElementById('btnClearSaved');
+  if(clearBtn) clearBtn.addEventListener('click',function(){
+    clearSaved();
+    var opt=document.getElementById('optPersist');
+    if(opt) opt.checked=false;
+    try{ if(typeof ToolBox!=='undefined'&&ToolBox.showToast) ToolBox.showToast('已清除本机保存的代码与设置','info'); }catch(e){}
   });
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',restore);
   else restore();

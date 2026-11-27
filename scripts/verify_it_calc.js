@@ -18711,6 +18711,36 @@ const CASES = [
     ref: "第764批：AST 的 BigInt literal 不能被原生 JSON.stringify 序列化；新序列化把 bigint 转为 {\"__type\":\"BigInt\",\"value\":\"1\"}，JSON 视图可见且不丢精度。旧实现 catch 后回退 String(ast)，只得到 [object Object]。",
   },
   {
+    slug: "it/ast-viewer",
+    clicks: ["window.acorn={parse:function(code,opts){if(opts.onComment){opts.onComment.push({type:'Line',value:' hi',start:0,end:3,loc:{start:{line:1,column:0},end:{line:1,column:3}}});opts.onComment.push({type:'Block',value:' block',start:5,end:14,loc:{start:{line:3,column:0},end:{line:3,column:9}}});}return {type:'Program',start:0,end:code.length,body:[]};}};document.getElementById('codeInput').value='// hi'+String.fromCharCode(10)+'const a=1;';document.getElementById('optComments').checked=true;document.getElementById('optLocations').checked=true;window.__astParse();var p=document.getElementById('commentPanel');var j=document.getElementById('astJson').innerHTML;var st=window.__astState();document.getElementById('__tbProbe').textContent='CMT comments='+st.comments+' json='+(j.indexOf('comments')>=0?'1':'0')+' panel='+p.style.display;"],
+    expect: ["CMT comments=2 json=1 panel=block"],
+    ref: "第1054批：勾选保留注释后，注释必须以独立列表显示类型、内容和位置，并在 JSON 视图/复制中作为 comments 导出；旧实现只收集 currentComments，界面和 JSON 完全看不到。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["window.acorn={parse:function(code){return {type:'Program',start:0,end:code.length,body:[]};}};document.getElementById('codeInput').value='const a=1;';document.getElementById('btnParse').fire('click');var before=document.getElementById('statNodes').textContent;var inp=document.getElementById('codeInput');inp.value='const b=2;';window.__astInvalidate();document.getElementById('__tbProbe').textContent='STALE nodes='+document.getElementById('statNodes').textContent+' before='+before+' text='+(document.getElementById('astJson').textContent.indexOf('重新解析')>=0?'1':'0');"],
+    expect: ["STALE nodes=0 before=1 text=1"],
+    ref: "第1054批：解析成功后编辑源码，旧 AST、统计和复制必须立即失效；旧实现保留 currentAst，节点定位用旧偏移会在新代码上选中错误区间。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["window.acorn={parse:function(code){return {type:'Program',start:0,end:code.length,body:[]};}};document.getElementById('codeInput').value='const a=1;';window.__astParse();document.getElementById('ecmaVersion').value='2020';window.__astInvalidate();document.getElementById('__tbProbe').textContent='OPTSTALE nodes='+document.getElementById('statNodes').textContent+' has='+(window.__astState().hasAst?'1':'0');"],
+    expect: ["OPTSTALE nodes=0 has=0"],
+    ref: "第1054批：切换 ECMA 版本等解析选项后旧语法树同样过期；旧实现只在下次点击解析时更新，期间复制/定位仍使用旧选项的结果。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["localStorage.removeItem('tb_ast_persist_codeInput');localStorage.removeItem('tb_ast_persist_optin');var cb=document.getElementById('optPersist');cb.checked=false;window.__astPersistSave(cb);var inp=document.getElementById('codeInput');inp.value='SECRET_OFF';window.__astPersistSave(inp);var off=(localStorage.getItem('tb_ast_persist_codeInput')===null);cb.checked=true;window.__astPersistSave(cb);inp.value='SAVED_ON';window.__astPersistSave(inp);var on=localStorage.getItem('tb_ast_persist_codeInput')==='SAVED_ON';document.getElementById('__tbProbe').textContent='PERSIST off='+(off?'1':'0')+' on='+(on?'1':'0');"],
+    expect: ["PERSIST off=1 on=1"],
+    ref: "第1054批：源码默认不得写入 localStorage；只有主动勾选后才保存，点击清除本地保存必须移除键。页面另以 data-no-persist 退出全站 tool-ux 自动保存，避免旧数据迁移遗漏。",
+  },
+  {
+    slug: "it/ast-viewer",
+    clicks: ["var a=window.__astDisplayWidth('');var b=window.__astDisplayWidth('const x = ');var c=window.__astDisplayWidth(String.fromCharCode(9)+'const y = ');var d=window.__astDisplayWidth('const 名 = ');document.getElementById('__tbProbe').textContent='WIDTH empty='+a+' mid='+b+' tab='+c+' cjk='+d;"],
+    expect: ["WIDTH empty=0 mid=10 tab=14 cjk=11"],
+    ref: "第1054批：错误指示符必须按显示宽度缩进：行首 0、普通字符每字符 1、制表符按 4 列展开、CJK 宽字符按 2 列；旧实现 new Array(col).join(' ') 少一列，且不处理 Tab/宽字符。",
+  },
+  {
     slug: "it/atbash-cipher",
     clicks: ["var a='A'.repeat(250);var b='A'.repeat(249)+'B';saveHistory(a,'Z'.repeat(250),'encrypt');saveHistory(b,'Y'.repeat(250),'encrypt');var h=getHistory().filter(function(x){return x.input&&x.input.length===250;});document.getElementById('input').value='HIST '+((h.length===2&&h[0].input!==h[1].input)?'OK':'BAD');"],
     expect: ["HIST OK"],
