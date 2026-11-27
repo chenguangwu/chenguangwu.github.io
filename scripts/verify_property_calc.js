@@ -309,8 +309,29 @@ const CASES = [
     "slug": "property/irrigation-schedule",
     "inputs": { "days": "10", "seed": "7", "rainProb": "80" },
     "dynDom": true,
-    "expect": ["6/22 ☀️ 晴 35℃ 需浇"],
-    "ref": "冻结时钟 2024-06-15 起排 10 天；seed=7 + rainProb=80% 的确定性序列第 8 天（6/22）为晴 35℃ 需浇。默认 seed=42/rainProb=25%/14 天，同一格天气与日期不同 ⇒ 注入失败必 FAIL。区域表因动态行未登记不参与断言。"
+    "expect": ["10 日浇灌排程", "种子 7、雨概率 80%", "3384 L"],
+    "ref": "seed=7 + rainProb=80% 固定序列下 10 天总水量 3384 L；同时断言标题随天数变为「10 日浇灌排程」而非硬编码 14 日，以及模拟天气横幅明确种子与概率。默认 seed=42/25%/14 天三项均不同 ⇒ 注入失败必 FAIL。"
+  },
+  {
+    "slug": "property/irrigation-schedule",
+    "inputs": { "days": "7", "startDate": "2024-06-15", "weatherMode": "manual", "manualWeather": "1,晴,32,0\n2,多云,31,0\n3,小雨,26,0.6\n4,晴,33,0\n5,晴,34,0\n6,阴,28,0.1\n7,大雨,24,1.2" },
+    "dynDom": true,
+    "expect": ["7 日浇灌排程", "天气来自手动输入", "第 1、5 天", "雨天 2 天"],
+    "ref": "手动逐日天气覆盖 7 天；第 3、7 天有效降雨跳过且不顺延，草坪/灌木间隔 4 天，实际浇灌只剩第 1、5 天，跳过原因含「雨天 2 天」。随机模式无法产出该组合 ⇒ 强判别。"
+  },
+  {
+    "slug": "property/irrigation-schedule",
+    "inputs": { "startDate": "" },
+    "dynDom": true,
+    "expect": ["起始日期：请填写"],
+    "ref": "起始日期清空后必须显式报错，不再隐式取当天。"
+  },
+  {
+    "slug": "property/irrigation-schedule",
+    "inputs": { "days": "0" },
+    "dynDom": true,
+    "expect": ["排程天数：应在 1–30 之间"],
+    "ref": "排程天数 0 不得静默回退为 7 天，必须点名范围错误。"
   },
   {
     "slug": "property/rater-performance",
