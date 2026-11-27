@@ -7444,6 +7444,44 @@ const CASES = [
     ref: "python date(2021,3,1) - date(2020,2,28) = 367 天。本例是「闰日是否落在区间内」的判定点：区间含 2020-02-29 ⇒ +1；若页面按平年算会得 366 而暴露缺陷。",
   },
 
+  {
+    // 公元零年：0000 为前推公历闰年，0000-03-01 应是第 61 天（Date.UTC 会把 0 年映射到 1900）。
+    slug: "it/timestamp-converter",
+    clicks: ["document.getElementById('__tbProbe').textContent=getDayOfYear((()=>{const d=new Date(0);d.setFullYear(0,2,1);d.setHours(0,0,0,0);return d})())"],
+    expect: ["61"],
+    ref: "0000-03-01 的年内天数：0000 为闰年（2 月 29 天），1 月 31 + 2 月 29 = 60 天，3 月 1 日为第 61 天。旧实现用 Date.UTC(0,...) 会映射到 1900 年（平年）得到第 60 天。",
+  },
+  {
+    // 早期年份的月加减：0001-01-01 + 0 月必须仍是公元 1 年，不能跳到 1901。
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "0001-01-01", calcOp: "add", calcAmount: "0", calcUnit: "month" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 0001-01-01 00:00:00"],
+    ref: "new Date(1,...) 会把年份解释为 1901；修复后 tsMakeDate 用 setFullYear 保留完整年份。加 0 月是「是否改变年份」的最直接探针。",
+  },
+  {
+    // 早期年份跨年：公元 99 年 12 月 + 1 月应进入公元 100 年，而非 2000 年。
+    slug: "it/timestamp-converter",
+    inputs: { calcStartDate: "0099-12-15", calcOp: "add", calcAmount: "1", calcUnit: "month" },
+    clicks: ["calculateDate()"],
+    expect: ["计算结果: 0100-01-15 00:00:00"],
+    ref: "公元 99 年跨到 100 年；旧实现 new Date(99,...) 会得到 1999 年，修复后保留 0099 并在目标月溢出时正常进入 0100。",
+  },
+  {
+    // 结束快捷时间应含最后一毫秒，并给出下一周期零点的排他上界。
+    slug: "it/timestamp-converter",
+    clicks: ["quickTs('todayEnd')"],
+    expect: ["23:59:59.999", "排他上界"],
+    ref: "今天结束旧实现停在 23:59:59.000；修复后目标为 23:59:59.999，并在说明中给出下一周期零点（不含）作为排他上界。",
+  },
+  {
+    // 清空秒级输入后必须同时清掉毫秒、日期与旧结果，而不是保留上一组成功内容。
+    slug: "it/timestamp-converter",
+    clicks: ["document.getElementById('timestampSec').value='';fromTimestamp('sec')"],
+    expect: ["请输入秒级时间戳。"],
+    ref: "空态与非法输入分离：空串给出输入提示，不再静默 return 保留旧结果；非数字则给出「必须是有效数字」错误。",
+  },
+
   // —— it/csv-to-json：CSV ↔ JSON 双向转换。三个开关（hasHeader/trimFields/prettyPrint）在 harness 下
   //    读不到 .checked ⇒ 一律在 clicks 里显式置位；产物在 readonly textarea 的 value ⇒ 必须 dumpIds 回写。 ——
   {
