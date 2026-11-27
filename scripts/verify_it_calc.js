@@ -19808,7 +19808,27 @@ const CASES = [
     clicks: ["convertBinToText();var n=document.getElementById('outputText').placeholder||'';document.getElementById('__tbProbe').textContent='BIN1060 '+((!document.getElementById('outputText').value&&/二进制字符/.test(n))?'OK':'BAD '+n);"],
     expect: ["BIN1060 OK"],
     ref: "第1060批：0100000X 必须整段校验报错，不能 parseInt 部分解析后补齐成零字节；错误提示定位第 8 个非法字符。",
+  },,
+  // ── 第1061批：字符编码文本守卫 / 十六进制 BOM 保留 ──
+  {
+    slug: "it/char-encoder",
+    inputs: { input: "NaN" },
+    expect: ["ASCII 码 78 97 78"],
+    ref: "第1061批：文本 NaN 是合法编码输入，ASCII 行必须输出 78 97 78，不得被数值 NaN 守卫拦截成「计算结果含无效值」。",
   },
+  {
+    slug: "it/char-encoder",
+    inputs: { input: "Infinity" },
+    expect: ["ASCII 码 73 110 102 105 110 105 116 121"],
+    ref: "第1061批：文本 Infinity 必须按字符编码输出完整 ASCII 码，不得触发数值无效拦截。",
+  },
+  {
+    slug: "it/hex-to-text",
+    inputs: { input: "EF BB BF 41" },
+    clicks: ["var c=document.getElementById('preserveBom');c.checked=true;convert();var a=document.getElementById('output').value.codePointAt(0)===0xFEFF;c.checked=false;convert();var b=document.getElementById('output').value==='A';var n=document.getElementById('hexStatus').textContent;document.getElementById('__tbProbe').textContent='BOM1061 '+((a&&b&&n.indexOf('已去除起始 BOM')>=0)?'OK':'BAD '+a+' '+b+' '+n);"],
+    expect: ["BOM1061 OK"],
+    ref: "第1061批：EF BB BF 41 默认保留 U+FEFF 以支持字节还原；取消勾选后输出 A 并明确提示已去除 BOM。",
+  }
 ];
 // canvas 2D 上下文桩（所有方法为空实现，measureText 返回零宽度以适配排版计算）
 const CTX2D = new Proxy(
