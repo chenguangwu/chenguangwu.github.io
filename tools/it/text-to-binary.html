@@ -447,11 +447,17 @@ function bytesToBinary(bytes, padBits){
 
 function binaryToBytes(binaryStr){
   var cleaned = binaryStr.replace(/[\s,;:\-_]/g, '');
+  if(!cleaned) throw new Error(tbMsg('没有可解析的二进制内容','No binary content to parse'));
+  var bad = cleaned.search(/[^01]/);
+  if(bad >= 0) throw new Error(tbMsg('第 '+(bad+1)+' 个二进制字符「'+cleaned.charAt(bad)+'」不是 0 或 1','Binary character #'+(bad+1)+' "'+cleaned.charAt(bad)+'" is not 0 or 1'));
+  // 末尾不足 8 位时左侧补 0 成一个字节（明确口径，不做部分解析）。
   var bytes = [];
   for(var i = 0; i < cleaned.length; i += 8){
     var chunk = cleaned.substr(i, 8);
     if(chunk.length < 8) chunk = chunk.padStart(8, '0');
-    bytes.push(parseInt(chunk, 2));
+    var v = parseInt(chunk, 2);
+    if(!isFinite(v)) throw new Error(tbMsg('第 '+(i/8+1)+' 个字节无法解析','Byte #'+(i/8+1)+' cannot be parsed'));
+    bytes.push(v);
   }
   return new Uint8Array(bytes);
 }

@@ -477,10 +477,16 @@ function applyFormat(parts, sep, format){
 
 function hexToBytes(hexStr){
   var cleaned = hexStr.replace(/0x/gi, '').replace(/\\x/gi, '').replace(/[\s,;:\-_]/g, '').trim();
+  if(!cleaned) throw new Error(tbMsg('没有可解析的十六进制内容','No hexadecimal content to parse'));
+  var bad = cleaned.search(/[^0-9a-fA-F]/);
+  if(bad >= 0) throw new Error(tbMsg('第 '+(bad+1)+' 个十六进制字符「'+cleaned.charAt(bad)+'」不是 0–9 / a–f / A–F','Hex character #'+(bad+1)+' "'+cleaned.charAt(bad)+'" is not 0–9 / a–f / A–F'));
+  // 奇数个半字节按左侧补 0 成一个字节（明确口径，不做部分解析）。
   if(cleaned.length % 2 !== 0) cleaned = '0' + cleaned;
   var bytes = [];
   for(var i = 0; i < cleaned.length; i += 2){
-    bytes.push(parseInt(cleaned.substr(i, 2), 16));
+    var v = parseInt(cleaned.substr(i, 2), 16);
+    if(!isFinite(v)) throw new Error(tbMsg('第 '+(i/2+1)+' 个字节无法解析','Byte #'+(i/2+1)+' cannot be parsed'));
+    bytes.push(v);
   }
   return new Uint8Array(bytes);
 }
