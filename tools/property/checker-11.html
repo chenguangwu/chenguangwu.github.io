@@ -144,7 +144,10 @@
 
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calc()">评估品质循环</button>
+      <button type="button" class="btn" onclick="__pdcaExample()">填写示例（全部3分）</button>
+      <button type="button" class="btn" onclick="__pdcaReset()">重置（未评估）</button>
       <button type="button" class="btn" onclick="copyResult()">复制结果</button>
+      <div style="margin-top:10px;"><label for="pdcaEvidence" style="font-size:13px;">评估依据 / 复查备注（可选）</label><input id="pdcaEvidence" type="text" placeholder="如：2026-11-27 复查会议记录" style="width:100%;margin-top:4px;font-size:14px;"></div>
     </div>
     <div class="result-box" id="res"></div>
     <div id="pdChart"></div>
@@ -218,11 +221,36 @@ var stages={
     '品质管理经验定期总结分享与培训'
   ]
 };
+function __pdcaCollect(){
+  var rows=[],blank=0,na=0,applicable=0,assessed=0;
+  ['plan','do','check','act'].forEach(function(stage){
+    stages[stage].forEach(function(q,i){
+      var raw=String(document.getElementById(stage+i).value||'');
+      var row={stage:stage,q:q,i:i,raw:raw};
+      if(raw===''){row.state='blank';blank++;applicable++;}
+      else if(raw==='na'){row.state='na';na++;}
+      else {row.state='done';assessed++;applicable++;}
+      rows.push(row);
+    });
+  });
+  return {rows:rows,blank:blank,na:na,applicable:applicable,assessed:assessed};
+}
+function __pdcaPending(d){
+  var ev=document.getElementById('pdcaEvidence');var note=ev&&ev.value.trim()?ToolBox.escHtml(ev.value.trim()):'—';
+  return '<h3 style="margin-bottom:10px;">品质 PDCA 循环评估</h3>'+
+    '<div class="stat-grid">'+
+    '<div class="stat-card"><div class="val">'+d.assessed+'/'+d.applicable+'</div><div class="lbl">已完成 / 适用项</div></div>'+
+    '<div class="stat-card"><div class="val" style="color:var(--warning);">'+d.blank+'</div><div class="lbl">未评估项</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.na+'</div><div class="lbl">不适用项</div></div>'+
+    '<div class="stat-card"><div class="val">'+d.rows.length+'</div><div class="lbl">评估项总数</div></div>'+
+    '</div>'+
+    '<div class="info-box" style="margin-top:12px;color:var(--warning);"><strong>待评估：尚未生成成熟度等级或结论。</strong><br>适用项须全部完成评分后才计算阶段平均与综合成熟度；不适用项不计入分母。评级与改进建议为可配置的辅助参考，须结合依据复核。<br>评估依据/复查备注：'+note+'</div>';
+}
 function buildList(containerId,items,prefix){
   var html='';
   items.forEach(function(q,i){
     var id=prefix+i;
-    html+='<div class="input-row" style="align-items:center;margin-bottom:6px;"><div style="flex:1;"><label>'+q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 90px;" onchange="calc()"><option value="1">1分</option><option value="2">2分</option><option value="3" selected>3分</option><option value="4">4分</option><option value="5">5分</option></select></div>';
+    html+='<div class="input-row" style="align-items:center;margin-bottom:6px;"><div style="flex:1;"><label>'+q+'</label></div><select id="'+id+'" style="font-size:16px;flex:0 0 90px;" onchange="calc()"><option value="" selected>未评估</option><option value="1">1分</option><option value="2">2分</option><option value="3">3分</option><option value="4">4分</option><option value="5">5分</option><option value="na">不适用</option></select></div>';
   });
   const __g1=html;document.getElementById(containerId).innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
@@ -231,49 +259,49 @@ function __pdcaExport(){
   if(typeof stages==='undefined') return;
   try{
     var en=TBKit.util.isEn();
-    var stageNames={plan:en?'P-Planning':'P-标准制定',do:en?'D-Execution':'D-检查执行',check:en?'C-Evaluation':'C-检查评估',act:en?'A-Improvement':'A-改进提升'};
-    var stageData=[];
-    var rows=[];
-    ['plan','do','check','act'].forEach(function(stage){
-      var scores=stages[stage].map(function(q,i){
-        var sel=document.getElementById(stage+i);
-        var v=sel?parseInt(sel.value):3;
-        if(!isFinite(v))v=3;
-        return v;
-      });
-      var avg=scores.reduce(function(a,b){return a+b;},0)/scores.length;
-      var level=avg>=4.5?(en?'Continuous optimization':'持续优化'):avg>=3.5?(en?'Effective operation':'有效运行'):avg>=2.5?(en?'Partially implemented':'部分实施'):avg>=1.5?(en?'Initially established':'初步建立'):(en?'Not established':'未建立');
-      stageData.push({name:stageNames[stage],avg:avg,level:level,scores:scores,items:stages[stage]});
-      stages[stage].forEach(function(q,i){
-        rows.push([stageNames[stage], q, scores[i], '']);
-      });
+    var names={plan:en?'P-Planning':'P-标准制定',do:en?'D-Execution':'D-检查执行',check:en?'C-Evaluation':'C-检查评估',act:en?'A-Improvement':'A-改进提升'};
+    var d=__pdcaCollect(),rows=[];
+    d.rows.forEach(function(r){
+      var val=r.state==='done'?r.raw+'/5':(r.state==='na'?(en?'N/A':'不适用'):(en?'Not assessed':'未评估'));
+      rows.push([names[r.stage],r.q,val,'']);
     });
-    var overall=stageData.reduce(function(a,s){return a+s.avg;},0)/4;
-    var overallLevel=overall>=4.5?(en?'Excellent':'卓越'):overall>=3.5?(en?'Mature':'成熟'):overall>=2.5?(en?'Developing':'发展中'):overall>=1.5?(en?'Initial':'初始'):(en?'Weak':'薄弱');
-    stageData.forEach(function(s){
-      var weak=s.scores.filter(function(v){return v<=2;}).length;
-      rows.push([s.name, en?'Stage average':'阶段平均分', s.avg.toFixed(2), s.level+'（'+(en?'weak items: ':'薄弱项 ')+weak+'）']);
-    });
-    rows.push([en?'Overall':'综合', en?'Overall maturity (average of 4 stages)':'综合成熟度（4 阶段平均）', overall.toFixed(2), overallLevel+'（'+(en?'system completeness: ':'体系完整度 ')+(overall/5*100).toFixed(0)+'%）']);
-    var tb=document.querySelector('#pdcaTable tbody');
-    if(!tb) return;
-    var h='';
-    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>'; });
-    tb.innerHTML=h;
+    if(d.blank>0||d.applicable===0){
+      rows.push([en?'Status':'评估状态',(en?'Completed ':'已完成 ')+d.assessed+'/'+d.applicable+(en?'; not assessed ':'；未评估 ')+d.blank+(en?'; N/A ':'；不适用 ')+d.na,'',en?'Pending - no maturity grade':'待评估，不输出成熟度等级']);
+    }else{
+      var data=[];
+      ['plan','do','check','act'].forEach(function(stage){
+        var vals=d.rows.filter(function(r){return r.stage===stage&&r.state==='done';}).map(function(r){return +r.raw;});
+        var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
+        var lv=!vals.length?(en?'N/A':'不适用'):(avg>=4.5?(en?'Continuous optimization':'持续优化'):avg>=3.5?(en?'Effective operation':'有效运行'):avg>=2.5?(en?'Partially implemented':'部分实施'):avg>=1.5?(en?'Initially established':'初步建立'):(en?'Not established':'未建立'));
+        data.push({name:names[stage],avg:avg,count:vals.length,level:lv});
+      });
+      var n=data.filter(function(x){return x.count>0;});
+      var overall=n.length?n.reduce(function(a,x){return a+x.avg;},0)/n.length:0;
+      var olv=overall>=4.5?(en?'Excellent':'卓越'):overall>=3.5?(en?'Mature':'成熟'):overall>=2.5?(en?'Developing':'发展中'):overall>=1.5?(en?'Initial':'初始'):(en?'Weak':'薄弱');
+      data.forEach(function(x){rows.push([x.name,en?'Stage average':'阶段平均分',x.count?x.avg.toFixed(2):(en?'N/A':'不适用'),x.level]);});
+      rows.push([en?'Overall':'综合',en?'Overall maturity':'综合成熟度',overall.toFixed(2),olv+(en?' (auxiliary reference)':'（辅助参考）')]);
+      rows.push([en?'Basis / review':'评估依据/复查',((document.getElementById('pdcaEvidence')||{}).value||''),'','']);
+    }
+    var tb=document.querySelector('#pdcaTable tbody');if(!tb)return;
+    tb.innerHTML=rows.map(function(r){return '<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td></tr>';}).join('');
     TBKit.util.exportTable('#pdcaTable','pdca-quality-assessment.csv');
   }catch(e){}
 }
 function calc(){
+  var __pd=__pdcaCollect();
+  if(__pd.blank>0||__pd.applicable===0){document.getElementById('res').innerHTML=__pdcaPending(__pd);return;}
   var stageNames={plan:'P-标准制定',do:'D-检查执行',check:'C-检查评估',act:'A-改进提升'};
   var stageData=[];
   ['plan','do','check','act'].forEach(function(stage){
-    var scores=stages[stage].map(function(q,i){return +document.getElementById(stage+i).value;});
-    var avg=scores.reduce(function(a,b){return a+b;},0)/scores.length;
-    var level=avg>=4.5?'持续优化':avg>=3.5?'有效运行':avg>=2.5?'部分实施':avg>=1.5?'初步建立':'未建立';
-    var color=avg>=4?'var(--success)':avg>=3?'var(--warning)':avg>=2?'var(--warning)':'var(--danger)';
-    stageData.push({name:stageNames[stage],avg:avg,level:level,color:color,scores:scores,items:stages[stage]});
+    var scores=stages[stage].map(function(q,i){var raw=String(document.getElementById(stage+i).value||'');return raw==='na'?null:+raw;});
+    var vals=scores.filter(function(v){return v!==null;});
+    var avg=vals.length?vals.reduce(function(a,b){return a+b;},0)/vals.length:0;
+    var level=!vals.length?'不适用':(avg>=4.5?'持续优化':avg>=3.5?'有效运行':avg>=2.5?'部分实施':avg>=1.5?'初步建立':'未建立');
+    var color=!vals.length?'var(--text-muted)':(avg>=4?'var(--success)':avg>=3?'var(--warning)':avg>=2?'var(--warning)':'var(--danger)');
+    stageData.push({name:stageNames[stage],avg:avg,level:level,color:color,count:vals.length,scores:scores,items:stages[stage]});
   });
-  var overall=stageData.reduce(function(a,s){return a+s.avg;},0)/4;
+  var __n=stageData.filter(function(s){return s.count>0;});
+  var overall=__n.length?__n.reduce(function(a,s){return a+s.avg;},0)/__n.length:0;
   var overallLevel=overall>=4.5?'卓越':overall>=3.5?'成熟':overall>=2.5?'发展中':overall>=1.5?'初始':'薄弱';
   var overallColor=overall>=4?'var(--success)':overall>=3?'var(--warning)':overall>=2?'var(--warning)':'var(--danger)';
 
@@ -282,18 +310,19 @@ function calc(){
     '<div class="stat-card"><div class="val" style="color:'+overallColor+';">'+overall.toFixed(2)+'</div><div class="lbl">综合成熟度</div></div>'+
     '<div class="stat-card"><div class="val" style="color:'+overallColor+';">'+overallLevel+'</div><div class="lbl">成熟度等级</div></div>'+
     '<div class="stat-card"><div class="val">'+(overall/5*100).toFixed(0)+'%</div><div class="lbl">体系完整度</div></div>'+
-    '<div class="stat-card"><div class="val">'+stageData.reduce(function(a,s){return a+s.scores.filter(function(v){return v<=2;}).length;},0)+'</div><div class="lbl">薄弱项</div></div>'+
+    '<div class="stat-card"><div class="val">'+stageData.reduce(function(a,s){return a+s.scores.filter(function(v){return v!==null&&v<=2;}).length;},0)+'</div><div class="lbl">薄弱项</div></div>'+
     '</div>';
 
   html+='<table style="margin-top:12px;"><tr><th>PDCA 阶段</th><th>平均分</th><th>成熟度</th><th>薄弱项</th></tr>';
   stageData.forEach(function(s){
-    var weak=s.scores.filter(function(v){return v<=2;}).length;
-    html+='<tr><td>'+s.name+'</td><td style="color:'+s.color+';font-weight:600;">'+s.avg.toFixed(2)+'</td><td>'+s.level+'</td><td>'+(weak>0?'<span style="color:var(--danger);">'+weak+'项</span>':'无')+'</td></tr>';
+    var weak=s.scores.filter(function(v){return v!==null&&v<=2;}).length;
+    html+='<tr><td>'+s.name+'</td><td style="color:'+s.color+';font-weight:600;">'+(s.count>0?s.avg.toFixed(2):'不适用')+'</td><td>'+s.level+'</td><td>'+(weak>0?'<span style="color:var(--danger);">'+weak+'项</span>':'无')+'</td></tr>';
   });
   html+='</table>';
 
   html+='<h3 style="margin:14px 0 8px;">各阶段成熟度可视化</h3>';
   stageData.forEach(function(s){
+    if(!s.count)return;
     var pct=s.avg/5*100;
     html+='<div class="bar-row"><span class="bar-lbl">'+s.name.split('-')[0]+'</span><div class="bar-bg"><div class="bar-fill" style="width:'+pct+'%;background:'+s.color+';">'+s.avg.toFixed(1)+'</div></div></div>';
   });
@@ -301,7 +330,7 @@ function calc(){
   var weakItems=[];
   stageData.forEach(function(s){
     s.items.forEach(function(q,i){
-      if(s.scores[i]<=2)weakItems.push({stage:s.name,q:q,score:s.scores[i]});
+      if(s.scores[i]!==null&&s.scores[i]<=2)weakItems.push({stage:s.name,q:q,score:s.scores[i]});
     });
   });
   if(weakItems.length>0){
@@ -314,7 +343,7 @@ function calc(){
 
   html+='<div class="info-box" style="margin-top:12px;">'+
     '<strong>品质循环评估结论：</strong><br>'+
-    '综合成熟度 '+overall.toFixed(2)+'/5，等级：'+overallLevel+'。<br>'+
+    '综合成熟度 '+overall.toFixed(2)+'/5，等级：'+overallLevel+'。<br>已完成 '+__pd.assessed+'/'+__pd.applicable+' 项，不适用 '+__pd.na+' 项。<br>评级与改进建议为可配置的辅助参考，须结合依据复核。<br>评估依据/复查备注：'+((document.getElementById('pdcaEvidence')||{}).value||'—')+'<br>'+
     (overall>=3.5?'品质管理PDCA闭环较为完整，建议持续优化薄弱环节。':
     overall>=2.5?'品质管理初步建立但不完善，建议重点加强薄弱阶段。':
     '品质管理尚处于初始阶段，建议从建立品质标准与SOP入手。')+
@@ -326,6 +355,8 @@ function copyResult(){
   var text=document.getElementById('res').innerText;
   ToolBox.copyText(text, i18nText('msg198'));
 }
+function __pdcaReset(){buildList('planItems',stages.plan,'plan');buildList('doItems',stages.do,'do');buildList('checkItems',stages.check,'check');buildList('actItems',stages.act,'act');var ev=document.getElementById('pdcaEvidence');if(ev)ev.value='';calc();}
+function __pdcaExample(){['plan','do','check','act'].forEach(function(stage){stages[stage].forEach(function(q,i){var el=document.getElementById(stage+i);if(el)el.value='3';});});var ev=document.getElementById('pdcaEvidence');if(ev)ev.value='示例：全部3分，仅用于演示计算流程。';calc();}
 buildList('planItems',stages.plan,'plan');
 buildList('doItems',stages.do,'do');
 buildList('checkItems',stages.check,'check');
