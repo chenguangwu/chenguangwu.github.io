@@ -115,7 +115,7 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">袋口周长 C = 2 × (L + W)；平口袋折径 ≈ C ÷ 2；所需袋长 ≈ H + W ÷ 2 + 外翻余量</div>
+      <div class="formula-eq">袋口周长 C = 2 × (L + W)；平口袋折径 ≈ C ÷ 2；所需袋长 ≈ H + min(L, W) ÷ 2 + 外翻余量</div>
       <div class="formula-desc tb-bi"><span class="t-zh">袋口周长按桶口矩形周长计算，折径是平口垃圾袋平铺时的宽度；袋长需覆盖桶高、桶底短边的一半与外翻余量。厚度按垃圾重量分档推荐，重物或尖锐物多时取上限。</span><span class="t-en">Opening circumference uses the rectangular bin rim; flat width is the folded width of a flat bag. Bag length covers bin height, half the shorter bottom edge and the overhang. Thickness is graded by trash weight; choose the upper end for heavy or sharp waste.</span></div>
     </div>
 
@@ -267,7 +267,7 @@ function calcData(){
   if(![bl,bw,bh,wt,over,sharp].every(isFinite)||bl<=0||bw<=0||bh<=0||wt<0||over<2||over>30||sharp<0||sharp>100){
     return {valid:false,msg:'参数无效：桶口长宽与桶高须>0，垃圾重量≥0，袋口外翻余量 2–30 cm，尖锐物占比 0–100%'};
   }
-  const per=2*(bl+bw), flat=per/2, bagLen=bh+bw/2+over, binVol=bl*bw*bh/1000;
+  const per=2*(bl+bw), flat=per/2, short=Math.min(bl,bw), bagLen=bh+short/2+over, binVol=bl*bw*bh/1000;
   const recVol=binVol*1.2, thick=thicknessFor(wt,sharp), bag=bagCode(flat,bagLen);
   return {valid:true,bl,bw,bh,wt,over,sharp,per,flat,bagLen,binVol,recVol,thick,bag};
 }
@@ -279,7 +279,7 @@ function drawChart(d){
   const bars=[['桶容积',d.binVol,'#94a3b8'],['建议袋容积',d.recVol,'#22c55e']];
   bars.forEach((b,i)=>{const x=pad+i*(bw+50),h=(b[1]/max)*(H-pad-30);
     ctx.fillStyle=b[2];ctx.fillRect(x,H-pad-h,bw,h);ctx.fillStyle='#334155';ctx.fillText(b[0],x,H-pad+18);ctx.fillText(b[1].toFixed(1)+' L',x,H-pad-h-6);});
-  ctx.fillStyle='#64748b';ctx.fillText('袋口周长 '+d.per.toFixed(0)+' cm · 折径 '+d.flat.toFixed(0)+' cm',pad,18);
+  ctx.fillStyle='#64748b';ctx.fillText('袋口周长 '+d.per.toFixed(1)+' cm · 折径 '+d.flat.toFixed(1)+' cm',pad,18);
   cv.setAttribute('data-empty','0');
   const em=document.getElementById('chartEmpty');if(em)em.hidden=true;
 }
@@ -287,21 +287,25 @@ function clearChart(){
   const cv=document.getElementById('fitChart');if(cv){const ctx=cv.getContext('2d');if(ctx){ctx.clearRect(0,0,cv.width,cv.height);ctx.fillStyle='#94a3b8';ctx.font='14px sans-serif';ctx.fillText('等待有效参数后绘制容积对比',42,60);}cv.setAttribute('data-empty','1');}
   const em=document.getElementById('chartEmpty');if(em)em.hidden=false;
 }
+let lastCalc=null, lastCalcMsg='';
 function exportCSV(){
-  const d=calcData();if(!d.valid){alert(d.msg);return;}
-  csvDownload('trash-bag-size.csv',[['项目','数值','单位'],['桶口长',d.bl,'cm'],['桶口宽',d.bw,'cm'],['桶高',d.bh,'cm'],['袋口周长',d.per.toFixed(1),'cm'],['推荐折径',d.flat.toFixed(1),'cm'],['推荐袋长',d.bagLen.toFixed(1),'cm'],['桶容积',d.binVol.toFixed(1),'L'],['建议袋容积',d.recVol.toFixed(1),'L'],['建议厚度',d.thick.toFixed(3),'mm'],['推荐袋型',d.bag.code,''],['推荐袋尺寸',d.bag.spec+' cm',''],['规格满足',d.bag.fit?'是':'需定制','']]);
+  if(!lastCalc){calcTool(false);if(!lastCalc){alert(lastCalcMsg);return;}}
+  const d=lastCalc;
+  csvDownload('trash-bag-size.csv',[['项目','数值','单位'],['桶口长',d.bl,'cm'],['桶口宽',d.bw,'cm'],['桶高',d.bh,'cm'],['袋口周长',d.per.toFixed(1),'cm'],['所需折径',d.flat.toFixed(1),'cm'],['建议袋长',d.bagLen.toFixed(1),'cm'],['桶容积',d.binVol.toFixed(1),'L'],['建议袋容积',d.recVol.toFixed(1),'L'],['建议厚度',d.thick.toFixed(3),'mm'],['推荐袋型',d.bag.code,''],['推荐袋尺寸',d.bag.spec+' cm',''],['规格满足',d.bag.fit?'是':'需定制','']]);
 }
-function calcTool(){
+function calcTool(saveHistory){
   const d=calcData();
-  if(!d.valid){document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
-  const rows=[[d.bag.code+'（'+d.bag.spec+' cm）','推荐袋型'],[d.bag.fit?'有现成规格':'需定制','规格匹配'],[d.flat.toFixed(0)+' cm','平口袋折径'],[d.bagLen.toFixed(0)+' cm','建议袋长'],[d.per.toFixed(0)+' cm','袋口所需周长'],[d.binVol.toFixed(1)+' L','垃圾桶容积'],[d.recVol.toFixed(1)+' L','建议袋容积'],[d.thick.toFixed(3)+' mm','建议厚度']];
+  if(!d.valid){lastCalc=null;lastCalcMsg=d.msg;document.getElementById('result').innerHTML='<div class="result-placeholder">'+d.msg+'</div>';clearChart();return;}
+  lastCalc=d;
+  const rows=[[d.bag.code+'（'+d.bag.spec+' cm）','推荐袋型'],[d.bag.fit?'有现成规格':'需定制','规格匹配'],[d.flat.toFixed(1)+' cm','所需折径（最小）'],[d.bagLen.toFixed(1)+' cm','建议袋长（含余量）'],[d.per.toFixed(1)+' cm','袋口所需周长'],[d.binVol.toFixed(1)+' L','垃圾桶容积'],[d.recVol.toFixed(1)+' L','建议袋容积'],[d.thick.toFixed(3)+' mm','建议厚度']];
   let html=dataGrid(rows);
   if(d.wt>12)html+='<div class="info-box" style="margin-top:12px;">⚠️ 单袋垃圾 '+d.wt+' kg 已偏重，建议分袋盛装，或选用 0.025 mm 以上加厚袋并检查袋底焊接强度。</div>';
   if(d.sharp>=50)html+='<div class="info-box" style="margin-top:8px;">尖锐/硬物占比 '+d.sharp+'%，破袋风险较高，建议使用加厚袋并先用硬纸盒包裹尖锐物。</div>';
   document.getElementById('result').innerHTML=html;
   drawChart(d);
-  saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.bl+'×'+d.bw+'×'+d.bh+' cm → '+d.bag.code+' '+d.bag.spec+' / '+d.thick.toFixed(3)+' mm');
+  if(saveHistory!==false) saveHist(HIST_KEY,new Date().toLocaleTimeString()+' · '+d.bl+'×'+d.bw+'×'+d.bh+' cm → '+d.bag.code+' '+d.bag.spec+' / '+d.thick.toFixed(3)+' mm');
 }
+['bl','bw','bh','wt','over','sharp'].forEach(function(id){const el=document.getElementById(id);if(el)el.addEventListener('input',function(){calcTool(false);});});
 function resetForm(){['bl','bw','bh','wt','over','sharp'].forEach((id,i)=>document.getElementById(id).value=[40,30,50,6,10,20][i]);calcTool();}
 renderHist(HIST_KEY);calcTool();
 </script>
