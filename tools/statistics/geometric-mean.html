@@ -140,14 +140,14 @@
 
     <div class="formula-box">
       <div class="formula-title">📐 计算公式</div>
-      <div class="formula-eq">几何平均：G = exp(Σln xᵢ ÷ n)（对数空间实现，防连乘溢出），仅正值参与（非正值被过滤）；对照算术平均 A = Σx ÷ n 与调和平均 H = n ÷ Σ(1/x)，并按对数式 G = exp(Σln x ÷ n) 复核、给出 AM−GM 差与逐值 ln(x)、x/G 倍数表。校验：数据非空守卫；深读卡遇任一值 ≤0 判「几何平均无定义」。判据：n&lt;1 无数据，正数列恒有 H ≤ G ≤ A。</div>
+      <div class="formula-eq">几何平均：G = exp(Σln xᵢ ÷ n)（对数空间实现，防连乘溢出），所有项必须为正，非正值或非数值立即报错，不参与计算；对照算术平均 A = Σx ÷ n 与调和平均 H = n ÷ Σ(1/x)，并按对数式 G = exp(Σln x ÷ n) 复核、给出 AM−GM 差与逐值 ln(x)、x/G 倍数表。校验：数据非空守卫；深读卡遇任一值 ≤0 判「几何平均无定义」。判据：n&lt;1 无数据，正数列恒有 H ≤ G ≤ A。</div>
       <p class="formula-desc">乘积的 n 次根，适合比率数据。</p>
     </div>
 
 
     <div class="input-row">
       <div>
-        <label for="data">数据（逗号分隔）</label>
+        <label for="data">数据（逗号、空格、分号均可）</label>
         <input type="text" inputmode="text" data-list="1" id="data" value="1.1,1.2,0.9,1.05" step="0.1">
       </div>
     </div>
@@ -306,17 +306,30 @@ function __tbInputGuardCore(_ids,_labels){
 function readNum(id){var e=document.getElementById(id);if(!e)return NaN;var raw=String(e.value==null?'':e.value).trim();if(!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?$/.test(raw))return NaN;var v=Number(raw);return isFinite(v)?v:NaN;}
 function num(id){const v=readNum(id);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
+function __gmMsg(zh,en){try{if(window.TBKit&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn())return en;}catch(e){}return /(^|[?&])lang=en/i.test(location.search)||(document.documentElement.lang||'').toLowerCase().indexOf('en')===0?en:zh;}
+function fmtMean(v){
+  if(!isFinite(v)) return '—';
+  if(v!==0 && Math.abs(v)<0.0001) return v.toExponential(2);
+  return v.toFixed(5);
+}
+var __gmOk=false;
+function __gmClearAux(){
+  ['gmTable','gmMatrix','gmDiff','gmChart'].forEach(function(id){var e=document.getElementById(id);if(e)e.innerHTML='';});
+}
 function calcTool(){
-const __p=__gmParse(document.getElementById('data').value);
-            if(__p.error){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__p.error+'</p>');return;}
-            const arr=__p.vals, n=arr.length;
-            const g = Math.exp(arr.reduce((a,b)=>a+Math.log(b),0)/n);
-            const __g2=dataGrid([
-                [g.toFixed(5), '几何平均 G'],
-                [n, '有效样本数 n'],
-                [(arr.reduce((a,b)=>a+b,0)/n).toFixed(5), '算术平均（对比）']
-            ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
-        }
+  __gmOk=false; __gmClearAux();
+  const __p=__gmParse(document.getElementById('data').value);
+  if(__p.error){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ '+__p.error+'</p>');return;}
+  const arr=__p.vals, n=arr.length;
+  const g = Math.exp(arr.reduce((a,b)=>a+Math.log(b),0)/n);
+  if(!isFinite(g)){ToolBox.setResult('result','<p style="color:var(--danger)">⚠ 计算结果超出数值范围，请检查输入。</p>');return;}
+  __gmOk=true;
+  const __g2=dataGrid([
+    [fmtMean(g), '几何平均 G'],
+    [n, '有效样本数 n'],
+    [fmtMean(arr.reduce((a,b)=>a+b,0)/n), '算术平均（对比）']
+  ]);ToolBox.setResult('result',(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—')));
+}
 function resetForm(){document.getElementById('data').value = '1.1,1.2,0.9,1.05';
       calcTool();}
 calcTool();
@@ -339,7 +352,7 @@ function __gmNum(id){var e=document.getElementById(id);var v=e?parseFloat(e.valu
 function __gmExtras(){
     if (typeof TBKit === 'undefined') return;
     var raw=document.getElementById('data').value;
-    var __p=__gmParse(raw); if(__p.error){var __t=document.getElementById('gmTable');if(__t)__t.innerHTML='';return;} var arr=__p.vals;
+    var __p=__gmParse(raw); if(__p.error){__gmClearAux();return;} var arr=__p.vals;
     var n=arr.length; if(!n) return;
     var en=TBKit.util.isEn();
     var G=Math.exp(arr.reduce(function(a,b){return a+Math.log(b);},0)/n);
@@ -348,7 +361,7 @@ function __gmExtras(){
     var rows=[],prod=1;
     arr.forEach(function(v,i){
         prod*=v;
-        rows.push([String(i+1), String(v), Math.log(v).toFixed(5), (v/G).toFixed(4)+'×', prod.toFixed(5)]);
+        rows.push([String(i+1), String(v), fmtMean(Math.log(v)), fmtMean(v/G)+'×', fmtMean(prod)]);
     });
     TBKit.matrix.table('#gmTable',{
         head: en?['#','Value','ln(x)','x / G','Cumulative product']:['#','数值','ln(x)','x / G（倍数）','累积乘积'],
@@ -357,18 +370,18 @@ function __gmExtras(){
     TBKit.matrix.table('#gmMatrix',{
         head: en?['Mean','Value','When to use']:['平均类型','数值','适用口径'],
         rows: en?[
-            ['Geometric', G.toFixed(5), 'growth rates, chained ratios'],
-            ['Arithmetic', A.toFixed(5), 'additive totals'],
-            ['Harmonic', H.toFixed(5), 'rates and speeds'],
-            ['AM − GM', (A-G).toFixed(5), 'gap grows with volatility']
+            ['Geometric', fmtMean(G), 'growth rates, chained ratios'],
+            ['Arithmetic', fmtMean(A), 'additive totals'],
+            ['Harmonic', fmtMean(H), 'rates and speeds'],
+            ['AM − GM', fmtMean(A-G), 'gap grows with volatility']
         ]:[
-            ['几何平均', G.toFixed(5), '增长率、连乘比值'],
-            ['算术平均', A.toFixed(5), '可加总量'],
-            ['调和平均', H.toFixed(5), '速率、速度'],
-            ['算术 − 几何', (A-G).toFixed(5), '差值越大说明波动越强']
+            ['几何平均', fmtMean(G), '增长率、连乘比值'],
+            ['算术平均', fmtMean(A), '可加总量'],
+            ['调和平均', fmtMean(H), '速率、速度'],
+            ['算术 − 几何', fmtMean(A-G), '差值越大说明波动越强']
         ]
     });
-    TBKit.history.record({data:raw,g:Number(G.toFixed(5))});
+    TBKit.history.record({data:raw,g:G});
     TBKit.util.diffBox('#gmDiff',['g']);
     TBKit.history.mount('#gmHist',function(v){
         if(v.data!=null)document.getElementById('data').value=v.data;
@@ -377,6 +390,7 @@ function __gmExtras(){
 }
 function __gmExport(){
     if (typeof TBKit === 'undefined') return;
+    if(!__gmOk){try{ToolBox.showToast(__gmMsg('请先执行有效计算，暂无可导出数据','Run a valid calculation before exporting'),'warning');}catch(e){}return;}
     try { TBKit.util.exportTable('#gmTable','geometric-mean.csv'); } catch (e) {}
 }
 function __gmPresets(){
@@ -440,14 +454,14 @@ else document.addEventListener("DOMContentLoaded", __gmBoot);
 function __gmChart(){
   if(typeof TBKit==='undefined'||!TBKit.chart||!TBKit.chart.bar)return;
   var el=document.getElementById('data'); if(!el)return;
-  var arr=el.value.split(',').map(function(s){return parseFloat(s.trim());}).filter(function(v){return v>0&&isFinite(v);});
-  if(!arr.length)return;
+  var __p=__gmParse(el.value); if(__p.error){var __c=document.getElementById('gmChart');if(__c)__c.innerHTML='';return;} var arr=__p.vals;
+  if(!arr.length){var __gc=document.getElementById('gmChart');if(__gc)__gc.innerHTML='';return;}
   var n=arr.length;
-  var G=Math.pow(arr.reduce(function(a,b){return a*b;},1),1/n);
+  var G=Math.exp(arr.reduce(function(a,b){return a+Math.log(b);},0)/n);
   var A=arr.reduce(function(a,b){return a+b;},0)/n;
   var H=n/arr.reduce(function(a,b){return a+1/b;},0);
   var en=!!(typeof TBKit.util!=='undefined'&&TBKit.util.isEn&&TBKit.util.isEn());
-  TBKit.chart.bar('#gmChart',{title:en?'Three Means (H <= G <= A)':'三种平均数的关系（H ≤ G ≤ A）',labels:en?['Geometric','Arithmetic','Harmonic']:['几何平均','算术平均','调和平均'],series:[{name:en?'Mean':'平均值',data:[Math.round(G*100000)/100000,Math.round(A*100000)/100000,Math.round(H*100000)/100000]}]});
+  TBKit.chart.bar('#gmChart',{title:en?'Three Means (H <= G <= A)':'三种平均数的关系（H ≤ G ≤ A）',labels:en?['Geometric','Arithmetic','Harmonic']:['几何平均','算术平均','调和平均'],series:[{name:en?'Mean':'平均值',data:[G,A,H]}]});
 }
 var __gmFn=calcTool;calcTool=function(){try{__gmFn();}catch(e){}try{__gmChart();}catch(e){}};
 document.addEventListener('toolbox:langchange',function(){try{__gmChart();}catch(e){}});
@@ -536,8 +550,9 @@ document.addEventListener('toolbox:langchange',function(){try{__gmChart();}catch
   function __stGm(){
     var e = document.getElementById('data');
     if (!e) return null;
-    var xs = String(e.value || '').split(/[\s,]+/).map(function(s){ return parseFloat(s); })
-               .filter(function(v){ return isFinite(v); });
+    var __p = __gmParse(e.value);
+    if (__p.error) return null;
+    var xs = __p.vals;
     var n = xs.length;
     if (n < 1) return null;
     var i, sum = 0, hasNonPos = false, logSum = 0;
@@ -582,18 +597,18 @@ document.addEventListener('toolbox:langchange',function(){try{__gmChart();}catch
       return;
     }
     if (badge){ badge.style.display = 'inline-block'; badge.style.background = '#0d9488';
-      badge.textContent = (en ? 'GM = ' : 'GM = ') + m.gm.toFixed(4); }
-    if (val) val.textContent = (en ? 'Geometric mean = ' : '几何平均 = ') + m.gm.toFixed(4)
-      + (en ? '   vs arithmetic ' : '   算术平均 ') + m.am.toFixed(4);
+      badge.textContent = (en ? 'GM = ' : 'GM = ') + fmtMean(m.gm); }
+    if (val) val.textContent = (en ? 'Geometric mean = ' : '几何平均 = ') + fmtMean(m.gm)
+      + (en ? '   vs arithmetic ' : '   算术平均 ') + fmtMean(m.am);
 
     var rows = '';
     // 经典陷阱：平均增长率
     rows += __stRow(en ? 'The growth-rate trap' : '平均增长率的陷阱',
       en ? 'Gain 50% one year and lose 50% the next and the arithmetic average says 0%, but you end up with 0.75 of what you started - a 25% loss. '
-          + 'The geometric mean of 1.5 and 0.5 is about ' + Math.sqrt(1.5 * 0.5).toFixed(4) + ', i.e. roughly a 13.4% loss per year. '
+          + 'The geometric mean of 1.5 and 0.5 is about ' + fmtMean(Math.sqrt(1.5 * 0.5)) + ', i.e. roughly a 13.4% loss per year. '
           + 'For anything that compounds - growth rates, returns, ratios - use the geometric mean.'
         : '一年涨 50%、次年跌 50%，算术平均说是 0%，但你的本金只剩 0.75 —— 实际亏了 25%。'
-          + '1.5 与 0.5 的几何平均约为 ' + Math.sqrt(1.5 * 0.5).toFixed(4) + '，即每年约亏 13.4%。'
+          + '1.5 与 0.5 的几何平均约为 ' + fmtMean(Math.sqrt(1.5 * 0.5)) + '，即每年约亏 13.4%。'
           + '凡是复利型的量 —— 增长率、收益率、比率 —— 都要用几何平均。');
 
     rows += __stRow(en ? 'When to use it' : '什么时候用',
@@ -603,10 +618,10 @@ document.addEventListener('toolbox:langchange',function(){try{__gmChart();}catch
           + '数值是相加关系时用算术平均。');
 
     rows += __stRow(en ? 'The gap between the two' : '两个平均的差距',
-      (en ? 'Arithmetic is ' : '算术平均 ') + m.am.toFixed(4) + (en ? ', geometric is ' : '，几何平均 ') + m.gm.toFixed(4)
+      (en ? 'Arithmetic is ' : '算术平均 ') + fmtMean(m.am) + (en ? ', geometric is ' : '，几何平均 ') + fmtMean(m.gm)
       + (en ? '. The arithmetic mean is always at least as large, and the gap grows with the spread: here the values run from '
         : '。算术平均恒不小于几何平均，且差距随离散程度增大：此处数值范围为 ')
-      + m.min.toFixed(4) + (en ? ' to ' : ' 到 ') + m.max.toFixed(4)
+      + fmtMean(m.min) + (en ? ' to ' : ' 到 ') + fmtMean(m.max)
       + (en ? '. A large gap is a signal that the data are skewed or spread across magnitudes.' : '。差距大即提示数据偏斜或跨量级。'));
 
     rows += __stRow(en ? 'Why it is gentler' : '为什么它更"温和"',
@@ -627,7 +642,7 @@ document.addEventListener('toolbox:langchange',function(){try{__gmChart();}catch
     if (bar){
       bar.innerHTML = __stBar(m.am > 0 ? m.gm / m.am : 0, '#0d9488')
         + '<div style="font-size:12px;color:var(--text-muted);">'
-        + (en ? 'GM / AM = ' : 'GM / AM = ') + (m.am > 0 ? (m.gm / m.am).toFixed(4) : '-')
+        + (en ? 'GM / AM = ' : 'GM / AM = ') + (m.am > 0 ? fmtMean(m.gm / m.am) : '-')
         + (en ? '  (1 means all values are equal)' : '（为 1 表示所有数值相同）')
         + '</div>';
     }
