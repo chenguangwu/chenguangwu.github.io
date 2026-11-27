@@ -6271,6 +6271,46 @@ const CASES = [
     ref: "JSON Schema 推导：键名 `a`、值 1（整数）⇒ 属性片段 `\"a\": { \"type\": \"integer\" }`。默认样例字段不同。",
   },
   {
+    "slug": "it/regex",
+    "clicks": [
+      "var b=__rxSeq.copy||0;testRegex();document.getElementById('__tbProbe').textContent='COPYINV '+(((__rxSeq.copy||0)===b+1)?'OK':'BAD');"
+    ],
+    "expect": [
+      "COPYINV OK"
+    ],
+    "ref": "第1059批：输入变化触发的 testRegex 必须同时递增 copy 通道版本，使旧复制 Worker 回包失效；旧实现只失效 test，旧 copy 仍可写入剪贴板 ⇒ 不递增。"
+  },
+  {
+    "slug": "it/regex",
+    "clicks": [
+      "var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/it/regex.html','utf8');document.getElementById('__tbProbe').textContent='RGXNPROTO '+((h.indexOf('var g1 = Object.create(null)')>=0&&h.indexOf('var g2 = Object.create(null)')>=0)?'OK':'BAD');"
+    ],
+    "expect": [
+      "RGXNPROTO OK"
+    ],
+    "ref": "第1059批：命名捕获组复制必须用无原型对象，`__proto__` 才会成为普通自有键；旧实现 `g1={}` 的赋值改写原型，显示漏掉该组。真机已复核 __proto__/constructor/普通名在 g 与非 g 模式均显示。"
+  },
+  {
+    "slug": "it/regex-escape",
+    "clicks": [
+      "var I=document.getElementById('input'),O=document.getElementById('output'),S=String.fromCharCode;I.value='a'+S(0x2028)+'b'+S(0x2029)+'c';esc();var sep=O.value;I.value=S(0xD800);esc();var lone=O.value;I.value='1abc';document.getElementById('joinSafe').checked=true;esc();var join=O.value;unesc();var round=O.value;document.getElementById('__tbProbe').textContent='ESCU '+((sep==='a\\\\u2028b\\\\u2029c'&&lone==='\\\\uD800'&&join==='\\\\x31abc'&&round==='1abc'&&new RegExp(join,'u').test('1abc'))?'OK':'BAD '+sep+'|'+lone+'|'+join+'|'+round);"
+    ],
+    "expect": [
+      "ESCU OK"
+    ],
+    "ref": "第1059批：U+2028/U+2029 与孤立代理项必须转成 \\uXXXX，拼接安全开启时首位数字转成 \\x31（可反转义并真实匹配 1abc）；旧实现三类字符原样输出、首字符原样 ⇒ BAD。默认 joinSafe 未勾选，不改旧行为。"
+  },
+  {
+    "slug": "it/regex-common",
+    "clicks": [
+      "function R(cat,txt,mode){document.getElementById('cat').value=cat;document.getElementById('txt').value=txt;document.getElementById('mode').value=mode;calcTool();return document.getElementById('result').innerHTML;}var ipX=R('ipv4','999.999.999.999 1234.5.6.7','extract'),ipV=R('ipv4','10.0.0.1','validate'),ipB=R('ipv4','999.999.999.999','validate'),dX=R('date','2024-99-99 12024-01-01','extract'),dL=R('date','2024-02-29','validate'),dB=R('date','2023-02-29','validate'),dBB=R('date','2024-99-99','validate');document.getElementById('__tbProbe').textContent='RGC '+((ipX.indexOf('提取模式只按形状匹配')>=0&&ipX.indexOf('1 个')>=0&&ipV.indexOf('✅ 有效')>=0&&ipB.indexOf('❌ 无效')>=0&&ipX.indexOf('999.999.999.999')>=0&&dX.indexOf('#1 [0-10] 2024-99-99')>=0&&dX.indexOf('#2 ')<0&&dL.indexOf('✅ 有效')>=0&&dB.indexOf('❌ 无效')>=0&&dBB.indexOf('❌ 无效')>=0)?'OK':'BAD');"
+    ],
+    "expect": [
+      "RGC OK"
+    ],
+    "ref": "第1059批：提取态提示形状局限并阻止从 12024 中截取日期；严格态按四段 0–255 与真实日历校验 999.999.999.999、10.0.0.1、闰日 2024-02-29、2023-02-29、2024-99-99；旧实现无模式/校验且无提示 ⇒ BAD。"
+  },
+  {
     slug: "it/regex-cheatsheet",
     inputs: { searchInput: "git" },
     clicks: ["calcTool()"],
