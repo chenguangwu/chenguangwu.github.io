@@ -129,7 +129,7 @@
       "name": "清明日期每年一样吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "不一样，清明为节气、公历约 4 月 4–6 日浮动，以当年节气时刻为准。"
+        "text": "不一样。工具按太阳视黄经 15° 求解当年清明（UTC+8），1900–2100 年可算，通常落在 4 月 4–6 日。"
       }
     },
     {
@@ -137,7 +137,7 @@
       "name": "农历生日怎么转公历？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "工具内置农历换算，输入农历即给出对应公历祭扫日；结果以标准农历历法为准。"
+        "text": "工具内置农历换算，输入农历即给出对应公历祭扫日；闰日周年可选 2 月 28 日、3 月 1 日或仅闰年提醒。"
       }
     }
   ]
@@ -188,12 +188,28 @@
         <label for="memName">逝者姓名</label>
         <input type="text" id="memName" value="" oninput="calc()" placeholder="选填">
       </div>
+          <div>
+        <label for="memRepeat">周年按</label>
+        <select id="memRepeat" onchange="calc()">
+          <option value="solar" selected>公历（同月同日）</option>
+          <option value="lunar">农历（同月同日）</option>
+        </select>
+      </div>
+      <div>
+        <label for="memLeap">2月29日遇非闰年</label>
+        <select id="memLeap" onchange="calc()">
+          <option value="feb28" selected>按 2月28日</option>
+          <option value="mar1">按 3月1日</option>
+          <option value="leapOnly">仅闰年提醒</option>
+        </select>
+      </div>
     </div>
 
     <div class="toolbar">
       <div id="memorial_datePresets"></div><button type="button" class="btn primary" onclick="calc()">计算</button><button class="btn" type="button" onclick="__memorial_dateExport()">导出明细 CSV</button>
       <button type="button" class="btn" onclick="saveReminder()">保存忌日提醒</button>
       <button type="button" class="btn" onclick="clearReminders()">清空提醒</button>
+      <button type="button" class="btn" onclick="exportReminderICS()">导出日历 (.ics)</button>
     </div>
 
     <div class="upcoming" id="upcoming"></div>
@@ -215,7 +231,7 @@
       <table>
         <thead><tr><th scope="col">节日</th><th scope="col">日期</th><th scope="col">说明</th></tr></thead>
         <tbody>
-          <tr><td>清明节</td><td>公历 4/4 或 4/5</td><td>节气，最重要的祭扫日</td></tr>
+          <tr><td>清明节</td><td>公历约 4/4–4/6，按节气时刻</td><td>节气，最重要的祭扫日；工具按中国标准时间计算</td></tr>
           <tr><td>中元节</td><td>农历七月十五</td><td>俗称鬼节，祭祀先人</td></tr>
           <tr><td>寒衣节</td><td>农历十月初一</td><td>为先人送寒衣</td></tr>
           <tr><td>除夕</td><td>农历腊月最后一天</td><td>岁末祭祖</td></tr>
@@ -259,12 +275,12 @@
 <li>忌日与周年提醒清单</li>
 <li>农历与公历换算</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">按农历或二十四节气推算清明(公历约 4 月 4–6 日)、中元(农历七月十五)等祭扫日，并生成忌日/周年提醒清单。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">设忌日为公历 2023-03-12，则 2024 年一周年提醒为 2024-03-12、二周年 2025-03-12；清明按当年节气约 4 月 4 日，中元为农历七月十五(2024 年对应公历 8 月 18 日)。提醒纯本地。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">清明按太阳视黄经 15° 求解（中国标准时间，1900–2100 年）；中元等按农历换算；忌日周年可选公历或农历，并处理 2 月 29 日闰日规则。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">2025 年清明为 4 月 4 日；忌日 2024-02-29 每年重复，非闰年选 2 月 28 日得 2027-02-28、选 3 月 1 日得 2027-03-01、仅闰年得 2028-02-29。可导出 .ics 到本地日历。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>清明日期每年一样吗？</dt><dd>不一样，清明为节气、公历约 4 月 4–6 日浮动，以当年节气时刻为准。</dd>
-<dt>农历生日怎么转公历？</dt><dd>工具内置农历换算，输入农历即给出对应公历祭扫日；结果以标准农历历法为准。</dd>
+<dt>清明日期每年一样吗？</dt><dd>不一样。工具按太阳视黄经 15° 求解当年清明（UTC+8），1900–2100 年可算，通常落在 4 月 4–6 日。</dd>
+<dt>农历生日怎么转公历？</dt><dd>工具内置农历换算，输入农历即给出对应公历祭扫日；闰日周年可选 2 月 28 日、3 月 1 日或仅闰年提醒。</dd>
 </dl>
 </div>
 </section>
@@ -403,15 +419,62 @@ function daysBetween(a, b){
   return Math.round((b - a) / 86400000);
 }
 
-// 清明节气近似公历日期（4日或5日）
+// 清明节气：用太阳视黄经=15°求解，按中国标准时间 UTC+8 取日期；支持 1900–2100
+function julianDay(y,m,d,h){
+  if(m<=2){y--;m+=12;}
+  var A=Math.floor(y/100),B=2-A+Math.floor(A/4);
+  return Math.floor(365.25*(y+4716))+Math.floor(30.6001*(m+1))+d+B-1524.5+(h||0)/24;
+}
+function sunApparentLongitude(jd){
+  var n=jd-2451545.0;
+  var L=(280.46646+0.98564736*n)%360;
+  var M=(357.52911+0.98560028*n)*Math.PI/180;
+  var C=1.914602*Math.sin(M)+0.019993*Math.sin(2*M)+0.000289*Math.sin(3*M);
+  var omega=(125.04-0.052982*n)*Math.PI/180;
+  return (L+C-0.00569-0.00478*Math.sin(omega)+360)%360;
+}
 function qingmingDate(year){
-  // 4日或5日，2000年后多为4日或5日
-  var d = new Date(year, 3, 5);
-  // 简化：2008年起 4/4 或 4/5，按已知规律
-  var day = 5;
-  if([2008,2009,2012,2016,2020,2024,2028,2032,2036,2040,2044,2048].indexOf(year) >= 0) day = 4;
-  if(year >= 2050) day = 4;
-  return new Date(year, 3, day);
+  if(year < 1900 || year > 2100) return null;
+  var jd=julianDay(year,4,5,0);
+  for(var i=0;i<5;i++){
+    var diff=((sunApparentLongitude(jd)-15+540)%360)-180;
+    jd-=diff/0.985647;
+  }
+  var ms=Date.UTC(2000,0,1,12)+(jd-2451545.0)*86400000;
+  var cn=new Date(ms+8*3600000);
+  return new Date(cn.getUTCFullYear(),cn.getUTCMonth(),cn.getUTCDate());
+}
+
+function isLeapYear(y){return (y%4===0&&y%100!==0)||y%400===0;}
+function safeAnniversary(base,y,rule){
+  var m=base.getMonth(),d=base.getDate();
+  if(m===1&&d===29&&!isLeapYear(y)){
+    if(rule==='leapOnly')return null;
+    return rule==='mar1'?new Date(y,2,1):new Date(y,1,28);
+  }
+  return new Date(y,m,d);
+}
+function nextSolarAnni(base,rule,today){
+  for(var y=today.getFullYear();y<=today.getFullYear()+8;y++){
+    var d=safeAnniversary(base,y,rule);
+    if(d&&d>=today)return d;
+  }
+  return null;
+}
+function nextLunarAnni(base,today){
+  var lm=solarToLunar(base);if(!lm)return null;
+  var todayL=solarToLunar(today);if(!todayL)return null;
+  for(var ly=todayL.year;ly<=todayL.year+3;ly++){
+    var d=lunarToSolar(ly,lm.month,lm.day,false);
+    if(!d)continue;
+    var chk=solarToLunar(d);
+    if(chk.month!==lm.month||chk.day!==lm.day)continue;
+    if(d>=today)return d;
+  }
+  return null;
+}
+function nextAnniversary(base,repeat,rule,today){
+  return repeat==='lunar'?nextLunarAnni(base,today):nextSolarAnni(base,rule,today);
 }
 
 var STORAGE_KEY = 'funeral_memorial_days';
@@ -432,7 +495,7 @@ function saveReminder(){
   var title = document.getElementById('memTitle').value.trim() || '先考';
   var name = document.getElementById('memName').value.trim();
   if(!day){ ToolBox.showToast(i18nText('toast.msg937'), 'warning'); return; }
-  reminders.push({id:Date.now(), day:day, title:title, name:name});
+  reminders.push({id:Date.now(), day:day, title:title, name:name, repeat:document.getElementById('memRepeat').value, leap:document.getElementById('memLeap').value});
   saveReminders();
   ToolBox.showToast(i18nText('toast.msg354'));
   renderReminders();
@@ -461,9 +524,9 @@ function calc(){
 
   // 公历固定节日
   var qm = qingmingDate(today.getFullYear());
-  events.push({icon:'🌱', name:'清明节', desc:'节气，最重要祭扫日', date:qm});
+  if(qm) events.push({icon:'🌱', name:'清明节', desc:'节气（中国标准时间 UTC+8），最重要祭扫日', date:qm});
   var qmNext = qingmingDate(today.getFullYear()+1);
-  events.push({icon:'🌱', name:'清明节（明年）', desc:'节气，最重要祭扫日', date:qmNext});
+  if(qmNext) events.push({icon:'🌱', name:'清明节（明年）', desc:'节气（中国标准时间 UTC+8），最重要祭扫日', date:qmNext});
 
   // 农历节日（今年）
   var ly = today.getFullYear();
@@ -508,6 +571,8 @@ function calc(){
     var title = document.getElementById('memTitle').value.trim() || '先考';
     var name = document.getElementById('memName').value.trim();
     var label = title + (name ? ' ' + name : '');
+    var repeat=document.getElementById('memRepeat').value;
+    var leapRule=document.getElementById('memLeap').value;
 
     // 头七、三七、五七、百日
     var shortDays = [
@@ -521,17 +586,21 @@ function calc(){
       events.push({icon:s.icon, name:s.name, desc:label + '逝后第' + s.offset + '天', date:d});
     });
 
-    // 周年（1-3周年，按公历）
-    for(var y = 1; y <= 3; y++){
-      var anniv = new Date(memDay);
-      anniv.setFullYear(anniv.getFullYear() + y);
-      events.push({icon:'🪦', name:y + '周年', desc:label + '逝世' + y + '周年（公历）', date:anniv});
+    // 未来 3 个周年（公历或农历；超过 3 年后继续给下一次）
+    var added=0, probe=today;
+    for(var k=0;k<8&&added<3;k++){
+      var anniv=nextAnniversary(memDay,repeat,leapRule,probe);
+      if(!anniv)break;
+      var n=anniv.getFullYear()-memDay.getFullYear();
+      events.push({icon:'🪦', name:n+'周年', desc:label+'逝世'+n+'周年（'+(repeat==='lunar'?'农历':'公历')+' '+fmtDate(anniv)+'）', date:anniv});
+      probe=new Date(anniv);probe.setDate(probe.getDate()+1);added++;
     }
 
     // 忌日显示农历
     var lunarInfo = lunarStr(lMem);
     var memInfo = '<p>忌日（公历）：<strong>' + fmtDate(memDay) + '</strong></p>' +
-      '<p>对应农历：<strong>' + lMem.year + '年' + lunarInfo + '</strong></p>';
+      '<p>对应农历：<strong>' + lMem.year + '年' + lunarInfo + '</strong></p>' +
+      '<p style="font-size:12px;color:var(--text-muted);">周年按'+(document.getElementById('memRepeat').value==='lunar'?'农历同月同日':'公历同月同日')+'；2月29日遇非闰年：'+(document.getElementById('memLeap').value==='leapOnly'?'仅闰年提醒':(document.getElementById('memLeap').value==='mar1'?'按3月1日':'按2月28日'))+'。</p>';
   } else {
     var memInfo = '<p style="color:var(--text-muted);">请选择忌日，将计算头七、百日、周年等</p>';
   }
@@ -572,21 +641,41 @@ function calc(){
 function renderReminders(){
   var el = document.getElementById('reminderList');
   if(!el) return;
-  if(reminders.length === 0){
-    el.innerHTML='';
-    return;
-  }
+  if(reminders.length === 0){ el.innerHTML=''; return; }
+  var today=new Date();today.setHours(0,0,0,0);
   var html = '<div style="font-size:13px;font-weight:600;margin:8px 0 4px;">已保存忌日提醒</div>';
   reminders.forEach(function(r){
     var d = new Date(r.day + 'T00:00:00');
+    if(isNaN(d)){return;}
     var l = solarToLunar(d);
+    var next=nextAnniversary(d,r.repeat||'solar',r.leap||'feb28',today);
+    var diff=next?daysBetween(today,next):null;
     html += '<div class="date-row">' +
       '<span class="icon">🪦</span>' +
       '<div class="info"><div class="name">' + ToolBox.escHtml(r.title + (r.name ? ' ' + r.name : '')) + '</div>' +
-      '<div class="desc">' + r.day + '（农历' + lunarStr(l) + '）</div></div>' +
+      '<div class="desc">原忌日 ' + r.day + '（农历' + lunarStr(l) + '）；'+(r.repeat==='lunar'?'农历':'公历')+'周年' +
+      (next?('，下次 '+fmtDate(next)+'，'+(diff===0?'就是今天':diff+' 天后')):'，未找到可计算的下次日期')+'</div></div>' +
       '<span class="idel" style="color:var(--danger);cursor:pointer;" onclick="delReminder(' + r.id + ')">✕</span></div>';
   });
-  const __g5=html;el.innerHTML=(typeof __g5==='number'?(isFinite(__g5)?__g5:'—'):String(__g5).replace(/Infinity|NaN/g,'—'));
+  html += '<p style="font-size:12px;color:var(--text-muted);margin-top:6px;">提醒仅保存在本机浏览器，不会自动发通知；可导出 .ics 导入系统日历自行设置提醒。</p>';
+  el.innerHTML=html;
+}
+
+function exportReminderICS(){
+  if(reminders.length===0){ToolBox.showToast('请先保存忌日提醒','warning');return;}
+  var today=new Date();today.setHours(0,0,0,0);
+  function icsDate(d){return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0');}
+  var lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//ToolBox//Memorial Reminder//CN','CALSCALE:GREGORIAN'];
+  reminders.forEach(function(r){
+    var d=new Date(r.day+'T00:00:00');if(isNaN(d))return;
+    var next=nextAnniversary(d,r.repeat||'solar',r.leap||'feb28',today);
+    if(!next)return;
+    var title=(r.title||'')+(r.name?' '+r.name:'')+' 忌日';
+    lines.push('BEGIN:VEVENT','UID:'+r.id+'@chenguangwu.github.io','DTSTAMP:'+icsDate(new Date())+'T000000Z','DTSTART;VALUE=DATE:'+icsDate(next),'SUMMARY:'+title.replace(/\n/g,' '),'DESCRIPTION:仅本地生成的忌日提醒；请按家庭习俗确认。','END:VEVENT');
+  });
+  lines.push('END:VCALENDAR');
+  var blob=new Blob([lines.join('\r\n')],{type:'text/calendar;charset=utf-8'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='忌日提醒.ics';a.click();setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
 }
 
 // 默认忌日：一年前

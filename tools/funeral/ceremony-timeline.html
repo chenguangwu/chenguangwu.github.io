@@ -112,15 +112,15 @@
       "name": "能改环节名吗？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "可自定义各环节名称与时长，时间轴实时重排。"
+        "text": "可回填修改环节所在的第几天、时间、名称与时长，保存后时间轴实时重排。"
       }
     },
     {
       "@type": "Question",
-      "name": "数据会丢吗？",
+      "name": "跨午夜怎么录？",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "存浏览器本地；清缓存会清空，建议截图或打印留存。"
+        "text": "直接选择第2天并填 00:15，无需把后录的早时间猜成次日；工具按天与时间排序并显示“第N天 HH:MM”。"
       }
     }
   ]
@@ -175,10 +175,11 @@
 
     <div class="add-row">
       <input type="time" id="newTime" placeholder="时间" aria-label="时间">
+      <input type="number" id="newDay" placeholder="第几天" value="1" min="1" max="7" step="1" style="max-width:96px;" aria-label="第几天（1-7）">
       <input type="text" id="newName" placeholder="环节名称" aria-label="环节名称">
       <input type="number" id="newDur" placeholder="时长(分钟)" min="1" max="120" style="max-width:120px;" aria-label="时长(分钟)">
       <input type="text" id="newDesc" placeholder="说明（选填）" aria-label="说明（选填）">
-      <button type="button" class="btn primary" onclick="addStep()">添加环节</button>
+      <button type="button" class="btn primary" id="addStepBtn" onclick="addStep()">添加环节</button>
     </div>
 
     <div class="toolbar">
@@ -188,6 +189,7 @@
     </div>
 
     <div class="summary-bar" id="summary"></div>
+    <div id="timelineWarn" aria-live="polite" style="font-size:13px;line-height:1.7;margin:6px 0;"></div>
     <div class="timeline" id="timeline"></div>
   </div>
 
@@ -236,12 +238,12 @@
 <li>签到与告别顺序安排</li>
 <li>多环节时长统筹</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">从起始时间逐环节添加名称与时长，工具按累加排布时间轴，便于把控整体节奏与衔接。</div></div>
-<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">09:00 签到(30min) → 09:30 追思缅怀(40min) → 10:10 遗体告别(20min) → 10:30 礼成合影(10min)，全程约 100 分钟；若压缩追思至 25 分钟则 10:15 结束。时间本地保存。</div></div>
+<div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">为每个环节选择举行第几天，填写时间与时长；工具按“天 + 时间”排序，分别给出环节合计与实际跨度，并提示相邻环节重叠或空档。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例（演示）</div><div class="dd-ex-body">第1天 10:00 签到 30 分钟、09:00 追思 20 分钟：按时间排为 09:00→10:00，空档 30 分钟、实际跨度 90 分钟；若第2天 09:00 加告别 30 分钟，结束显示第2天 09:30。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
-<dt>能改环节名吗？</dt><dd>可自定义各环节名称与时长，时间轴实时重排。</dd>
-<dt>数据会丢吗？</dt><dd>存浏览器本地；清缓存会清空，建议截图或打印留存。</dd>
+<dt>能改环节名吗？</dt><dd>可回填修改环节所在的第几天、时间、名称与时长，保存后时间轴实时重排。</dd>
+<dt>跨午夜怎么录？</dt><dd>直接选择第2天并填 00:15，无需把后录的早时间猜成次日；工具按天与时间排序并显示“第N天 HH:MM”。</dd>
 </dl>
 </div>
 </section>
@@ -312,33 +314,63 @@ var PRESET_LARGE = [
 function loadStorage(){
   try{
     var d = localStorage.getItem(STORAGE_KEY);
-    if(d) steps = JSON.parse(d);
+    if(d){ steps = JSON.parse(d); steps.forEach(function(s){ if(!s.day||!isFinite(Number(s.day)))s.day=1; }); }
   }catch(e){ steps = []; }
 }
 function saveStorage(){
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(steps)); }catch(e){}
 }
 
+var editingId=null;
+function resetEdit(){
+  editingId=null;
+  var btn=document.getElementById('addStepBtn');
+  if(btn)btn.textContent='添加环节';
+}
+function editStep(id){
+  var s=steps.find(function(x){return x.id===id;});
+  if(!s)return;
+  editingId=id;
+  document.getElementById('newDay').value=s.day||1;
+  document.getElementById('newTime').value=s.time;
+  document.getElementById('newName').value=s.name;
+  document.getElementById('newDur').value=s.dur;
+  document.getElementById('newDesc').value=s.desc||'';
+  var btn=document.getElementById('addStepBtn');
+  if(btn)btn.textContent='保存修改';
+  document.getElementById('newName').focus();
+}
 function addStep(){
   var time = document.getElementById('newTime').value;
   var name = document.getElementById('newName').value.trim();
-  var dur = parseInt(document.getElementById('newDur').value);
+  var durRaw = String(document.getElementById('newDur').value).trim();
+  var dur = Number(durRaw);
+  var dayRaw = String(document.getElementById('newDay').value).trim();
+  var day = Number(dayRaw);
   var desc = document.getElementById('newDesc').value.trim();
-  if(!time || !name || isNaN(dur) || dur < 1){
-    ToolBox.showToast(i18nText('toast.msg720'), 'warning');
+  if(!time || !name || durRaw==='' || !isFinite(dur) || dur<1 || dayRaw==='' || !Number.isInteger(day) || day<1 || day>7){
+    ToolBox.showToast('请填写时间、环节名称、第几天（1–7 整数）与大于 0 的时长','warning');
     return;
   }
-  steps.push({id:Date.now(), time:time, name:name, dur:dur, desc:desc});
+  if(editingId!==null){
+    var s=steps.find(function(x){return x.id===editingId;});
+    if(s){s.time=time;s.name=name;s.dur=Math.round(dur);s.desc=desc;s.day=day;}
+  }else{
+    steps.push({id:Date.now()+Math.random(), time:time, name:name, dur:Math.round(dur), desc:desc, day:day});
+  }
   saveStorage();
   document.getElementById('newTime').value = '';
   document.getElementById('newName').value = '';
   document.getElementById('newDur').value = '';
   document.getElementById('newDesc').value = '';
+  document.getElementById('newDay').value = '1';
+  var wasEdit=editingId!==null;
+  resetEdit();
   render();
-  ToolBox.showToast(i18nText());
+  ToolBox.showToast(wasEdit?'环节已更新':'环节已添加');
 }
-
 function delStep(id){
+  if(editingId===id)resetEdit();
   steps = steps.filter(function(s){return s.id !== id;});
   saveStorage();
   render();
@@ -386,75 +418,65 @@ function applyStart(){
 }
 
 function autoTime(){
-  // 按开始时间和各环节时长自动排列
   var start = document.getElementById('startTime').value;
   if(!start || steps.length === 0) return;
-  var parts = start.split(':');
-  var h = parseInt(parts[0]);
-  var m = parseInt(parts[1]);
+  var parts = start.split(':'), h = parseInt(parts[0]), m = parseInt(parts[1]), day=1;
   for(var i = 0; i < steps.length; i++){
+    steps[i].day=day;
     steps[i].time = (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
     m += steps[i].dur;
     while(m >= 60){ m -= 60; h++; }
-    if(h >= 24){ h -= 24; }
+    if(h >= 24){ h -= 24; day++; }
   }
   saveStorage();
 }
 
 function render(){
-  // 按录入先后推断跨日顺序，用绝对分钟排序，避免次日 00 点排到前一日 23 点之前
-  var dayOffset = 0, prevMin = -1;
+  steps.forEach(function(s){ if(!s.day||!isFinite(Number(s.day)))s.day=1; });
   steps.forEach(function(s){
     var p = String(s.time || '00:00').split(':');
     var m = (parseInt(p[0]) || 0) * 60 + (parseInt(p[1]) || 0);
-    if(prevMin >= 0 && m < prevMin) dayOffset += 1440;
-    s.__abs = m + dayOffset;
-    prevMin = m;
+    s.__abs = (Number(s.day)-1)*1440 + m;
   });
   steps.sort(function(a,b){ return a.__abs - b.__abs; });
-
-  function hhmm(abs){
-    var x = ((abs % 1440) + 1440) % 1440;
-    var h = Math.floor(x / 60), m = x % 60;
-    return (h < 10 ? '0' : '') + h + ':' + (m < 10 ? '0' : '') + m;
-  }
-
+  function hhmm(abs){var x=((abs%1440)+1440)%1440,h=Math.floor(x/60),m=x%60;return (h<10?'0':'')+h+':'+(m<10?'0':'')+m;}
+  function dayLabel(s){var d=Number(s.day)||1;return (d>1?'第'+d+'天 ':'')+hhmm(s.__abs);}
   var totalDur = steps.reduce(function(s,st){return s + st.dur;}, 0);
-  var endAbs = 0;
-  if(steps.length > 0){
-    endAbs = steps[steps.length-1].__abs + (parseInt(steps[steps.length-1].dur) || 0);
+  var span = steps.length>0 ? (steps[steps.length-1].__abs + (parseInt(steps[steps.length-1].dur)||0) - steps[0].__abs) : 0;
+  var endLabel = steps.length > 0 ? dayLabel({day:Math.floor((steps[steps.length-1].__abs+steps[steps.length-1].dur)/1440)+1, __abs:steps[steps.length-1].__abs+steps[steps.length-1].dur}) : '--';
+  var warnings=[];
+  for(var i=1;i<steps.length;i++){
+    var prev=steps[i-1],cur=steps[i],prevEnd=prev.__abs+prev.dur,gap=cur.__abs-prevEnd;
+    if(gap<0)warnings.push('「'+prev.name+'」与「'+cur.name+'」重叠 '+Math.abs(gap)+' 分钟');
+    else if(gap>0)warnings.push('「'+prev.name+'」结束至「'+cur.name+'」开始有 '+gap+' 分钟空档');
   }
-  var endLabel = steps.length > 0 ? (hhmm(endAbs) + (endAbs >= 1440 ? '（次日）' : '')) : '--';
-
-  const __g1='<div class="summary-card"><div class="v">' + steps.length + '</div><div class="l">环节数量</div></div>' +
-    '<div class="summary-card"><div class="v">' + totalDur + ' 分钟</div><div class="l">总时长</div></div>' +
-    '<div class="summary-card"><div class="v">' + (steps.length > 0 ? hhmm(steps[0].__abs) : '--') + '</div><div class="l">开始时间</div></div>' +
-    '<div class="summary-card"><div class="v">' + endLabel + '</div><div class="l">结束时间</div></div>';document.getElementById('summary').innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
-
-  if(steps.length === 0){
-    document.getElementById('timeline').innerHTML='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">暂无环节，请添加或载入标准流程</p>';
-    return;
-  }
-
-  var html = '';
+  var warnHtml=warnings.length?'<div style="padding:8px 10px;border:1px solid #f59e0b;border-radius:8px;background:#fffbeb;color:#92400e;">⚠ '+warnings.join('；')+'</div>':'<div style="color:var(--text-muted);">无环节重叠或空档</div>';
+  document.getElementById('timelineWarn').innerHTML=warnHtml;
+  document.getElementById('summary').innerHTML='<div class="summary-card"><div class="v">'+steps.length+'</div><div class="l">环节数量</div></div>'+
+    '<div class="summary-card"><div class="v">'+totalDur+' 分钟</div><div class="l">环节合计</div></div>'+
+    '<div class="summary-card"><div class="v">'+span+' 分钟</div><div class="l">实际跨度（含空档）</div></div>'+
+    '<div class="summary-card"><div class="v">'+(steps.length>0?dayLabel(steps[0]):'--')+'</div><div class="l">开始时间</div></div>'+
+    '<div class="summary-card"><div class="v">'+endLabel+'</div><div class="l">结束时间</div></div>';
+  if(steps.length===0){document.getElementById('timeline').innerHTML='<p style="color:var(--text-muted);font-size:13px;padding:12px 0;">暂无环节，请添加或载入标准流程</p>';return;}
+  var html='';
   steps.forEach(function(s){
-    html += '<div class="tl-item">' +
-      '<span class="tl-del" onclick="delStep(' + s.id + ')">✕</span>' +
-      '<div class="tl-time">' + s.time + (s.__abs >= 1440 ? '（次日）' : '') + '</div>' +
-      '<div class="tl-name">' + ToolBox.escHtml(s.name) + '</div>' +
-      '<div class="tl-dur">时长 ' + s.dur + ' 分钟</div>' +
-      (s.desc ? '<div class="tl-desc">' + ToolBox.escHtml(s.desc) + '</div>' : '') +
-      '</div>';
+    html+='<div class="tl-item"><span class="tl-del" onclick="delStep('+s.id+')">✕</span><span class="tl-del" style="right:34px;" onclick="editStep('+s.id+')">✎</span>'+
+      '<div class="tl-time">'+dayLabel(s)+'</div><div class="tl-name">'+ToolBox.escHtml(s.name)+'</div>'+
+      '<div class="tl-dur">时长 '+s.dur+' 分钟 · 第'+s.day+'天</div>'+
+      (s.desc?'<div class="tl-desc">'+ToolBox.escHtml(s.desc)+'</div>':'')+'</div>';
   });
-  const __g3=html;document.getElementById('timeline').innerHTML=(typeof __g3==='number'?(isFinite(__g3)?__g3:'—'):String(__g3).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('timeline').innerHTML=html;
 }
-
 function copyTimeline(){
   if(steps.length === 0){ ToolBox.showToast(i18nText('toast.msg428'), 'warning'); return; }
+  var totalDur=steps.reduce(function(s,st){return s+st.dur;},0);
+  var span=steps[steps.length-1].__abs+steps[steps.length-1].dur-steps[0].__abs;
   var txt = '追悼会时间轴：\n';
   steps.forEach(function(s){
-    txt += s.time + ' ' + s.name + '（' + s.dur + '分钟）' + (s.desc ? ' - ' + s.desc : '') + '\n';
+    var d=Number(s.day)||1;
+    txt += (d>1?'第'+d+'天 ':'')+s.time+' ' + s.name + '（' + s.dur + '分钟）' + (s.desc ? ' - ' + s.desc : '') + '\n';
   });
+  txt += '环节合计 '+totalDur+' 分钟；实际跨度 '+span+' 分钟（含空档）。\n';
   ToolBox.copyText(txt, i18nText('msg435'));
 }
 

@@ -168,6 +168,13 @@
         <label for="deathYear">卒年（农历）</label>
         <input type="text" id="deathYear" value="二〇二三年" oninput="render()">
       </div>
+      <div>
+        <label for="signer">落款（立碑人/时间）</label>
+        <input type="text" id="signer" value="孝子女 敬立" oninput="render()">
+      </div>
+      <div>
+        <label for="folkRef" style="display:flex;align-items:center;gap:6px;margin-top:28px;"><input type="checkbox" id="folkRef" checked onchange="render()" style="width:auto;">显示字数吉凶（民俗参考，可关闭）</label>
+      </div>
     </div>
 
     <div class="input-row">
@@ -213,7 +220,7 @@
       <p>• <strong>生卒年月</strong>：姓名两侧或下方，传统用农历大写</p>
       <p>• <strong>铭文</strong>：简述生平德行，字数宜简不宜繁</p>
       <p>• <strong>落款</strong>：立碑人姓名与立碑时间，居右下</p>
-      <p>• 字数讲究"合生老"，总字数尾数逢"生老病死苦"之"生"或"老"为吉</p>
+      <p>• 字数“合生老”仅为可选民俗参考（页面可关闭），总字数尾数逢“生”“老”被认为较吉，不是客观结论</p>
       <p>• 墓地面积 = 占地长 × 宽，需预留祭祀活动空间</p>
     </div>
   </div>
@@ -314,48 +321,56 @@ function applyTemplate(){
   render();
 }
 
+function charLen(str){
+  try{ if(typeof Intl!=='undefined'&&Intl.Segmenter) return Array.from(new Intl.Segmenter('zh',{granularity:'grapheme'}).segment(str)).length; }catch(e){}
+  return Array.from(str).length;
+}
 function render(){
-  var title = val('title') || '　';
-  var name = val('name') || '　';
+  var titleRaw = String(val('title')).trim();
+  var nameRaw = String(val('name')).trim();
   var birthYear = val('birthYear');
   var deathYear = val('deathYear');
   var epitaph = val('epitaph');
+  var signer = String(document.getElementById('signer').value).trim();
+  var showFolk = document.getElementById('folkRef').checked;
   var stoneW = num('stoneW'), stoneH = num('stoneH');
   var plotL = num('plotL'), plotW = num('plotW');
 
-  // 碑文字数吉凶（合生老）
-  var nameLen = name.length;
-  var cycle = ['生','老','病','死','苦'];
-  var luck = cycle[nameLen % 5];
-
-  var html = '<div class="epitaph-title">' + ToolBox.escHtml(title) + '</div>';
-  html += '<div class="epitaph-name">' + ToolBox.escHtml(name) + '</div>';
+  var nameDisplay = nameRaw ? ToolBox.escHtml(nameRaw) : '<span style="opacity:.5;font-weight:400;">（姓名待填写）</span>';
+  var html = '';
+  if(titleRaw) html += '<div class="epitaph-title">' + ToolBox.escHtml(titleRaw) + '</div>';
+  html += '<div class="epitaph-name">' + nameDisplay + '</div>';
   html += '<div class="epitaph-date">生于 ' + ToolBox.escHtml(birthYear) + '　卒于 ' + ToolBox.escHtml(deathYear) + '</div>';
   html += '<div class="epitaph-line"></div>';
-  if(epitaph){
-    html += '<div class="epitaph-text">' + ToolBox.escHtml(epitaph) + '</div>';
-  }
+  if(epitaph) html += '<div class="epitaph-text">' + ToolBox.escHtml(epitaph) + '</div>';
   html += '<div class="epitaph-line"></div>';
-  html += '<div class="epitaph-date" style="text-align:right;">孝子女 敬立</div>';
-  const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('preview').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('preview').innerHTML=__h0;
+  if(signer) html += '<div class="epitaph-date" style="text-align:right;">' + ToolBox.escHtml(signer) + '</div>';
+  document.getElementById('preview').innerHTML=html;
 
-  // 墓地面积
-  var plotArea = plotL * plotW;
-  var stoneArea = stoneW * stoneH;
-
-  var luckClass = (luck === '生' || luck === '老') ? 'grade-excellent' : (luck === '病' ? 'grade-pass' : 'grade-fail');
-  var luckNote = (luck === '生' || luck === '老') ? '吉' : (luck === '病' ? '平' : '建议调整字数');
-
-  const __h1='<p>碑文姓名字数：<strong>' + nameLen + '</strong> 字，合"生老病死苦"为 <span class="grade-tag ' + luckClass + '">' + luck + '（' + luckNote + '）</span></p>' +
-    '<p>建议：姓名字数尾数逢"生""老"为吉，可增减"之墓""讳"等字调整</p>' +
-    '<p>墓碑尺寸：<strong>' + stoneW + ' × ' + stoneH + ' m</strong>（面积 ' + stoneArea.toFixed(2) + ' ㎡）</p>' +
-    '<p>墓地占地：<strong>' + plotL + ' × ' + plotW + ' m</strong>（面积 ' + plotArea.toFixed(2) + ' ㎡）</p>' +
-    '<p>碑文行数建议：抬头1行 + 姓名1行 + 生卒1行 + 铭文2-4行 + 落款1行</p>';if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('detail').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail').innerHTML=__h1;
+  var plotArea = plotL * plotW, stoneArea = stoneW * stoneH;
+  var base='<p>墓碑尺寸：<strong>'+stoneW+' × '+stoneH+' m</strong>（面积 '+stoneArea.toFixed(2)+' ㎡）</p>'+
+    '<p>墓地占地：<strong>'+plotL+' × '+plotW+' m</strong>（面积 '+plotArea.toFixed(2)+' ㎡）</p>'+
+    '<p>碑文行数建议：抬头1行 + 姓名1行 + 生卒1行 + 铭文2-4行 + 落款1行</p>';
+  if(!nameRaw){
+    document.getElementById('detail').innerHTML='<p style="color:var(--text-muted);">请输入逝者姓名后显示碑文字数与民俗参考；当前不输出字数和吉凶判断。</p>'+base;
+    return;
+  }
+  var nameLen=charLen(nameRaw);
+  var cycle=['生','老','病','死','苦'],luck=cycle[nameLen%5];
+  var luckClass=(luck==='生'||luck==='老')?'grade-excellent':(luck==='病'?'grade-pass':'grade-fail');
+  var luckNote=(luck==='生'||luck==='老')?'吉':(luck==='病'?'平':'可考虑调整字数');
+  var folkHtml=showFolk
+    ? '<p>姓名可见字符数：<strong>'+nameLen+'</strong> 字。按民俗“生老病死苦”循环为 <span class="grade-tag '+luckClass+'">'+luck+'（'+luckNote+'）</span>，仅为民俗参考，不是客观结论。</p><p>若在意此说法，可增减“之墓”“讳”等字调整；称谓、铭文与落款均可自行修改。</p>'
+    : '<p>已关闭字数吉凶民俗参考；姓名可见字符数仍为 <strong>'+nameLen+'</strong> 字，仅供排版参考。</p>';
+  document.getElementById('detail').innerHTML=folkHtml+base;
 }
 
 function copyResult(){
-  var title = val('title'), name = val('name');
-  var txt = title + '\n' + name + '\n生于 ' + val('birthYear') + ' 卒于 ' + val('deathYear') + '\n' + val('epitaph') + '\n孝子女 敬立';
+  var title=String(val('title')).trim(), name=String(val('name')).trim();
+  if(!name){ToolBox.showToast('请先填写逝者姓名再复制碑文','warning');return;}
+  var signer=String(document.getElementById('signer').value).trim();
+  var txt=(title?title+'\n':'')+name+'\n生于 '+val('birthYear')+' 卒于 '+val('deathYear')+'\n'+val('epitaph');
+  if(signer)txt+='\n'+signer;
   ToolBox.copyText(txt, i18nText('msg533'));
 }
 

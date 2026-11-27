@@ -64,7 +64,7 @@ const CASES = [
     "height": "170"
   },
   "expect": [
-    "23×16×16"
+    "32×25×25"
   ],
   "ref": "auto-restore"
 },
@@ -85,10 +85,34 @@ const CASES = [
   {
     "slug": "funeral/ceremony-timeline",
     "clicks": [
-      "steps=[{id:1,time:'23:30',name:'签到',dur:20,desc:''},{id:2,time:'00:15',name:'告别',dur:30,desc:''}];render();var h=String(document.getElementById('timeline').innerHTML),s=String(document.getElementById('summary').innerHTML);document.getElementById('__tbProbe').textContent='CER='+((h.indexOf('23:30')>=0&&h.indexOf('23:30')<h.indexOf('00:15（次日）'))?'OK':'BAD')+' END='+(s.indexOf('00:45（次日）')>=0?'Y':'N');"
+      "steps=[{id:1,day:1,time:'23:30',name:'签到',dur:20,desc:''},{id:2,day:2,time:'00:15',name:'告别',dur:30,desc:''}];render();var h=String(document.getElementById('timeline').innerHTML),s=String(document.getElementById('summary').innerHTML);document.getElementById('__tbProbe').textContent='CER='+((h.indexOf('第2天 00:15')>=0&&h.indexOf('第2天 00:15')>h.indexOf('23:30'))?'OK':'BAD')+' END='+(s.indexOf('第2天 00:45')>=0?'Y':'N');"
     ],
     "expect": ["CER=OK END=Y"],
-    "ref": "修复前 render() 每次先用开始时间 09:00 覆盖手输时间、再按 HH:mm 字符串排序，跨午夜时次日 00:15 排到前一日 23:30 之前、结束时间也不带日偏移；现 render 不再覆盖手输时间，按录入顺序折算绝对分钟排序并标「（次日）」，末环节 23:30+20+30=次日 00:45。默认态无该探针串。"
+    "ref": "跨日不再按录入顺序猜测：步骤显式写 day=1/2，render 按「天+时间」排序；23:30 第1天之后显示第2天 00:15，末环节 23:30+20+30=第2天 00:45。默认态无该探针串。"
+  },
+  {
+    "slug": "funeral/memorial-date",
+    "clicks": ["var d=qingmingDate(2025);document.getElementById('__tbProbe').textContent='QM2025='+d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();"],
+    "expect": ["QM2025=2025-4-4"],
+    "ref": "清明用太阳视黄经=15°求解（UTC+8）：2025 年香港天文台年历为 4 月 4 日；旧白名单/2050 固定也会错。"
+  },
+  {
+    "slug": "funeral/reminder-3",
+    "clicks": ["var NativeDate=Date;Date=class extends NativeDate{constructor(...a){super(...(a.length?a:['2026-11-18T12:00:00']));}static now(){return new NativeDate('2026-11-18T12:00:00').getTime();}};var d1=getNextDate({type:'solar',date:'2024-02-29',yearly:true,leapRule:'feb28'});var d2=getNextDate({type:'solar',date:'2024-02-29',yearly:true,leapRule:'mar1'});var d3=getNextDate({type:'solar',date:'2024-02-29',yearly:true,leapRule:'leapOnly'});Date=NativeDate;document.getElementById('__tbProbe').textContent='LEAP='+(d1.getMonth()+'-'+d1.getDate())+'/'+(d2.getMonth()+'-'+d2.getDate())+'/'+d3.getFullYear();"],
+    "expect": ["LEAP=1-28/2-1/2028"],
+    "ref": "2月29日周年：非闰年按 2/28、3/1 或仅闰年（2028）三种策略，不再静默溢成 3 月且无提示。"
+  },
+  {
+    "slug": "funeral/funeral-budget-planner",
+    "clicks": ["items=[{id:1,name:'甲',cat:'basic',amt:0.01},{id:2,name:'乙',cat:'basic',amt:0.02},{id:3,name:'丙',cat:'basic',amt:0.03}];render();"],
+    "expect": ["¥ 0.06","¥0.01"],
+    "ref": "三项 0.01/0.02/0.03 分别显示 ¥0.01，总计 ¥0.06，不再全部取整为 0；机动费 0.01。"
+  },
+  {
+    "slug": "funeral/grave-design",
+    "inputs": {"name":""},
+    "expect": ["当前不输出字数和吉凶判断","（姓名待填写）"],
+    "ref": "空姓名只显示待填写占位，不计算可见字符数与生老病死苦。默认态不含该探针串。"
   },
   {
     "slug": "funeral/reminder-3",
