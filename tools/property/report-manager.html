@@ -139,7 +139,7 @@
         <h2 data-zh="🔍 财务（收支/报表/审计）管理">Property Income & Expenditure Report</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="物业收支报表与结余分析">Finance</p>
 <div class="formula-box">
-  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">结余 = 收入 − 支出；结余率 = 结余 ÷ 收入 × 100%；支出最大项按支出降序取首；收不抵支项 = 支出 &gt; 收入的项目计数</div>
+  <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">结余 = 收入 − 支出；结余率 = 结余 ÷ 收入 × 100%（收入合计为 0 时标“不适用”）；支出最大项按支出降序取首；收不抵支项 = 支出 &gt; 收入的项目计数。解析规则：每行必须为「项目,收入,支出」三个字段，金额须为纯数字；行号、字段数或数字有误即停止生成并逐行提示，不静默跳过；项目名按纯文本转义输出。</div>
   <p style="font-size:13px;line-height:1.7;margin:6px 0;">每行输入一条「项目,收入,支出」。结余＝收入−支出；结余率＝结余÷收入×100%。汇总得到收入合计、支出合计与总结余，并定位支出最大项与收不抵支的项目数，用于物业经营收支报表与审计自查。</p>
 </div>
 
@@ -225,35 +225,48 @@
 </div>
 <script>
 function calc(){
-var lines=document.getElementById("data").value.split("\n").map(function(s){return s.trim();}).filter(function(s){return s.length>0;});
-var rows=[];
+var box=document.getElementById("res");
+var raw=document.getElementById("data").value;
+var lines=raw.split("\n");
+var rows=[], errors=[], blank=0;
+var NUM=new RegExp('^[+-]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)$');
 for(var i=0;i<lines.length;i++){
-  var p=lines[i].split(/[,，\t ]+/);
-  if(p.length<3) continue;
-  var nm=p[0],inc=parseFloat(p[1]),exp=parseFloat(p[2]);
-  if(isNaN(inc)||isNaN(exp)) continue;
+  var line=lines[i].trim();
+  if(line===''){blank++;continue;}
+  var p=line.split(/[,，\t ]+/).filter(function(x){return x!=='';});
+  if(p.length!==3){errors.push('第 '+(i+1)+' 行：字段数 '+p.length+' 个，应为 3 个（项目,收入,支出）');continue;}
+  var nm=p[0].trim();
+  if(nm===''){errors.push('第 '+(i+1)+' 行：项目名为空');continue;}
+  if(!NUM.test(p[1])||!NUM.test(p[2])){errors.push('第 '+(i+1)+' 行：收入或支出不是有效数字（不得含单位或说明文字）');continue;}
+  var inc=parseFloat(p[1]),exp=parseFloat(p[2]);
+  if(!isFinite(inc)||!isFinite(exp)){errors.push('第 '+(i+1)+' 行：金额超出有效范围');continue;}
   rows.push({n:nm,i:inc,e:exp});
 }
-if(!rows.length){document.getElementById("res").innerHTML="<p>请输入至少一行「项目,收入,支出」数据</p>";return;}
+if(errors.length){
+  var eh='<div class="info-box" style="border-left:4px solid var(--danger);"><strong>输入存在 '+errors.length+' 处错误，已停止生成报表：</strong><br>'+errors.map(function(x){return ToolBox.escHtml(x);}).join('<br>')+'<br><span style="font-size:12px;">请按「项目,收入,支出」修正后重新生成；不会静默跳过错误行。</span></div>';
+  box.innerHTML=eh;return;
+}
+if(!rows.length){box.innerHTML="<div class='info-box'>请输入至少一行「项目,收入,支出」数据（空行不计）。</div>";return;}
 var ti=0,te=0;
 rows.forEach(function(r){ti+=r.i;te+=r.e;});
-var bal=ti-te,sr=ti>0?bal/ti*100:0;
+var bal=ti-te;
+var sr=ti>0?(bal/ti*100):null;
 var tb=rows.map(function(r){
   var b=r.i-r.e;
-  return "<tr><td>"+r.n+"</td><td>"+r.i.toFixed(2)+"</td><td>"+r.e.toFixed(2)+"</td><td>"+(b>=0?"+":"")+b.toFixed(2)+"</td><td>"+(b>=0?"盈余":"赤字")+"</td></tr>";
+  return "<tr><td>"+ToolBox.escHtml(r.n)+"</td><td>"+r.i.toFixed(2)+"</td><td>"+r.e.toFixed(2)+"</td><td>"+(b>=0?"+":"")+b.toFixed(2)+"</td><td>"+(b>=0?"盈余":"赤字")+"</td></tr>";
 }).join("");
 var mx=rows.slice().sort(function(a,b){return b.e-a.e;})[0];
 var def=rows.filter(function(r){return r.e>r.i;}).length;
-var h="<p>项目数：<strong>"+rows.length+"</strong></p>";
+var h="<p>项目数：<strong>"+rows.length+"</strong>"+(blank?'（忽略空行 '+blank+' 行）':'')+"</p>";
 h+="<p>收入合计：<strong>"+ti.toFixed(2)+"</strong></p>";
 h+="<p>支出合计：<strong>"+te.toFixed(2)+"</strong></p>";
 h+="<p>收支结余：<strong>"+(bal>=0?"+":"")+bal.toFixed(2)+"</strong></p>";
-h+="<p>结余率：<strong>"+sr.toFixed(2)+"%</strong></p>";
-h+="<p>支出最大项：<strong>"+mx.n+"</strong></p>";
+h+="<p>结余率：<strong>"+(sr===null?"不适用":((bal>=0?"+":"")+sr.toFixed(2)+"%"))+"</strong>"+(sr===null?"（收入合计为 0，分母为零）":"")+"</p>";
+h+="<p>支出最大项：<strong>"+ToolBox.escHtml(mx.n)+"</strong></p>";
 h+="<p>收不抵支项数：<strong>"+def+"</strong></p>";
 h+="<table><thead><tr><th>项目</th><th>收入</th><th>支出</th><th>结余</th><th>状态</th></tr></thead><tbody>"+tb+"</tbody></table>";
-h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>结余 = 收入 − 支出；结余率 = 结余 ÷ 收入 × 100%。公共能耗等无直接收入项目计入赤字项。</p>";
-const __g2=h;document.getElementById("res").innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+h+="<p style='font-size:12px;color:var(--text-muted);margin-top:8px;'>结余 = 收入 − 支出；结余率 = 结余 ÷ 收入 × 100%。收入合计为 0 时结余率不适用。公共能耗等无直接收入项目计入赤字项。所有项目名均按纯文本转义展示。</p>";
+box.innerHTML=h;
 }
 function copyRes(){ToolBox.copyText(document.getElementById("res").innerText);}
 </script>
