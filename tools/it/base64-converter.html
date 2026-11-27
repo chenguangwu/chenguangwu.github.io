@@ -472,11 +472,32 @@
   }
 
   function base64Decode(str, urlSafe){
+    var alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+    var raw = String(str).replace(/\s/g,'');
     if(urlSafe){
-      str = str.replace(/-/g,'+').replace(/_/g,'/');
-      while(str.length % 4) str += '=';
+      if(/[+/]/.test(raw)) throw new Error(__b64L('URL-safe Base64 does not accept "+" or "/"; switch to standard Base64','URL 安全模式不接受「+」或「/」，请切换标准 Base64'));
+      raw = raw.replace(/-/g,'+').replace(/_/g,'/');
+    }else if(/[-_]/.test(raw)){
+      throw new Error(__b64L('Standard Base64 does not accept "-" or "_"; enable URL-safe mode','标准 Base64 不接受「-」或「_」，请启用 URL 安全模式'));
     }
-    var binary = atob(str);
+    if(!raw) return new Uint8Array(0);
+    var pad = raw.slice(-2)==='==' ? 2 : (raw.slice(-1)==='=' ? 1 : 0);
+    if(raw.indexOf('=')!==-1 && raw.indexOf('=') < raw.length - pad) throw new Error(__b64L('Base64 padding "=" may only appear at the end','Base64 填充「=」只能出现在末尾'));
+    var body = pad ? raw.slice(0,-pad) : raw;
+    if(!/^[A-Za-z0-9+/]*$/.test(body)) throw new Error(__b64L('Base64 contains characters outside the selected alphabet','Base64 含有所选字母表之外的字符'));
+    var rem = body.length % 4;
+    if(rem === 1) throw new Error(__b64L('Base64 length is invalid (one leftover character)','Base64 长度无效（多出 1 个字符）'));
+    var requiredPad = (4 - rem) % 4;
+    if(pad && (pad !== requiredPad || raw.length % 4 !== 0)) throw new Error(__b64L('Base64 padding count does not match the data length','Base64 填充数量与数据长度不匹配'));
+    if(requiredPad === 2){
+      var v2 = alphabet.indexOf(body.charAt(body.length-1));
+      if(v2 & 0x0F) throw new Error(__b64L('Base64 is non-canonical: unused bits in the final group are not zero; re-encode or check for corruption','Base64 非规范编码：末组未使用位不为零；请重新编码或检查数据是否损坏'));
+    }else if(requiredPad === 1){
+      var v1 = alphabet.indexOf(body.charAt(body.length-1));
+      if(v1 & 0x03) throw new Error(__b64L('Base64 is non-canonical: unused bits in the final group are not zero; re-encode or check for corruption','Base64 非规范编码：末组未使用位不为零；请重新编码或检查数据是否损坏'));
+    }
+    var normalized = body + '='.repeat(requiredPad);
+    var binary = atob(normalized);
     var bytes = new Uint8Array(binary.length);
     for(var i=0;i<binary.length;i++) bytes[i] = binary.charCodeAt(i);
     return bytes;
@@ -585,8 +606,14 @@
   }
 
   function base85Decode(str){
-    str = str.replace(/^<~|~>$/g,'').replace(/\s/g,'');
-    if(str.indexOf('~>') !== -1) throw new Error(__b64L('Unexpected "~>" inside Base85 data','Base85 数据内部出现多余的「~>」'));
+    var s = String(str).trim();
+    var hasStart = s.indexOf('<~') === 0;
+    var hasEnd = s.slice(-2) === '~>';
+    if(hasStart !== hasEnd) throw new Error(__b64L('Adobe Base85 wrapper markers must appear in pairs: "<~" at the start and "~>" at the end','Base85 的 Adobe 包装标记必须成对出现：「<~」开头且「~>」结尾'));
+    if(hasStart) s = s.slice(2,-2);
+    if(s.indexOf('<~') !== -1 || s.indexOf('~>') !== -1) throw new Error(__b64L('Base85 data contains extra wrapper markers','Base85 数据内部出现多余的包装标记「<~」或「~>」'));
+    s = s.replace(/\s/g,'');
+    str = s;
     var bytes = [];
     var value = 0;
     var count = 0;
@@ -831,11 +858,17 @@
   function swapIO(){
     var input = document.getElementById('input');
     var output = document.getElementById('output');
+    if(!__b64OutputValid || !output.value){
+      return ToolBox.showToast(__b64L('Swap is only available after a successful encode or decode','只有成功编码或解码后才能交换输入与结果'), 'warning');
+    }
     var tmp = input.value;
     input.value = output.value;
     output.value = tmp;
-    __b64OutputValid = true;
+    // 交换后输出框里放的是旧输入，不是本次转换结果，必须锁住复制与下载类动作。
+    __b64OutputValid = false;
+    __lastDecodedBytes = null;
     onInputChange();
+    ToolBox.showToast(__b64L('Swapped; the output now holds the previous input, so encode/decode again before copying','已交换；输出框现在是上一次的输入，请重新编码或解码后再复制'), 'warning');
   }
 
   function clearAll(){
