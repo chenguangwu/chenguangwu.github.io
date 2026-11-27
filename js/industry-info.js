@@ -157,7 +157,7 @@ window.INDUSTRY_INFO = {
   'rental'               : { name: '租赁管理', icon: '🔑', hot: 67780 },
   'packaging'            : { name: '包装工程', icon: '📦', hot: 67267 },
   'petrochem'            : { name: '石油化工', icon: '🛢️', hot: 66239 },
-  'printing'             : { name: '印刷技术', icon: '🖨️', hot: 65260 },
+  'printing'             : { name: '印刷技术', icon: '🖨️', hot: 65259 },
   'manufacturing'        : { name: '制造业', icon: '🏭', hot: 65237 },
   'dance'                : { name: '舞蹈艺术', icon: '💃', hot: 62073 },
   'rubber'               : { name: '橡胶制品', icon: '🧴', hot: 60930 },

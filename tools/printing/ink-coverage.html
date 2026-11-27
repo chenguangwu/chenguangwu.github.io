@@ -185,7 +185,7 @@
 
     <div class="input-row">
       <div>
-        <label for="price">油墨单价（元/kg）</label>
+        <label for="price">油墨单价（元/kg，可空）</label>
         <input type="number" id="price" value="60" oninput="calc()" step="any" min="0" placeholder="如 60">
       </div>
       <div>
@@ -234,9 +234,9 @@
 <h2>📚 深度解析：油墨消耗量</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>按印面面积、实地覆盖率与上墨量（g/m²）估算单张及整批油墨消耗，安排补墨与专色配比。</li>
-<li>多色印件用色数放大：上墨量按每色叠加，四色满版比单色耗墨成倍增加。</li>
-<li>结合油墨单价核算整批耗材成本，或在报价中预留墨耗波动空间。</li>
+<li>覆盖率、损耗率空白表示尚未填写，会停止计算；明确填 0 合法（0 覆盖率表示不上墨，0 损耗表示不计损耗）。</li>
+<li>油墨单价可留空：留空时只算总用墨量，成本显示「未计算」，不按 0 元输出。</li>
+<li>单价、覆盖率、损耗率分别做范围校验，避免空白被 Number(&quot;&quot;) 当作 0。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">以「印面 700×1000 mm、印数 5000、实地覆盖率 30%、上墨量 1.0 g/m²、4 色、单价 80 元/kg、损耗 5%」为例</div><div class="dd-ex-body">单张面积=700×1000/1e6=0.7 m²。单张用墨=0.7×30%×1.0×4=0.84 g。整批净墨=0.84×5000=4200 g，含 5% 损耗=4410 g=4.41 kg，成本=4.41×80=352.8 元，每千张用墨 0.882 kg。若覆盖率升到 50%，单张用墨升到 1.4 g、整批 7.35 kg，墨耗随覆盖率近似线性增长。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
@@ -295,10 +295,16 @@ function calc(){
   const num = id => Number(raw(id));
   const width = num('width'), length = num('length'), sheets = num('sheets');
   const coverage = num('coverage'), film = num('film'), colors = num('colors');
-  const price = num('price'), waste = num('waste');
+  const priceRaw = raw('price');
+  const price = priceRaw === '' ? null : num('price');
+  const waste = num('waste');
 
   if(!isFinite(width)||width<=0||!isFinite(length)||length<=0||!Number.isInteger(sheets)||sheets<=0){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">宽、长须大于 0，张数须为正整数</p>';
+    return;
+  }
+  if(raw('coverage')===''){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">覆盖率必须填写（0–100%，确实为 0 请填 0）</p>';
     return;
   }
   if(!isFinite(coverage)||coverage<0||coverage>100||!isFinite(film)||film<=0){
@@ -309,15 +315,23 @@ function calc(){
     document.getElementById('result').innerHTML='<p style="color:var(--danger);">色数须为 1–8 的整数</p>';
     return;
   }
-  if(!isFinite(price)||price<0||!isFinite(waste)||waste<0||waste>100){
-    document.getElementById('result').innerHTML='<p style="color:var(--danger);">单价须为非负数，损耗率须在 0–100%</p>';
+  if(price!==null&&(!isFinite(price)||price<0)){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">单价须为非负数，或留空不计算成本</p>';
+    return;
+  }
+  if(raw('waste')===''){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">损耗率必须填写（0–100%，无损耗请填 0）</p>';
+    return;
+  }
+  if(!isFinite(waste)||waste<0||waste>100){
+    document.getElementById('result').innerHTML='<p style="color:var(--danger);">损耗率须在 0–100%</p>';
     return;
   }
 
   const areaPerSheet = width * length / 1000000; // m²
   const inkPerSheet = areaPerSheet * (coverage / 100) * film * colors; // g
   const totalInk = inkPerSheet * sheets * (1 + waste / 100) / 1000; // kg
-  const cost = totalInk * price;
+  const cost = price === null ? null : totalInk * price;
   const perThousand = totalInk / (sheets / 1000);
 
   const __g2=`
@@ -325,12 +339,13 @@ function calc(){
       <div class="data-card"><div class="num">${fmt(areaPerSheet)}</div><div class="label">单张面积（m²）</div></div>
       <div class="data-card"><div class="num">${fmt(inkPerSheet)}</div><div class="label">单张用墨（g）</div></div>
       <div class="data-card"><div class="num">${fmt(totalInk)}</div><div class="label">总用墨量（kg）</div></div>
-      <div class="data-card"><div class="num">¥${fmt(cost)}</div><div class="label">油墨成本</div></div>
+      <div class="data-card"><div class="num">${cost===null?'未计算':'¥'+fmt(cost)}</div><div class="label">油墨成本</div></div>
     </div>
     <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
     <p>每千张用墨：<strong>${fmt(perThousand)}</strong> kg</p>
     <p>覆盖率 ${coverage}%，${colors} 色，墨膜 ${film} g/m²，损耗 ${waste}%</p>
-    <p>总用墨量：<strong style="color:var(--primary);">${fmt(totalInk)} kg</strong>，成本 ¥${fmt(cost)}</p>
+    <p>总用墨量：<strong style="color:var(--primary);">${fmt(totalInk)} kg</strong>，${cost===null?'未填单价，成本未计算':'成本 ¥'+fmt(cost)}</p>
+    <p style="font-size:12px;color:var(--text-muted);">覆盖率 0 表示该色不上墨，是合法输入；空白表示尚未填写，会停止计算。损耗率 0 表示不计损耗。</p>
   `;document.getElementById('result').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 

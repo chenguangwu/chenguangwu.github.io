@@ -129,6 +129,71 @@ const CASES = [
   ],
   "ref": "新增回归：青色覆盖率 -5 越界，必须给出校验提示而不是算出负墨量"
 },
+
+{
+  "slug": "printing/analysis-7",
+  "inputs": {"lux": "500"},
+  "expect": ["不足以判断空间均匀度"],
+  "ref": "第1118批：单点 U₁=1 不能判均匀性优；少于 3 个测点只给统计量，不判整面均匀度。"
+},
+{
+  "slug": "printing/analysis-7",
+  "inputs": {"lux": ""},
+  "clicks": ["calc()"],
+  "expect": ["请录入各测点亮度读数（cd/m²）"],
+  "ref": "第1118批：清空输入须清除旧结论与参考标尺，不能保留上一次判读。"
+},
+{
+  "slug": "printing/box-area",
+  "inputs": {"len": "100","wid": "80","hei": "60","flap": "10","bleed": "3"},
+  "clicks": ["document.getElementById('boxType').value='tray';document.getElementById('boxType').dispatchEvent(new Event('change',{bubbles:true}));calc();"],
+  "expect": ["246×226"],
+  "ref": "第1118批：托盘盒板长须含两侧侧高 H；100×80×60、粘口 10、出血 3 ⇒ 246×226 mm，旧版 126×226 长度不足。"
+},
+{
+  "slug": "printing/sheet-calc",
+  "inputs": {"pages": "1","format": "16","copies": "100","waste": "0"},
+  "clicks": ["document.getElementById('doubleSide').checked=false;calc();"],
+  "expect": ["7 理论下限（可跨册拼版）", "100 采购全张"],
+  "ref": "第1118批：1 页 / 16 开 / 单面 / 100 册 ⇒ 独占 100 张、理论下限 7 张，明确区分独占与跨册拼版下限。"
+},
+{
+  "slug": "printing/carton-design",
+  "inputs": {"len": "123","wid": "80","hei": "60","thick": "0.5","glue": "0","margin": "0"},
+  "expect": ["402×138"],
+  "ref": "第1118批：粘口 0、余量 0 时展开 = 2×(122+79)=402 × (59+79)=138；旧版固定 15/5 得 417×143。"
+},
+{
+  "slug": "printing/carton-design",
+  "inputs": {"len": "123","wid": "80","hei": "60","thick": "0.5","glue": ""},
+  "expect": ["粘口与余量须为 ≥0 的有限数值"],
+  "ref": "第1118批：粘口留空不得按默认或 0 继续算，须显式填 0。"
+},
+{
+  "slug": "printing/ink-coverage",
+  "inputs": {"width":"892","length":"1194","sheets":"5000","coverage":"","film":"2.5","colors":"4","price":"60","waste":"10"},
+  "expect": ["覆盖率必须填写"],
+  "ref": "第1118批：覆盖率清空后不得按 0 输出零用墨。"
+},
+{
+  "slug": "printing/ink-coverage",
+  "inputs": {"width":"892","length":"1194","sheets":"5000","coverage":"0","film":"2.5","colors":"4","price":"","waste":"10"},
+  "expect": ["未计算"],
+  "ref": "第1118批：覆盖率 0 合法、用墨 0；单价留空成本显示未计算，不按 0 元。"
+},
+{
+  "slug": "printing/ink-coverage",
+  "inputs": {"width":"892","length":"1194","sheets":"5000","coverage":"40","film":"2.5","colors":"4","price":"60","waste":""},
+  "expect": ["损耗率必须填写"],
+  "ref": "第1118批：损耗率清空不得按 0 继续算。"
+},
+{
+  "slug": "printing/estimate-ink",
+  "inputs": {"sArea":"0.21","sCov":"40","sThk":"1.5","sDen":"1.1","sCopies":"1000","sPrice":""},
+  "clicks": ["calcSingle();"],
+  "expect": ["146.00", "mg"],
+  "ref": "第1118批：单价留空走未计价分支，单张毫克 = 0.146 kg ÷ 1000 × 1,000,000 = 146.00 mg；旧版显示 0.15 mg（克错标毫克）。"
+},
 {
   "slug": "printing/convert-gsm",
   "inputs": {
