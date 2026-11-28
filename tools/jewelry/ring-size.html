@@ -108,6 +108,14 @@
         "@type": "Answer",
         "text": "用细线绕手指一圈量周长最稳：剪一条无弹性细线绕指根一周，在重叠处做记号后拉直量长度（mm），即周长；内径 = 周长 ÷ π。注意在一天中手指最粗的傍晚测量，且量指根而非关节；若指关节明显粗于指根，取两值的中间值，避免戒指过紧或滑脱。"
       }
+    },
+    {
+      "@type": "Question",
+      "name": "为什么不能按端点外推？",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "不同地区标准和品牌版型差异很大，端点外的圈号没有本表依据，按最近档位硬推可能明显偏紧或偏松；应重新测量或让商家按实测内径确认。"
+      }
     }
   ]
 }
@@ -200,15 +208,17 @@
 <h2>📚 深度解析：戒指尺寸换算（周长↔直径）</h2>
 <h3>💡 常见使用场景</h3>
 <ul class="dd-list">
-<li>用软尺量指围算直径，对照圈号。</li>
-<li>不同国家尺码体系互转。</li>
+<li>用软尺量指围算直径，在本表 44–70 mm 参考范围内对照圈号。</li>
+<li>不同国家尺码体系互转；超出参考范围时只提示实测/咨询，不做端点外推。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">指围 55mm 对应直径</div><div class="dd-ex-body">直径 = 周长 ÷ π = 55 ÷ 3.14159 ≈ 17.5mm。港码约 14 号(内圈 17.5mm)，欧码常标 55。</div></div>
 <div class="dd-example"><div class="dd-ex-title">下午量更准</div><div class="dd-ex-body">手指早晚/冷热胀缩约 ±0.5 号；建议下午温暖时量，取略紧不脱落为准，宽版戒需加半号。</div></div>
+<div class="dd-example"><div class="dd-ex-title">周长超出 44–70 mm</div><div class="dd-ex-body">例如 75 mm 已超出本表范围，页面不再推荐端点圈号，而提示重新实测或咨询商家；表内两档相差大于 1 mm 时，会列出最接近的两档实际周长供试戴。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>港码和欧码怎么对？</dt><dd>欧码多直接标内圈周长(mm，如 55)；港码=内圈直径(mm)−? 约 14 号对应 17.5mm。各品牌有偏差，以实测内径为准。</dd>
 <dt>量不出内径怎么办？</dt><dd>用细线绕手指一圈量周长最稳：剪一条无弹性细线绕指根一周，在重叠处做记号后拉直量长度（mm），即周长；内径 = 周长 ÷ π。注意在一天中手指最粗的傍晚测量，且量指根而非关节；若指关节明显粗于指根，取两值的中间值，避免戒指过紧或滑脱。</dd>
+<dt>为什么不能按端点外推？</dt><dd>不同地区标准和品牌版型差异很大，端点外的圈号没有本表依据，按最近档位硬推可能明显偏紧或偏松；应重新测量或让商家按实测内径确认。</dd>
 </dl>
 </div>
 </section>
@@ -279,7 +289,9 @@ var DATA=[
   [69,22.0,29,15,'Z+5',26,69],
   [70,22.3,30,15.5,'Z+6',27,70]
 ];
+var RING_MIN=DATA[0][0],RING_MAX=DATA[DATA.length-1][0];
 function findNearest(circum){
+  if(circum<RING_MIN||circum>RING_MAX)return null;
   var best=DATA[0],minDiff=Math.abs(DATA[0][0]-circum);
   for(var i=1;i<DATA.length;i++){
     var d=Math.abs(DATA[i][0]-circum);
@@ -287,33 +299,48 @@ function findNearest(circum){
   }
   return best;
 }
-function calc(){
-  var c=parseFloat(document.getElementById('circum').value);
+function nearestTwo(circum){
+  return DATA.slice().sort(function(a,b){return Math.abs(a[0]-circum)-Math.abs(b[0]-circum);}).slice(0,2).sort(function(a,b){return a[0]-b[0];});
+}
+function clearRingHighlight(){document.querySelectorAll('#refTable tbody tr').forEach(function(r){r.classList.remove('highlight');});}
+function calc(circumOverride,diaOverride){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
+  var c=(circumOverride===undefined)?parseFloat(document.getElementById('circum').value):circumOverride;
   var out=document.getElementById('result');
-  if(isNaN(c)||c<=0){out.innerHTML='<p style="color:var(--danger)">请输入有效周长</p>';return;}
-  var dia=c/Math.PI;
-  document.getElementById('diameter').value=dia.toFixed(1);
-  var row=findNearest(c);
-  var html='<div class="big-result">对应戒指尺码：'+row[2]+'号 (中国港码)</div>';
-  html+='<div class="stat-grid">';
-  html+='<div class="stat-card"><div class="val">'+row[2]+'</div><div class="lbl">中国/港码</div></div>';
-  html+='<div class="stat-card"><div class="val">'+row[3]+'</div><div class="lbl">美码 US</div></div>';
-  html+='<div class="stat-card"><div class="val">'+row[4]+'</div><div class="lbl">英码 UK</div></div>';
-  html+='<div class="stat-card"><div class="val">'+row[5]+'</div><div class="lbl">日码 JP</div></div>';
-  html+='</div>';
-  html+='<p style="font-size:13px;margin-top:8px;">周长 <strong>'+c.toFixed(1)+' mm</strong>　直径 ≈ <strong>'+dia.toFixed(2)+' mm</strong>　对应欧码 EU <strong>'+row[6]+'</strong></p>';
-  if(Math.abs(row[0]-c)>1){
-    html+='<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">提示：您的尺寸介于标准尺码之间，建议试戴 '+row[2]+' 号与 '+(row[2]+1)+' 号后选择。</p>';
+  if(!isFinite(c)||c<=0){out.innerHTML='<p style="color:var(--danger)">'+(en?'Enter a valid circumference':'请输入有效周长')+'</p>';clearRingHighlight();return;}
+  if(c<RING_MIN||c>RING_MAX){
+    var rangeMsg=en?('Circumference '+c.toFixed(2)+' mm is outside the reference table ('+RING_MIN+'–'+RING_MAX+' mm), so a standard ring size cannot be matched reliably.'):('周长 '+c.toFixed(2)+' mm 超出参考表范围（'+RING_MIN+'–'+RING_MAX+' mm），无法可靠匹配标准圈号。');
+    var advice=en?'Re-measure the finger, or take the measured inner diameter/circumference to a jeweller. Regional and brand sizing differs, so end-point extrapolation is not recommended.':'请重新实测指围，或携带实测内径/周长咨询商家；不同地区与品牌尺码存在差异，不建议按端点外推。';
+    out.innerHTML='<p style="color:var(--danger)">'+rangeMsg+'</p><p style="font-size:13px;">'+advice+'</p>';
+    clearRingHighlight();return;
   }
-  const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  var dia=c/Math.PI;
+  document.getElementById('diameter').value=(diaOverride!==undefined)?diaOverride:dia.toFixed(1);
+  var row=findNearest(c);
+  var html='<div class="big-result">'+(en?('Ring size: '+row[2]+' (Hong Kong / China)'):('对应戒指尺码：'+row[2]+'号 (中国港码)'))+'</div>';
+  html+='<div class="stat-grid">';
+  html+='<div class="stat-card"><div class="val">'+row[2]+'</div><div class="lbl">'+(en?'HK / CN':'中国/港码')+'</div></div>';
+  html+='<div class="stat-card"><div class="val">'+row[3]+'</div><div class="lbl">'+(en?'US':'美码 US')+'</div></div>';
+  html+='<div class="stat-card"><div class="val">'+row[4]+'</div><div class="lbl">'+(en?'UK':'英码 UK')+'</div></div>';
+  html+='<div class="stat-card"><div class="val">'+row[5]+'</div><div class="lbl">'+(en?'JP':'日码 JP')+'</div></div>';
+  html+='</div>';
+  html+='<p style="font-size:13px;margin-top:8px;">'+(en?('Circumference <strong>'+c.toFixed(2)+' mm</strong>　Inner diameter ≈ <strong>'+dia.toFixed(3)+' mm</strong>　EU <strong>'+row[6]+'</strong>'):('周长 <strong>'+c.toFixed(2)+' mm</strong>　直径 ≈ <strong>'+dia.toFixed(3)+' mm</strong>　对应欧码 EU <strong>'+row[6]+'</strong>'))+'</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(en?('Reference range '+RING_MIN+'–'+RING_MAX+' mm (about 1–2 mm per row). This is a common comparison; regional standards and brand lasts may differ, so confirm the jeweller\'s measured size before buying.'):('参考范围 '+RING_MIN+'–'+RING_MAX+' mm（按本表相邻档位约 1–2 mm 一档）；表中为常见对照，地区标准与品牌版型可能不同，购买前以商家实测为准。'))+'</p>';
+  if(Math.abs(row[0]-c)>1){
+    var two=nearestTwo(c);
+    html+='<p style="font-size:12px;color:var(--text-muted);margin-top:4px;">'+(en?('Note: this circumference is '+Math.abs(row[0]-c).toFixed(2)+' mm from the nearest row, i.e. between standard sizes. The two closest rows are size '+two[0][2]+' (circumference '+two[0][0]+' mm) and size '+two[1][2]+' (circumference '+two[1][0]+' mm); try both before choosing.'):('提示：该周长与最近档位相差 '+Math.abs(row[0]-c).toFixed(2)+' mm，介于标准尺码之间；最接近的两档为 '+two[0][2]+' 号（周长 '+two[0][0]+' mm）与 '+two[1][2]+' 号（周长 '+two[1][0]+' mm），建议两档都试戴后选择。'))+'</p>';
+  }
+  out.innerHTML=html;
   highlightRow(row[0]);
 }
 function calcByDia(){
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var d=parseFloat(document.getElementById('diameter').value);
-  if(isNaN(d)||d<=0)return;
+  var out=document.getElementById('result');
+  if(!isFinite(d)||d<=0){out.innerHTML='<p style="color:var(--danger)">'+(en?'Enter a valid inner diameter':'请输入有效内径')+'</p>';document.getElementById('circum').value='';clearRingHighlight();return;}
   var c=d*Math.PI;
   document.getElementById('circum').value=c.toFixed(1);
-  calc();
+  calc(c,d);
 }
 function highlightRow(circum){
   var rows=document.querySelectorAll('#refTable tbody tr');
@@ -337,6 +364,7 @@ function copyResult(){
 }
 buildRefTable();
 calc();
+document.addEventListener("DOMContentLoaded",calc);
 </script>
 
 <!-- SEO 介绍区块 -->

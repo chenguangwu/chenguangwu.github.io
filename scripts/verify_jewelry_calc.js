@@ -27,7 +27,7 @@ const CASES = [
   "slug": "jewelry/gem-hardness",
   "inputs": { "filter": "7-7.5" },
   "expect": [
-    "硬度因品种略有差异6.5-7.5 锂辉石(紫锂辉) Kunzite"
+    "橄榄石 Peridot 6.5–7 较硬 黄绿 3.34 中 怕酸，不宜超声波清洗 坦桑石(黝帘石) Tanzanite"
   ],
   "ref": "按硬度档筛选的图鉴页：默认 all 渲染全表 ⇒ 任何单行文本都是逃生项，只能锚「仅过滤态成立的跨行相邻串」。注入 7-7.5 后顺序为 祖母绿/海蓝宝石/碧玺/紫水晶/黄水晶/石榴石/锂辉石，而默认全表中「石榴石」后紧邻「橄榄石」⇒ 跨行串「石榴石…锂辉石(紫锂辉) Kunzite」仅过滤态成立（判别器换回 all 即全表 ⇒ 该串消失）。非默认输入+独立复算。"
 },
@@ -56,10 +56,10 @@ const CASES = [
   "slug": "jewelry/ring-size",
   "inputs": {
     "circum": "55",
-    "diameter": "26.5"
+    "diameter": "17.5"
   },
   "expect": [
-    "26.52"
+    "54.98"
   ],
   "ref": "auto-restore"
 }
