@@ -102,6 +102,5 @@
   runSafely(function () {
     window._hmt = window._hmt || [];
     loadScript('tb-baidu-statistics', 'https://hm.baidu.com/hm.js?f2993fe19b2862986dd8dbfa0ffcebb8');
-    loadScript('tb-baidu-push', 'https://zz.bdstatic.com/linksubmit/push.js');
   });
 })(window, document);

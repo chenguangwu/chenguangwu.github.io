@@ -284,36 +284,9 @@
   }
 
   async function runT1() {
-    render('t1', 'loading', t('正在查询公网 IP…', 'Querying public IP…'));
-    var data = null, source = '', lastErr = null;
-    for (var i = 0; i < IP_SOURCES.length; i++) {
-      var s = IP_SOURCES[i];
-      try { data = s.parse(await fetchJson(s.url, 6000)); source = s.name; break; }
-      catch (e) { lastErr = e; }
-    }
-    if (!data) {
-      render('t1', 'error', t('查询失败', 'Query failed') + '：' + errInfo(lastErr));
-      return;
-    }
-    data.source = source; data.time = iso();
-    ST.t1PublicIp = data.ip;
-    render('t1', 'ok', t1Text(data), t1Text(data));
-    // IPv6 单独探测，失败静默跳过
-    try {
-      var r = await fetchTimed('https://v6.ident.me', 6000, { cache: 'no-store' });
-      var v6 = (await r.text()).trim();
-      if (v6 && v6.indexOf(':') > 0) {
-        ST.t1IPv6 = v6;
-        var box = document.getElementById('result-t1');
-        if (box) box.textContent += '\nIPv6: ' + v6;
-        ST.t1.copy += '\nIPv6: ' + v6;
-        if (ST.t1.display.indexOf('IPv6:') < 0) ST.t1.display += '\nIPv6: ' + v6;
-        // IPv6 行是 render 之后异步追加的，需重写历史，保证存档与展示/复制完全一致
-        saveHistory('t1', ST.t1.copy);
-        renderAnalysis('t1', 'ok', ST.t1.display);  // 解读器也要看最终含 IPv6 的文本
-        renderHistory();
-      }
-    } catch (e) { /* 无 IPv6 时静默跳过 */ }
+    var text = t('本页不向任何公开 IP 接口发起请求，因此无法自动显示你的出口 IP。\n自查步骤：\n1) 打开路由器/光猫管理页，查看 WAN 侧 IPv4/IPv6 地址；\n2) 或在你信任的网络服务商官网/客户端查看“当前连接 IP”；\n3) 把查到的 IP 粘贴到本机记事本核对，勿提交给陌生网站。\n说明：出口 IP 可能因代理、VPN、CGNAT 而变化；本页只做本地说明，不采集、不上传。',
+      'This page sends no request to public IP services, so it cannot display your egress IP automatically.\nCheck locally:\n1) Open your router or ONT admin page and read the WAN IPv4/IPv6 address;\n2) Or read the current connection IP in a trusted ISP portal/client;\n3) Keep the result in a local note; do not submit it to unknown sites.\nNote: egress IP can change with proxy, VPN or CGNAT; this page only explains and never collects or uploads.');
+    render('t1', 'ok', text, text);
   }
 
   // ================= T2 任意 IP 查询 =================
@@ -342,23 +315,8 @@
       render('t2', 'error', t('IP 格式不合法，未发送请求。', 'Invalid IP format; no request sent.'));
       return;
     }
-    render('t2', 'loading', t('正在查询…', 'Querying…'));
-    var d = null, lastErr = null;
-    try {
-      var j = await fetchJson('https://ipwho.is/' + encodeURIComponent(ip), 6000);
-      d = { country: j.country, region: j.region, city: j.city,
-        isp: j.connection && j.connection.isp, asn: j.connection && j.connection.asn,
-        domain: (j.connection && j.connection.domain) || null };
-      if (j.success === false) throw new Error(j.message || 'not found');
-    } catch (e) {
-      lastErr = e;
-      try {
-        var k = await fetchJson('https://ipapi.co/' + encodeURIComponent(ip) + '/json/', 6000);
-        d = { country: k.country_name, region: k.region, city: k.city, isp: k.org, asn: k.asn, domain: null };
-      } catch (e2) { lastErr = e2; }
-    }
-    if (!d) { render('t2', 'error', t('查询失败', 'Query failed') + '：' + errInfo(lastErr)); return; }
-    var text = t2Text(ip, d);
+    var text = t('IP 格式校验通过：' + ip + '（IPv' + validIp(ip) + '）。\n本页不把该地址发送给 ipwho.is、ipapi.co 或任何第三方接口，因此不显示国家/城市/ISP/ASN。\n归属地查询建议：使用本地离线 IP 库（如 MaxMind GeoLite2 离线库）、运营商 whois 或有权查询的内部系统；查询前确认数据合规与授权。',
+      'IP format is valid: ' + ip + ' (IPv' + validIp(ip) + ').\nThis page does not send it to ipwho.is, ipapi.co or any third-party API, so country/city/ISP/ASN are not shown.\nUse an offline IP database (such as MaxMind GeoLite2), carrier whois, or an authorized internal system; confirm compliance and authorization before querying.');
     render('t2', 'ok', text, text);
   }
 
@@ -442,7 +400,7 @@
       var markS = r.status === 'ok' ? '✅ ' + t('可达', 'Reachable') : (r.status === 'timeout' ? '⏱ ' + t('超时', 'Timeout') : '❌ ' + t('不可达', 'Unreachable'));
       return r.name + ': ' + markS + ' ' + r.ms + 'ms';
     });
-    var text = lines.join('\n') + '\n' + t('汇总', 'Summary') + ': ' + pass + '/' + rows.length + ' ' + t('可达', 'reachable');
+    var text = t('观测范围：仅 4 个固定站点的 favicon 图片加载（点击后才请求），不代表整站、DNS、API、代理或网络是否正常。', 'Scope: only favicon image loads from 4 fixed sites, requested after you click; this does not prove the whole site, DNS, API, proxy or network is healthy.') + '\n' + lines.join('\n') + '\n' + t('图片加载成功', 'Images loaded') + ': ' + pass + '/' + rows.length;
     render('t4', 'ok', text, text);
   }
 
@@ -499,17 +457,8 @@
     return s ? { ip: s.ip, port: s.port } : null;
   }
   async function runT7() {
-    render('t7', 'loading', t('正在向 3 个 STUN 查询映射…', 'Querying 3 STUN servers…'));
-    var maps = [];
-    for (var i = 0; i < STUNS.length; i++) {
-      try { maps.push({ stun: STUNS[i], map: await stunMapping(STUNS[i]) }); }
-      catch (e) { maps.push({ stun: STUNS[i], map: null }); }
-    }
-    var got = maps.filter(function (m) { return m.map && m.map.port; });
-    var type = got.length < 2 ? t('无法判断', 'Undetermined') :
-      (got.every(function (m) { return m.map.port === got[0].map.port; }) ? t('锥形 NAT', 'Cone NAT') : t('对称 NAT', 'Symmetric NAT'));
-    var text = t('NAT 类型推断:', 'NAT type:') + ' ' + type + '\n' + t('各 STUN 映射:', 'STUN mappings:') + '\n' +
-      maps.map(function (m) { return m.stun + ': ' + (m.map ? m.map.ip + ':' + m.map.port : '—'); }).join('\n');
+    var text = t('本页不访问 STUN 服务器，也不向第三方发送 WebRTC/网络候选信息，因此无法自动判定 NAT 类型。\n本地排查步骤：\n1) 在路由器管理页查看 NAT/端口映射与 UPnP 状态；\n2) 用两台不同网络的设备尝试 P2P 直连，记录是否必须中继；\n3) 需要精确判定时，在受控环境使用自建 STUN/TURN 并评估隐私与合规。\n结论：仅凭浏览器页面不能可靠区分全锥/受限/端口受限/对称 NAT，本页不给出猜测结果。',
+      'This page does not contact STUN servers or send WebRTC/network candidates to third parties, so it cannot determine NAT type automatically.\nLocal checks:\n1) Inspect NAT/port mapping and UPnP in the router admin page;\n2) Try P2P between two networks and note whether relay is required;\n3) For exact classification, use a self-hosted STUN/TURN in a controlled environment after privacy and compliance review.\nA browser page alone cannot reliably distinguish cone/restricted/port-restricted/symmetric NAT, so no guessed result is shown.');
     render('t7', 'ok', text, text);
   }
 
@@ -558,23 +507,18 @@
     { name: 'Cloudflare', url: 'https://www.cloudflare.com/favicon.ico', group: 'global' }
   ];
   async function runT10() {
-    render('t10', 'loading', t('正在探测国内/国外目标…', 'Probing CN/global targets…'));
+    render('t10', 'loading', t('正在观测固定站点加载…', 'Observing fixed-site loads…'));
     var rows = await probeGroup(CN_TARGETS.concat(GLOBAL_TARGETS));
     var cn = rows.filter(function (r) { return r.group === 'cn'; });
     var gl = rows.filter(function (r) { return r.group === 'global'; });
     var cnOk = cn.filter(function (r) { return r.status === 'ok'; }).length;
     var glOk = gl.filter(function (r) { return r.status === 'ok'; }).length;
-    var mode;
-    if (!cnOk && !glOk) mode = t('网络或代理故障', 'Network/proxy failure');
-    else if (cnOk === cn.length && glOk === gl.length) mode = t('可能为全局代理', 'Possible global proxy') + ' / ' + t('直连', 'Direct');
-    else if (!cnOk && glOk) mode = t('异常，可能国内被误代理', 'Abnormal: domestic possibly proxied');
-    else if (cnOk === cn.length && glOk < gl.length) mode = t('规则分流', 'Rule-based split') + ' / ' + t('直连', 'Direct');
-    else mode = t('规则分流', 'Rule-based split');
-    var text = t('代理模式推断:', 'Proxy mode:') + ' ' + mode + '\n' +
-      t('国内目标:', 'Domestic:') + ' ' + cnOk + '/' + cn.length + '\n' +
-      t('国外目标:', 'Global:') + ' ' + glOk + '/' + gl.length + '\n' +
-      t('明细:', 'Details:') + '\n' +
-      rows.map(function (r) { return r.name + ' (' + r.group + '): ' + (r.status === 'ok' ? t('可达', 'reachable') : t('不可达', 'unreachable')) + ' ' + r.ms + 'ms'; }).join('\n');
+    var text = t('观测范围：仅固定站点的 favicon 图片加载成功/失败与耗时；不读取系统代理配置，也不推断代理模式或分流规则。', 'Scope: only fixed-site favicon load success/failure and timing; this does not read system proxy settings or infer proxy mode or routing rules.') + '\n' +
+      t('国内目标加载:', 'Domestic loads:') + ' ' + cnOk + '/' + cn.length + '\n' +
+      t('国外目标加载:', 'Global loads:') + ' ' + glOk + '/' + gl.length + '\n' +
+      t('逐项观测:', 'Per-target observations:') + '\n' +
+      rows.map(function (r) { return r.name + ' (' + r.group + '): ' + (r.status === 'ok' ? t('加载成功', 'loaded') : t('加载失败/超时', 'failed/timeout')) + ' ' + r.ms + 'ms'; }).join('\n') + '\n' +
+      t('结论：图片加载受 CDN、缓存、拦截与跨域策略影响，无法据此判定代理模式；如需判断分流，请核对系统/路由代理配置与浏览器网络面板。', 'Conclusion: image loads are affected by CDN, cache, blocking and cross-origin policy, so proxy mode cannot be inferred; check system/router proxy settings and browser network panel instead.');
     render('t10', 'ok', text, text);
   }
 
@@ -595,33 +539,8 @@
     return { bytes: total, sec: ms / 1000, mbps: total * 8 / Math.max(ms, 1) / 1000 };
   }
   async function runT11() {
-    render('t11', 'loading', t('预热与延迟测试…', 'Warm-up and latency test…'));
-    var latencies = [];
-    try {
-      await downloadOnce(256 * 1024, 30000);
-      for (var i = 0; i < 10; i++) {
-        var d = await downloadOnce(0, 30000);
-        latencies.push(Math.max(0, d.sec * 1000));
-      }
-    } catch (e) { render('t11', 'error', t('测速失败', 'Speed test failed') + '：' + errInfo(e)); return; }
-    var latency = median(latencies);
-    var jitter = median(latencies.map(function (x) { return Math.abs(x - latency); }));
-    var rounds = [1, 5, 10], results = [];
-    for (var k = 0; k < rounds.length; k++) {
-      for (var j = 0; j < 2; j++) {
-        try { results.push({ mb: rounds[k], mbps: (await downloadOnce(rounds[k] * 1024 * 1024, 30000)).mbps }); }
-        catch (e) { /* 单轮失败跳过，取剩余轮次中位数 */ }
-        var box = document.getElementById('result-t11');
-        if (box) box.textContent = t('正在测速', 'Testing') + ' ' + rounds[k] + 'MB (' + (j + 1) + '/2)…';
-      }
-    }
-    if (!results.length) { render('t11', 'error', t('测速失败：所有下载轮次均不可用', 'All download rounds failed')); return; }
-    var mbps = median(results.map(function (r) { return r.mbps; }));
-    var text = t('下行', 'Download') + ': ' + mbps.toFixed(2) + ' Mbps\n' +
-      t('延迟', 'Latency') + ': ' + latency.toFixed(1) + ' ms\n' +
-      t('抖动', 'Jitter') + ': ' + jitter.toFixed(1) + ' ms\n' +
-      t('测试端点', 'Endpoint') + ': ' + SPEED_ENDPOINT + '{bytes}\n' +
-      t('轮次', 'Rounds') + ': ' + results.length + ' ' + t('轮，取中位数', 'rounds, median used');
+    var text = t('本页不向 speed.cloudflare.com 或其他 CDN 拉取测试文件，因此不显示下载速率。\n原因：自动测速会产生大流量、结果受 CDN/并发/缓存影响，且会把请求发往第三方。\n本地核对步骤：\n1) 用运营商官方测速页或你信任的测速工具，在同一时段多次测试；\n2) 有线与 Wi‑Fi 分开记录，避免把无线瓶颈当成宽带不足；\n3) 对照套餐带宽与路由器协商速率，关注延迟、抖动和丢包而不只看峰值。\n本页只提供方法，不发起测速请求。',
+      'This page does not download test files from speed.cloudflare.com or any CDN, so no download rate is shown.\nAutomatic tests consume large traffic and are affected by CDN, concurrency and caching, while sending requests to third parties.\nLocal checks:\n1) Use your ISP official speed page or a trusted tool, repeated in the same time window;\n2) Record wired and Wi-Fi separately to avoid mistaking wireless limits for broadband limits;\n3) Compare plan bandwidth and router negotiated rate; watch latency, jitter and loss, not only peak speed.\nThis page provides method only and sends no speed-test request.');
     render('t11', 'ok', text, text);
   }
 
@@ -690,19 +609,8 @@
     { name: 'npm', url: 'https://status.npmjs.org/api/v2/status.json' }
   ];
   async function runT13() {
-    render('t13', 'loading', t('正在读取 4 个服务状态…', 'Reading 4 status endpoints…'));
-    var rows = await Promise.allSettled(STATUS_APIS.map(function (s) { return fetchJson(s.url, 5000); }));
-    var lines = [];
-    rows.forEach(function (r, i) {
-      var name = STATUS_APIS[i].name, status = 'unknown', updated = '—';
-      if (r.status === 'fulfilled' && r.value && r.value.status && r.value.status.indicator) {
-        var ind = r.value.status.indicator;
-        status = ind === 'none' ? 'operational' : (ind === 'minor' ? 'degraded' : (ind === 'major' || ind === 'critical') ? 'outage' : 'unknown');
-        updated = (r.value.status.updated_at || r.value.page && r.value.page.updated_at || '—');
-      }
-      lines.push(name + ': ' + status + ' ' + t('更新于', 'updated at') + ' ' + updated);
-    });
-    var text = t('服务状态:', 'Service status:') + '\n' + lines.join('\n');
+    var text = t('本页不请求 GitHub、Cloudflare、Vercel、npm 的状态接口，因此不显示实时状态。\n请手动打开官方状态页核对（以官方页面为准）：\nGitHub: https://www.githubstatus.com/\nCloudflare: https://www.cloudflarestatus.com/\nVercel: https://www.vercel-status.com/\nnpm: https://status.npmjs.org/\n提示：浏览器跨域限制与接口限流会使自动汇总不稳定；本页只提供入口，不采集、不上传。',
+      'This page does not call the GitHub, Cloudflare, Vercel or npm status APIs, so no live status is shown.\nOpen the official status pages manually (official pages are authoritative):\nGitHub: https://www.githubstatus.com/\nCloudflare: https://www.cloudflarestatus.com/\nVercel: https://www.vercel-status.com/\nnpm: https://status.npmjs.org/\nCross-origin limits and rate limits make automated aggregation unstable; this page provides entry points only and never collects or uploads data.');
     render('t13', 'ok', text, text);
   }
 

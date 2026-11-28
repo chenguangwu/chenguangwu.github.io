@@ -101,7 +101,7 @@ window.INDUSTRY_INFO = {
   'nutrition'            : { name: '营养膳食', icon: '🥗', hot: 165574 },
   'advertising'          : { name: '广告设计', icon: '📣', hot: 164505 },
   'pediatrics'           : { name: '儿科医学', icon: '🧒', hot: 155510 },
-  'telecom'              : { name: '通信技术', icon: '📡', hot: 153758 },
+  'telecom'              : { name: '通信技术', icon: '📡', hot: 153742 },
   'reproductive-medicine': { name: '生殖医学', icon: '🧬', hot: 150627 },
   'tcm-diagnosis'        : { name: '中医诊断', icon: '🩺', hot: 150086 },
   'engineering'          : { name: '工程计算', icon: '⚙️', hot: 149497 },
