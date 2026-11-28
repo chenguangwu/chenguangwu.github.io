@@ -222,30 +222,39 @@
 
 const stdItems=[{name:"防爆等级",unit:"级",id:"v1",op:"<=",threshold:1,stdDesc:"≤1级"},{name:"密封等级",unit:"级",id:"v2",op:"<=",threshold:2,stdDesc:"≤2级"},{name:"防护等级",unit:"级",id:"v3",op:"<=",threshold:3,stdDesc:"≤3级"}];
 function calc(){
- var allPass=true;
+ var allPass=true,hasPending=false;
  var html='<table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:12px;">';
  html+='<tr style="background:var(--th-bg);"><th style="padding:8px;text-align:left;border:1px solid var(--border);">检测项目</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">实测值</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">标准要求</th><th style="padding:8px;text-align:center;border:1px solid var(--border);">判定</th></tr>';
  stdItems.forEach(function(item){
-  var val=parseFloat(document.getElementById(item.id).value)||0;
+  var __raw=String(document.getElementById(item.id).value).trim();
+  var val=__raw===''?NaN:parseFloat(__raw);
+  var pending=__raw===''||!isFinite(val);
   var pass=false;
-  if(item.op==="<="){pass=val<=item.threshold;}
-  else if(item.op===">="){pass=val>=item.threshold;}
-  else if(item.op==="range"){pass=val>=item.threshold[0]&&val<=item.threshold[1];}
-  if(!pass){allPass=false;}
-  var pc=pass?"var(--success)":"var(--danger)";var pt=pass?"合格":"不合格";
-  html+='<tr><td style="padding:8px;border:1px solid var(--border);">'+item.name+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+val+' '+item.unit+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+item.stdDesc+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);color:'+pc+';font-weight:600;">'+pt+'</td></tr>';
+  if(!pending){
+    if(item.op==="<="){pass=val<=item.threshold;}
+    else if(item.op===">="){pass=val>=item.threshold;}
+    else if(item.op==="range"){pass=val>=item.threshold[0]&&val<=item.threshold[1];}
+  }
+  if(pending){hasPending=true;} else if(!pass){allPass=false;}
+  var pc=pending?"var(--text-muted)":(pass?"var(--success)":"var(--danger)");var pt=pending?"待填写":(pass?"合格":"不合格");
+  html+='<tr><td style="padding:8px;border:1px solid var(--border);">'+item.name+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+(pending?'—':val)+' '+item.unit+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);">'+item.stdDesc+'</td><td style="padding:8px;text-align:center;border:1px solid var(--border);color:'+pc+';font-weight:600;">'+pt+'</td></tr>';
  });
  html+='</table>';
- var oc=allPass?"var(--success)":"var(--danger)";
- var ot=allPass?"✅ 综合判定：合格":"❌ 综合判定：不合格";
- html+='<p style="font-size:18px;font-weight:700;color:'+oc+';text-align:center;padding:12px;background:var(--result-bg);border-radius:8px;">'+ot+'</p>';
- if(allPass){html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">所有检测项目均符合标准要求，结果仅供自检，不作为验收依据</p>';}
- else{html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">部分项目不符合标准要求，请整改后重新检测</p>';}
+ if(hasPending){
+  html+='<p style="font-size:18px;font-weight:700;color:var(--text-muted);text-align:center;padding:12px;background:var(--result-bg);border-radius:8px;">⏳ 请补全所有检测项目</p>';
+  html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">未填写项目不会被当作 0 分或不合格；数据齐备后才生成综合判定。</p>';
+ } else {
+  var oc=allPass?"var(--success)":"var(--danger)";
+  var ot=allPass?"✅ 综合判定：合格":"❌ 综合判定：不合格";
+  html+='<p style="font-size:18px;font-weight:700;color:'+oc+';text-align:center;padding:12px;background:var(--result-bg);border-radius:8px;">'+ot+'</p>';
+  if(allPass){html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">所有检测项目均符合标准要求，结果仅供自检，不作为验收依据</p>';}
+  else{html+='<p style="font-size:12px;color:var(--text-muted);text-align:center;margin-top:8px;">部分项目不符合标准要求，请整改后重新检测</p>';}
+ }
  const __g1=html;document.getElementById("res").innerHTML=(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—'));
 }
 function copyReport(){ToolBox.copyText(document.getElementById("res").innerText, i18nText('msg457'));}
 function resetForm(){
- stdItems.forEach(function(item){var el=document.getElementById(item.id);if(el.tagName==="SELECT"){el.selectedIndex=0;}else{el.value="";}});
+ stdItems.forEach(function(item){var el=document.getElementById(item.id);if(el.tagName==="SELECT"){el.selectedIndex=-1;}else{el.value="";}});
  calc();ToolBox.showToast(i18nText(),"info");
 }
 

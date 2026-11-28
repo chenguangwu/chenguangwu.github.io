@@ -339,36 +339,35 @@ function calcTool(){const I=num('I'), L=num('len');
               al:{conduit:[9,14,19,26,35,47,65,80,95,120,145,170],open:[13,17,24,31,42,55,76,92,115,140,170,195]}};
    const row=(cap[mat]&&cap[mat][inst])||cap.cu.conduit;
    const need=I*1.25;
-   let idx=0;
-   while(idx<row.length-1 && row[idx]<need) idx++;  // 留 25% 余量
-   const over = row[row.length-1] < need;
-   const recMm = over ? 0 : sizes[idx];
-   const safe = row[idx];
-   const margin = I>0 ? safe/I : 0;
+   const rho=mat==='cu'?0.0175:0.0283;
+   let idx=null;
+   for(let i=0;i<row.length;i++){
+     const ampOk=row[i]>=need;
+     const dropPct=L>0 ? I*(rho*L*2/sizes[i])/220*100 : 0;
+     if(ampOk && dropPct<=5){ idx=i; break; }
+   }
+   const over = idx===null;
    let html;
    if(over){
      html=dataGrid([
-       ['超出表内最大档','推荐截面'],
-       [sizes[sizes.length-1]+' mm²（'+row[row.length-1]+' A < 1.25×I='+need.toFixed(1)+' A）','最大可用档位'],
-       [I.toFixed(1)+' A','负载电流'],
-       [(mat==='cu'?'铜芯':'铝芯') + ' / ' + (inst==='conduit'?'穿管':'明敷'),'材质 / 敷设']
+       ['无同时满足档位','推荐截面'],
+       [sizes[sizes.length-1]+' mm²','内置最大截面'],
+       [need.toFixed(1)+' A','载流量需求（1.25×I）'],
+       [I.toFixed(1)+' A / '+(L>0?L+' m':'未填长度'),'负载电流 / 线路长度']
      ]);
-     html += '<p class="tip-error" style="margin-top:8px;">⚠️ 负载电流对应的 1.25 倍已超过本表最大 120 mm² 的载流量，本工具不做自动推荐；请按 GB/T 16895 / 厂家载流量表选用更大截面或并联回路，并由持证电工复核。</p>';
+     html += '<p class="tip-error" style="margin-top:8px;">⚠️ 按载流量与 5% 允许压降双重校验，内置 1.5–120 mm² 序列无满足档位。'+(need>row[row.length-1]?'载流量需求已超过最大档；':'最大档压降仍超 5%；')+'请按 GB/T 16895 / 厂家载流量表选用更大截面、并联回路或缩短线路，并由持证电工复核，本工具不自动推荐超范围线径。</p>';
    } else {
+     const recMm=sizes[idx], safe=row[idx], margin=I>0?safe/I:0;
+     const R=rho*L*2/recMm, drop=I*R, pct=L>0?drop/220*100:0;
      html=dataGrid([
        [recMm+' mm²','推荐截面'],
        [safe+' A','该档载流量'],
        [I.toFixed(1)+' A','负载电流'],
-       [margin.toFixed(2)+' ×','实际余量（载流量/负载电流）'],
+       [margin.toFixed(2)+' ×','载流量余量'],
+       [L>0?pct.toFixed(2)+' %':'未填长度','线路压降（限 5%）'],
        [(mat==='cu'?'铜芯':'铝芯') + ' / ' + (inst==='conduit'?'穿管':'明敷'),'材质 / 敷设']
      ]);
-   }
-   if(L>0 && recMm>0){
-     const rho=mat==='cu'?0.0175:0.0283;
-     const R=rho*L*2/recMm;   // 双线
-     const drop=I*R;
-     const pct=drop/220*100;
-     html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">线路压降约 '+drop.toFixed(2)+' V（'+pct.toFixed(2)+'%），'+(pct>5?'⚠️ 超过 5%，建议升一档线径':'✅ 在 5% 允许范围内')+'。</p>';
+     html += '<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">同时满足 1.25×载流量与 5% 压降：'+(L>0?'压降约 '+drop.toFixed(2)+' V（'+pct.toFixed(2)+'%）。':'未填线路长度，仅按载流量选档；补充长度后再校验压降。')+'</p>';
    }
 
    // 常见家用电器电流参考表

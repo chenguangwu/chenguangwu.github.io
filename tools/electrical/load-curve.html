@@ -289,43 +289,53 @@ function loadPreset(key){
   calc();
 }
 function calc(){
-  var __allEmpty=true;
-  for(var __h=0;__h<24;__h++){var __e=document.getElementById('h'+__h);if(__e&&String(__e.value).trim()!==''){__allEmpty=false;break;}}
-  if(__allEmpty){document.getElementById('result').innerHTML='<p class="tip-error">' + ((typeof TBKit!=='undefined'&&TBKit.util.isEn())?'Please enter the required parameters before calculating.':'请输入必要参数后再计算。') + '</p>';var __c=document.getElementById('chart');if(__c)__c.innerHTML='';return;}
-  var data=[];
-  var sum=0;
+  var en=(typeof TBKit!=='undefined'&&TBKit.util.isEn());
+  var missing=[],bad=[];
+  for(var __h=0;__h<24;__h++){
+    var __e=document.getElementById('h'+__h);
+    var __raw=__e?String(__e.value).trim():'';
+    if(__raw===''){missing.push(__h);continue;}
+    var __v=parseFloat(__raw);
+    if(!isFinite(__v)||__v<0)bad.push(__h);
+  }
+  if(missing.length||bad.length){
+    var msg=missing.length?(en?'Fill all 24 hourly values; missing hours: ':'请补全 24 个时段，缺失：')+missing.join(',')+(en?'.':'。'):'';
+    if(bad.length)msg+=(en?' Invalid or negative hours: ':' 无效或负值时段：')+bad.join(',')+(en?'.':'。');
+    document.getElementById('result').innerHTML='<p class="tip-error">'+msg+'</p>';
+    var __c=document.getElementById('chart');if(__c)__c.innerHTML='';return;
+  }
+  var data=[],sum=0;
   for(var h=0;h<24;h++){
-    var v=parseFloat(document.getElementById('h'+h).value)||0;
-    data.push(v);
-    sum+=v;
+    var v=parseFloat(document.getElementById('h'+h).value);
+    data.push(v);sum+=v;
   }
   var maxV=Math.max.apply(null,data);
   var minV=Math.min.apply(null,data);
   var avg=sum/24;
   var diff=maxV-minV;
-  var loadRate=avg/maxV;
-  var diffRate=diff/maxV;
+  var zeroAll=maxV===0;
+  var loadRate=zeroAll?0:avg/maxV;
+  var diffRate=zeroAll?0:diff/maxV;
   var peakHour=data.indexOf(maxV);
   var valleyHour=data.indexOf(minV);
   var out=document.getElementById('result');
-  var html='<div class="big-result">日用电量 '+sum.toFixed(0)+' kWh　负荷率 '+(loadRate*100).toFixed(1)+'%</div>';
+  var html='<div class="big-result">日用电量 '+sum.toFixed(0)+' kWh　'+(zeroAll?'负荷率 / 峰谷差率：不适用':'负荷率 '+(loadRate*100).toFixed(1)+'%')+'</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+maxV.toFixed(0)+'</div><div class="lbl">最大负荷 (kW)</div></div>';
   html+='<div class="stat-card"><div class="val">'+minV.toFixed(0)+'</div><div class="lbl">最小负荷 (kW)</div></div>';
   html+='<div class="stat-card"><div class="val">'+avg.toFixed(1)+'</div><div class="lbl">平均负荷 (kW)</div></div>';
-  html+='<div class="stat-card"><div class="val">'+(loadRate*100).toFixed(1)+'%</div><div class="lbl">负荷率</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(zeroAll?'不适用':(loadRate*100).toFixed(1)+'%')+'</div><div class="lbl">负荷率</div></div>';
   html+='<div class="stat-card"><div class="val">'+diff.toFixed(0)+'</div><div class="lbl">峰谷差 (kW)</div></div>';
-  html+='<div class="stat-card"><div class="val">'+(diffRate*100).toFixed(1)+'%</div><div class="lbl">峰谷差率</div></div>';
+  html+='<div class="stat-card"><div class="val">'+(zeroAll?'不适用':(diffRate*100).toFixed(1)+'%')+'</div><div class="lbl">峰谷差率</div></div>';
   html+='</div>';
-  html+='<p style="font-size:13px;margin-top:10px;">峰值出现在 <strong>'+peakHour+':00</strong>（'+maxV.toFixed(0)+' kW），谷值出现在 <strong>'+valleyHour+':00</strong>（'+minV.toFixed(0)+' kW）。</p>';
-  if(loadRate<0.5) html+='<div class="tip-box tip-warn">负荷率偏低（&lt;50%），负荷波动较大，建议优化用电安排或考虑储能调峰。</div>';
-  else if(loadRate>0.85) html+='<div class="tip-box tip-success">负荷率较高（&gt;85%），用电平稳，设备利用率高。</div>';
-  else html+='<div class="tip-box tip-info">负荷率处于一般水平，可结合峰谷电价优化用电时段。</div>';
+  if(zeroAll){html+='<p style="font-size:13px;margin-top:10px;">24 个时段均为 0，日用电量为 0；负荷率与峰谷差率不适用。</p><div class="tip-box tip-info">若设备停运，请保留 0；若漏填，请补录后再分析。</div>';}
+  else{html+='<p style="font-size:13px;margin-top:10px;">峰值出现在 <strong>'+peakHour+':00</strong>（'+maxV.toFixed(0)+' kW），谷值出现在 <strong>'+valleyHour+':00</strong>（'+minV.toFixed(0)+' kW）。</p>';if(loadRate<0.5) html+='<div class="tip-box tip-warn">负荷率偏低（&lt;50%），负荷波动较大，建议优化用电安排或考虑储能调峰。</div>';else if(loadRate>0.85) html+='<div class="tip-box tip-success">负荷率较高（&gt;85%），用电平稳，设备利用率高。</div>';else html+='<div class="tip-box tip-info">负荷率处于一般水平，可结合峰谷电价优化用电时段。</div>';}
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
   drawChart(data,maxV,minV);
 }
 function drawChart(data,maxV,minV){
   var chart=document.getElementById('chart');
+  if(maxV<=0){chart.innerHTML='<p style="font-size:13px;color:var(--text-muted);">全时段为 0，不绘制负荷柱。</p>';return;}
   var maxAxis=maxV*1.1;
   var html='';
   for(var h=0;h<24;h++){
@@ -343,7 +353,7 @@ function drawChart(data,maxV,minV){
 }
 function copyResult(){
   var data=[];
-  for(var h=0;h<24;h++){data.push((h<10?'0'+h:h)+':00\t'+(parseFloat(document.getElementById('h'+h).value)||0));}
+  for(var h=0;h<24;h++){var raw=String(document.getElementById('h'+h).value).trim();data.push((h<10?'0'+h:h)+':00\t'+(raw===''?'未填写':raw));}
   ToolBox.copyText('时\t负荷(kW)\n'+data.join('\n'), i18nText('msg250'));
 }
 buildInputs();

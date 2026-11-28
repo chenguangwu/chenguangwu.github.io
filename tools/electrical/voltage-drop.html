@@ -344,6 +344,8 @@ if(__numReq.every(function(k){var e=document.getElementById(k);return !e||String
   const __g2=html;out.innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
 }
 function calcMinSection(){
+  var __req=['power','length','cosPhi','allowDrop'];
+  if(__req.some(function(k){var e=document.getElementById(k);return !e||String(e.value).trim()==='';})){document.getElementById('result').innerHTML='<p style="color:var(--danger)">⚠ 请先填写功率、长度、功率因数与允许压降，再做反算</p>';return;}
   var phase=parseInt(document.getElementById('phase').value);
   var P=parseFloat(document.getElementById('power').value);
   var L=parseFloat(document.getElementById('length').value);
@@ -352,14 +354,15 @@ function calcMinSection(){
   var allow=parseFloat(document.getElementById('allowDrop').value);
   var baseU=phase===3?380:220;
   var coef=phase===3?Math.sqrt(3):2;
+  if(!isFinite(P)||!isFinite(L)||!isFinite(cos)||!isFinite(allow)||P<=0||L<=0||cos<=0||cos>1||allow<=0){document.getElementById('result').innerHTML='<p style="color:var(--danger)">请输入有限有效参数（功率、长度、允许压降>0，0<cosφ≤1）</p>';return;}
   var current=P*1000/((phase===3?Math.sqrt(3):1)*baseU*cos);
   var dropVMax=baseU*allow/100;
   var rho=RHO[mat];
   var Smin=coef*current*rho*cos*L/dropVMax;
   var pick=null;
   for(var i=0;i<STD_SECTIONS.length;i++){if(STD_SECTIONS[i]>=Smin){pick=STD_SECTIONS[i];break;}}
-  if(!pick) pick=Math.ceil(Smin);
   var out=document.getElementById('result');
+  if(!pick){out.innerHTML='<div class="big-result">理论最小截面：'+Smin.toFixed(2)+' mm²</div><p class="tip-error" style="margin-top:8px;">⚠ 已超过本工具内置最大标准截面 '+STD_SECTIONS[STD_SECTIONS.length-1]+' mm²。请按厂家载流量与压降核算选用更大截面、并联导体或调整线路，不自动改写截面。</p>';return;}
   var html='<div class="big-result">最小所需截面：'+Smin.toFixed(2)+' mm² → 选 '+pick+' mm²</div>';
   html+='<div class="stat-grid">';
   html+='<div class="stat-card"><div class="val">'+Smin.toFixed(2)+'</div><div class="lbl">理论最小截面 (mm²)</div></div>';

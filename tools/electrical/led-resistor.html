@@ -239,18 +239,37 @@
 function num(id){const v=parseFloat(document.getElementById(id).value);return isNaN(v)?0:v;}
 function dataGrid(rows){let h='<div class="data-grid">';for(const r of rows){h+='<div class="data-card"><div class="num">'+r[0]+'</div><div class="label">'+r[1]+'</div></div>';}return h+'</div>';}
 function calcTool(){
-            if(['Vs','Vf','If'].every(function(id){var e=document.getElementById(id);return !e||String(e.value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请输入必要参数后再计算。</p>');return;}
+            window.__ledOk=false;
+            var a=document.getElementById('Vs'),b=document.getElementById('Vf'),c=document.getElementById('If');
+            if(!a||!b||!c||[a,b,c].some(function(e){return String(e.value).trim()==='';})){ToolBox.setResult('result','<p class="tip-error">请填写电源电压、LED 压降与目标电流（0 是合法数值，空值不按 0）。</p>');return;}
             const Vs=num('Vs'), Vf=num('Vf'), If=num('If')/1000; // A
-            if(If<=0){ToolBox.setResult('result','<p class="tip-error">电流须>0。</p>');return;}
+            if(!isFinite(Vs)||!isFinite(Vf)||!isFinite(If)||Vs<0||Vf<0||If<=0){ToolBox.setResult('result','<p class="tip-error">请输入有限数值：电压≥0，电流>0。</p>');return;}
             if(Vs<=Vf){ToolBox.setResult('result','<p class="tip-error">电源电压须大于 LED 压降。</p>');return;}
             const R=(Vs-Vf)/If;          // Ω
-            const P=Math.pow(If,2)*R;     // W
+            const stdR=__ledStdR(R);
+            const actualI=(Vs-Vf)/stdR;  // A
+            const P=Math.pow(actualI,2)*stdR; // W
+            const rated=__ledRatedP(P);
+            window.__ledOk=true;
             const __g1=dataGrid([
-                [R.toFixed(0),'限流电阻 R (Ω)'],
-                [(R*1.5).toFixed(0),'建议标称值 (~1.5×) (Ω)'],
-                [(P*1000).toFixed(1),'电阻功耗 P (mW)']
+                [R.toFixed(1),'理论限流电阻 R (Ω)'],
+                [stdR.toPrecision(3),'按 E12 序列选值 (Ω)'],
+                [(actualI*1000).toFixed(2),'实际电流 (mA)'],
+                [(P*1000).toFixed(1),'实际耗散功率 (mW)'],
+                [rated+' W','建议额定功率（≥1.5×耗散）']
             ]);ToolBox.setResult('result',(typeof __g1==='number'?(isFinite(__g1)?__g1:'—'):String(__g1).replace(/Infinity|NaN/g,'—')));
         }
+function __ledStdR(r){
+  var base=[1.0,1.2,1.5,1.8,2.2,2.7,3.3,3.9,4.7,5.6,6.8,8.2],cand=[];
+  for(var d=-1;d<=7;d++){for(var i=0;i<base.length;i++){cand.push(base[i]*Math.pow(10,d));}}
+  for(var j=0;j<cand.length;j++){if(cand[j]>=r)return cand[j];}
+  return cand[cand.length-1];
+}
+function __ledRatedP(p){
+  var list=[0.125,0.25,0.5,1,2,3,5,10];
+  for(var i=0;i<list.length;i++){if(list[i]>=p*1.5)return list[i];}
+  return '≥10';
+}
 function resetForm(){document.getElementById('Vs').value = '5';
       document.getElementById('Vf').value = '2.0';
       document.getElementById('If').value = '20';
@@ -261,17 +280,20 @@ function __led_resistorNum(id){var e=document.getElementById(id);var v=e?parseFl
 function __led_resistorExtras(){
     function __led_resistorRaw(id){var e=document.getElementById(id);if(!e)return '';var t=(e.type||'').toLowerCase();if(t==='checkbox'||t==='radio')return e.checked?(e.value||'1'):'';return e.value==null?'':e.value;}
     if (typeof TBKit === 'undefined') return;
+    if(!window.__ledOk){TBKit.matrix.table('#led_resistorTable',{head:TBKit.util.isEn()?['Item','Value']:['项目','数值'],rows:[]});return;}
     var Vs=num('Vs'), Vf=num('Vf'), If=num('If')/1000; // A
     var R=(Vs-Vf)/If;          // Ω
-    var P=Math.pow(If,2)*R;     // W
+    var stdR=__ledStdR(R), actualI=(Vs-Vf)/stdR, P=Math.pow(actualI,2)*stdR; // W
     if (!isFinite(__led_resistorNum('Vs')) || !isFinite(__led_resistorNum('Vf')) || !isFinite(__led_resistorNum('If'))) return;
     var en=TBKit.util.isEn();
     TBKit.matrix.table('#led_resistorTable',{
         head: en?['Item','Value']:['项目','数值'],
         rows: [
-            ['限流电阻 R (Ω)', R.toFixed(0)],
-            ['建议标称值 (~1.5×) (Ω)', (R*1.5).toFixed(0)],
-            ['电阻功耗 P (mW)', (P*1000).toFixed(1)],
+            ['理论限流电阻 R (Ω)', R.toFixed(1)],
+            ['按 E12 序列选值 (Ω)', stdR.toPrecision(3)],
+            ['实际电流 (mA)', (actualI*1000).toFixed(2)],
+            ['实际耗散功率 (mW)', (P*1000).toFixed(1)],
+            ['建议额定功率（≥1.5×耗散）', __ledRatedP(P)+' W'],
         ]
     });
     TBKit.history.record({Vs:__led_resistorRaw('Vs'), Vf:__led_resistorRaw('Vf'), If:__led_resistorRaw('If'), R:R});
