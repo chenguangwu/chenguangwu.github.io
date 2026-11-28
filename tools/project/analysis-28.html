@@ -135,7 +135,7 @@
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:12px;" data-zh="按权力与利益把干系人分为四象限，并输出对应管理策略。">Classify stakeholders by power and interest and output four-quadrant management strategies: manage closely, keep satisfied, keep informed, monitor.</p>
 <div class="formula-box">
   <div class="formula-title">📐 工作原理与说明</div>
-  <div class="formula-eq">关注度 = 权力(1–5) × 利益(1–5)（满分 25）；象限判据（阈值取 3）：权力≥3 且利益≥3 → 重点管理（密切参与/联合决策），权力≥3 且利益 &lt;3 → 令其满意（高层定期汇报），权力 &lt;3 且利益≥3 → 随时告知（周报/评审会），否则监控观察。校验：无强校验，各评分直接取值。判据：权力≥3 且利益≥3 列入「重点管理」清单；关注度仅用于同象限排序，不单独以 ≥10 或 ≥9 判定重点对象。</div>
+  <div class="formula-eq">关注度 = 权力(1–5) × 利益(1–5)（满分 25）；象限判据（阈值取 3）：权力≥3 且利益≥3 → 重点管理（密切参与/联合决策），权力≥3 且利益 &lt;3 → 令其满意（高层定期汇报），权力 &lt;3 且利益≥3 → 随时告知（周报/评审会），否则监控观察。校验：任一名称为空即阻止分级和导出；名称在页面与 CSV 中均按纯文本/转义处理。判据：权力≥3 且利益≥3 列入「重点管理」清单；关注度仅用于同象限排序，不单独以 ≥10 或 ≥9 判定重点对象。</div>
 </div>
 
 <div id="shList"></div>
@@ -258,44 +258,47 @@ function syncSh(){
 function addSh(){syncSh();shData.push({name:'',p:3,i:3});renderSh();}
 function delSh(i){syncSh();if(shData.length<=1){ToolBox.showToast('至少保留一名干系人','warning');return;}shData.splice(i,1);renderSh();}
 function calc(){
-  // NUMCLR2：干系人名称是页面真实必填项；任一行留空即阻止分级/策略结论
   syncSh();
+  var en=(typeof TBKit!=='undefined'&&TBKit.util&&TBKit.util.isEn&&TBKit.util.isEn());
   var __bad = shData.length===0 || shData.some(function(s){return !s || String(s.name).trim()==='';});
-  if(__bad){document.getElementById('res').innerHTML='<p style="color:var(--danger)">⚠ 请填写每位干系人的名称后再分析；空名称不参与分级。</p>';return;}
+  if(__bad){document.getElementById('res').innerHTML='<p style="color:var(--danger)">'+(en?'⚠ Fill in every stakeholder name before analysing; empty names are not graded.':'⚠ 请填写每位干系人的名称后再分析；空名称不参与分级。')+'</p>';return;}
   var rows=[];var maxScore=0;var highList=[];
   shData.forEach(function(s,idx){
-    var name=document.getElementById('sn'+idx).value||('干系人'+(idx+1));
+    var name=document.getElementById('sn'+idx).value||(en?'Stakeholder ':'干系人')+(idx+1);
     var p=+document.getElementById('sp'+idx).value;
     var i=+document.getElementById('si'+idx).value;
     var score=p*i;
-    var level,strategy,color;
-    if(p>=3&&i>=3){level='重点管理';strategy='密切参与、联合决策、高频一对一沟通';color='var(--danger)';}
-    else if(p>=3&&i<3){level='令其满意';strategy='高层定期汇报、满足关键诉求';color='var(--warning)';}
-    else if(p<3&&i>=3){level='随时告知';strategy='周报/评审会保持信息透明';color='var(--info)';}
-    else{level='监控观察';strategy='最低成本监测动态';color='var(--success)';}
+    var level,strategy;
+    if(p>=3&&i>=3){level=en?'Manage closely':'重点管理';strategy=en?'Close engagement, joint decisions, frequent 1:1 communication':'密切参与、联合决策、高频一对一沟通';}
+    else if(p>=3&&i<3){level=en?'Keep satisfied':'令其满意';strategy=en?'Regular executive reporting, address key concerns':'高层定期汇报、满足关键诉求';}
+    else if(p<3&&i>=3){level=en?'Keep informed':'随时告知';strategy=en?'Weekly reports/reviews for transparency':'周报/评审会保持信息透明';}
+    else{level=en?'Monitor':'监控观察';strategy=en?'Low-cost monitoring of dynamics':'最低成本监测动态';}
     if(score>maxScore)maxScore=score;
-    if(p>=3&&i>=3)highList.push(name+'（关注度 '+score+'）');
-    rows.push([name,'权力'+p+'·利益'+i,score,level,strategy]);
+    if(p>=3&&i>=3)highList.push(ToolBox.escHtml(name)+'（'+(en?'attention ':'关注度 ')+score+'）');
+    rows.push([name,(en?'Power ':'权力')+p+'·'+(en?'Interest ':'利益')+i,score,level,strategy]);
   });
-  var h='<p>最高关注度：<strong style="font-size:28px;color:var(--primary);">'+maxScore+'</strong> / 25</p>';
-  h+=ToolBox.createTable(['干系人','权力·利益','关注度','象限','应对策略'],rows);
+  var h='<p>'+(en?'Highest attention score: ':'最高关注度：')+'<strong style="font-size:28px;color:var(--primary);">'+maxScore+'</strong> / 25</p>';
+  h+=ToolBox.createTable([en?'Stakeholder':'干系人',en?'Power · interest':'权力·利益',en?'Attention':'关注度',en?'Quadrant':'象限',en?'Strategy':'应对策略'],rows);
   if(highList.length>0){
-    h+='<div class="tip-box tip-warn">需重点管理（权力≥3 且利益≥3）：'+highList.join('、')+'。</div>';
+    h+='<div class="tip-box tip-warn">'+(en?'Manage closely (power ≥3 and interest ≥3): ':'需重点管理（权力≥3 且利益≥3）：')+highList.join(en?'; ':'、')+'。</div>';
   }else{
-    h+='<div class="tip-box tip-success">暂无明显高风险相关方，建议定期复评。</div>';
+    h+='<div class="tip-box tip-success">'+(en?'No high-priority stakeholder is evident; reassess regularly.':'暂无明显高风险相关方，建议定期复评。')+'</div>';
   }
-  const __g2=h;document.getElementById('res').innerHTML=(typeof __g2==='number'?(isFinite(__g2)?__g2:'—'):String(__g2).replace(/Infinity|NaN/g,'—'));
+  document.getElementById('res').innerHTML=h;
 }
 renderSh();calc();
 
 function __an28Export(){
   if(typeof TBKit==='undefined') return;
   if(typeof shData==='undefined') return;
+  var en=TBKit.util.isEn();
+  syncSh();
+  var bad=shData.length===0 || shData.some(function(s){return !s || String(s.name).trim()==='';});
+  if(bad){ToolBox.showToast(en?'Fill in every stakeholder name before exporting':'请填写每位干系人的名称后再导出','warning');return;}
   try{
-    var en=TBKit.util.isEn();
     var rows=[];
     shData.forEach(function(s,idx){
-      var name=document.getElementById('sn'+idx).value||(en?'Stakeholder ':'干系人')+(idx+1);
+      var name=String(s.name||'').trim();
       var p=+document.getElementById('sp'+idx).value||0;
       var i=+document.getElementById('si'+idx).value||0;
       var score=p*i;
@@ -309,7 +312,7 @@ function __an28Export(){
     var tb=document.querySelector('#an28Table tbody');
     if(!tb) return;
     var h='';
-    rows.forEach(function(r){ h+='<tr><td>'+r[0]+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+r[4]+'</td><td>'+r[5]+'</td></tr>'; });
+    rows.forEach(function(r){ h+='<tr><td>'+ToolBox.escHtml(r[0])+'</td><td>'+r[1]+'</td><td>'+r[2]+'</td><td>'+r[3]+'</td><td>'+ToolBox.escHtml(r[4])+'</td><td>'+ToolBox.escHtml(r[5])+'</td></tr>'; });
     tb.innerHTML=h;
     TBKit.util.exportTable('#an28Table','stakeholder-analysis.csv');
   }catch(e){}

@@ -6,97 +6,95 @@ globalThis.__tbFs = fs;
 const CASES = [
 {
   "slug": "project/analysis-28",
-  "inputs": {
-    "sn'+idx+'": "'+ToolBox.escHtml(s.name)+'_X"
-  },
-  "expect": [
-    "_X"
-  ],
-  "ref": "auto-restore"
+  "inputs": {"sn0": ""},
+  "clicks": ["calc();"],
+  "expect": ["请填写每位干系人的名称"],
+  "ref": "干系人名称必填：空名称必须阻止分级与策略，旧版只在 DOM 取名称时兜底，空名称会被替换成默认名继续出结论。"
 },
 {
   "slug": "project/analysis-28",
-  "clicks": ["['A','B','C','D'].forEach(function(n,k){document.getElementById('sn'+k).value=n;});document.getElementById('sp0').value='2';document.getElementById('si0').value='5';document.getElementById('sp1').value='3';document.getElementById('si1').value='3';document.getElementById('sp2').value='2';document.getElementById('si2').value='1';document.getElementById('sp3').value='2';document.getElementById('si3').value='1';syncSh();calc();var t=String(document.getElementById('res').innerHTML);var okT=t.indexOf('B（关注度 9）')>=0&&t.indexOf('A（关注度 10）')<0&&t.indexOf('权力≥3 且利益≥3')>=0;document.getElementById('__tbProbe').textContent='STAKE '+(okT?'OK':'BAD');"],
-  "expect": ["STAKE OK"],
-  "ref": "象限判据必须统一为权力≥3且利益≥3：B(3,3) 关注度 9 应进重点管理清单，A(2,5) 关注度 10 不应进；旧实现 one 清单按≥10、正文按象限，会出现 9 进 10 不进的自相矛盾。"
-},
-{
-  "slug": "project/analysis-28",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/analysis-28.html','utf8');var i=h.indexOf('function calc(){');var seg=i>=0?h.slice(i,i+260):'';var ok=seg.indexOf('shData.some')>=0&&seg.indexOf('String(s.name).trim()')>=0;document.getElementById('__tbProbe').textContent='SHNAME '+(ok?'OK':'BAD');"],
-  "expect": ["SHNAME OK"],
-  "ref": "第1369/1371批·通用数字空态守卫不适用修复：calc 先 syncSh，再以真实必填项 shData.name 判定，任一干系人名称为空即阻止分级/策略；旧版只查 number/date ⇒ 永不触发 ⇒ BAD。"
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/analysis-28.html','utf8');var ok=h.indexOf('highList.push(ToolBox.escHtml(name)')>=0&&h.indexOf('ToolBox.escHtml(r[0])')>=0;document.getElementById('res').innerHTML=(ok?'SAFE':'UNSAFE');"],
+  "expect": ["SAFE"],
+  "ref": "名称转义：重点管理清单与 CSV 表格单元格都复用 ToolBox.escHtml，尖括号名称不得进入实际标签。"
 },
 {
   "slug": "project/assessor-risk-9",
-  "inputs": {
-    "p1": "2"
-  },
-  "expect": ["2\n3\n3\n3\n3\n3\n3\n3\n3\n3\n最高风险值： 9 / 25 整体风险等级： 中风险 风险项 计算 风险值 等级 风险1 概率2×影响3 6分 中风险 风险2 概率3×影响3 9分 中风险 风险3 概率3×影响3 9分 中风险 风险4 概率3×影响3 9分 中风险 风险5 概率3×影响3 9分 中风险 风险1 6 风险2 9 风险3 9 风险4 9 风险5 9 所有风险项均在可控范围内，建议定期复评并持续监控。"],
-  "ref": "auto-restore"
+  "inputs": {"rn1":"供应链中断","ro1":"采购经理","rs1":"处理中","rd1":"2026-12-30","p1":"5","i1":"5"},
+  "clicks": ["calc();"],
+  "expect": ["供应链中断", "采购经理", "处理中", "2026-12-30", "概率5×影响5"],
+  "ref": "风险明细：当前明细必须逐项包含名称、责任人、行动状态、复评日期和应对策略，不得再导出截断历史。"
 },
 {
   "slug": "project/checker-12",
-  "inputs": {
-    "c1": "1"
-  },
-  "expect": [
-    "95%"
-  ],
-  "ref": "auto-restore"
+  "inputs": {"c1": "1"},
+  "expect": ["尚未完成检查"],
+  "ref": "默认未检查：只设置第 1 项时其余 9 项仍为空，必须提示未完成，不得给出优秀/良好。"
+},
+{
+  "slug": "project/checker-12",
+  "clicks": ["for(var i=1;i<=10;i++)document.getElementById('c'+i).value='2';document.getElementById('c1').value='1';calc();"],
+  "expect": ["95%", "良好"],
+  "ref": "完成全部检查后按实际满分评级：19/20=95%，应为良好而非默认满分优秀。"
+},
+{
+  "slug": "project/checker-12",
+  "clicks": ["for(var i=1;i<=10;i++)document.getElementById('c'+i).value='2';document.getElementById('c1').value='na';calc();"],
+  "expect": ["18 / 18", "不适用（不计分）"],
+  "ref": "不适用项从分母扣除：一项 N/A 后满分 18，应输出 18/18。"
 },
 {
   "slug": "project/checker-training-hr-1",
-  "inputs": {
-    "h1": "1"
-  },
-  "expect": [
-    "95%"
-  ],
-  "ref": "auto-restore"
+  "inputs": {"h2": "0"},
+  "expect": ["尚未完成检查"],
+  "ref": "HSE 默认未检查：只设置关键项 0 分时其余项为空，必须提示未完成而不是直接一票否决。"
 },
 {
   "slug": "project/checker-training-hr-1",
-  "inputs": {
-    "h2": "0"
-  },
-  "expect": [
-    "评价等级： 不合格",
-    "触发一票否决规则"
-  ],
-  "ref": "HSE 关键项一票否决：仅将第 2 项「特种作业持证」置 0，其余 9 项默认 2，总分 18、达标率 90%（按分数本应评优秀）。关键项为 1/2/3/4/5/9，任一为 0 必须降级为不合格。断言结果区出现『评价等级： 不合格』和『触发一票否决规则』；旧实现无关键项门槛，会输出『优秀』，本用例不命中。"
+  "clicks": ["for(var i=1;i<=10;i++)document.getElementById('h'+i).value='2';document.getElementById('h2').value='0';calc();"],
+  "expect": ["不合格", "触发一票否决规则"],
+  "ref": "HSE 一票否决：其余 9 项满分、关键项第 2 项 0 分，最终评级必须不合格。"
 },
 {
   "slug": "project/checker-training-hr-1",
-  "inputs": {
-    "h10": "0"
-  },
-  "expect": [
-    "HSE实施优秀（90%）"
-  ],
-  "ref": "非关键项不回归：第 10 项「安全文化建设」不属于关键项（关键项为 1/2/3/4/5/9），置 0 后总分 18、达标率 90%，仍应评优秀。锚取页面提示原文『HSE实施优秀（90%）』；若把关键项门槛误扩大到全部 10 项，本用例会降级为不合格、不命中。"
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/checker-training-hr-1.html','utf8');var ok=h.indexOf('if(naCount===0&&!veto.length&&')>=0;document.getElementById('res').innerHTML=(ok?'NOVBAR':'VBAR');"],
+  "expect": ["NOVBAR"],
+  "ref": "否决时隐藏参考标尺：触发一票否决后不再渲染只按总分显示“优秀”的参考条，避免同屏矛盾。"
+},
+{
+  "slug": "project/checker-training-hr-1",
+  "clicks": ["for(var i=1;i<=10;i++)document.getElementById('h'+i).value='2';document.getElementById('h10').value='0';calc();"],
+  "expect": ["HSE实施优秀（90%）"],
+  "ref": "非关键项不回归：第 10 项 0 分、其余满分，90% 仍评优秀，不得误触发一票否决。"
 },
 {
   "slug": "project/manager-cost",
-  "inputs": {
-    "projName": "默认项目",
-    "bac": "150000",
-    "totalDays": "90"
-  },
-  "expect": [ "71,118 按当前进度效率" ],
-  "ref": "auto-restore"
+  "clicks": ["calcEVM();"],
+  "expect": ["状态日已过 30 天", "剩余计划 60 天"],
+  "ref": "完工日期以状态日期为基准：默认 30 天前开工、90 天计划，应显示已过 30 天、剩余 60 天，不再从今天叠加整个总工期。"
 },
 {
   "slug": "project/manager-cost",
-  "inputs": { "bac": "150000", "totalDays": "0" },
-  "clicks": ["calcEVM();var k=String(document.getElementById('kpiGrid').innerHTML);var f=String(document.getElementById('forecastBox').innerHTML);var ok=k.indexOf('请检查输入')>=0&&k.indexOf('计划总工期须为正整数')>=0&&f.indexOf('预计总工期')<0;document.getElementById('__tbProbe').textContent='EVM0 '+(ok?'OK':'BAD '+k.slice(0,140));"],
-  "expect": ["EVM0 OK"],
-  "ref": "第1093批 I7：totalDays=0 旧版 parseInt(0)||1 静默按 1 天预测、输入框仍显示 0；修复后统一 __evmValid() 前置拦截，显示字段级错误且不产出工期预测。哨兵同时锚错误串与预测区清空，旧版必红。"
+  "clicks": ["updatePeriod(0,'ac','0');updatePeriod(1,'ac','0');updatePeriod(2,'ac','0');"],
+  "expect": ["预计完工总成本：不可用", "CPI 无定义"],
+  "ref": "AC 为零时 CPI/EAC/ETC/VAC 必须不可用，不得把 EAC 回退为 BAC 或输出伪预测。"
 },
 {
   "slug": "project/manager-cost",
-  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/manager-cost.html','utf8');var ok=h.indexOf('d.totalDays ?? 90')>=0&&h.indexOf('if(__evmValid().length)')>=0&&h.indexOf('parseInt(')<0&&h.indexOf('parseFloat(val) || 0')<0;document.getElementById('__tbProbe').textContent='EVMFIX '+(ok?'OK':'BAD');"],
-  "expect": ["EVMFIX OK"],
-  "ref": "第1093批 I7 源码形态：保存加载用 ?? 保留 0（旧 || 90 覆盖 0）、导出复用 __evmValid() 拒绝无效输入（旧裸写 ev/bac 得 Infinity%）、全页清除 parseInt(...)||1 与 parseFloat(val)||0 的静默替换。"
+  "clicks": ["updatePeriod(0,'pv','');"],
+  "expect": ["第1期 PV 须填写非负数"],
+  "ref": "周期空值拦截：直接清空第一期 PV 后必须报第 1 期 PV 缺失，不得沿用上一次有效数值继续计算。"
+},
+{
+  "slug": "project/manager-cost",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/manager-cost.html','utf8');var ok=h.indexOf('累计 PV')>=0&&h.indexOf('累计 EV')>=0&&h.indexOf('累计 AC')>=0&&h.indexOf('剩余预测天数')>=0&&h.indexOf('汇总')>=0&&h.indexOf('成本偏差 CV')>=0;document.getElementById('kpiGrid').innerHTML=(ok?'EVMHEAD OK':'BAD');"],
+  "expect": ["已过 60 天", "总工期 93 天"],
+  "ref": "状态日期口径：开始 2026-01-01、状态 2026-03-02 为 60 天，剩余 30 天按 SPI 0.92 推 33 天，预测总工期 93 天（默认计划 90 天）。"
+},
+{
+  "slug": "project/manager-cost",
+  "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/project/manager-cost.html','utf8');var ok=h.indexOf('累计 PV')>=0&&h.indexOf('累计 EV')>=0&&h.indexOf('累计 AC')>=0&&h.indexOf('剩余预测天数')>=0&&h.indexOf('汇总')>=0&&h.indexOf('成本偏差 CV')>=0;document.getElementById('kpiGrid').innerHTML=(ok?'EVMHEAD OK':'BAD');"],
+  "expect": ["EVMHEAD OK"],
+  "ref": "中文 CSV 表头：导出按页面语言生成中文表头、剩余预测天数与汇总行，旧版固定 Period/Cum PV/Summary。"
 }
 ];
 async function main() {
@@ -109,7 +107,7 @@ async function main() {
       if (r.ok) { pass++; }
       else {
         fails.push(c.slug);
-        console.log("❌ " + c.slug + "  " + (r.why || "no expect match"));
+        console.log("❌ " + c.slug + "  " + (r.why || "no expect match") + "  [" + (c.ref || "") + "]");
         if (r.errs && r.errs.length) console.log("     errs: " + JSON.stringify(r.errs));
         if (r.sample) console.log("     got: " + String(r.sample).slice(0, 300));
       }

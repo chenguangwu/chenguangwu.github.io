@@ -153,8 +153,8 @@
     <h2 data-zh="💰 成本管理（S曲线/挣值管理 EVM）">Manager Cost</h2>
     <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;" data-zh="输入各周期的计划值(PV)、挣值(EV)、实际成本(AC)，自动计算挣值管理指标并生成S曲线。">Manager Cost</p>
     <div class="formula-box">
-      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">累计 PV / EV / AC 逐期累加；成本偏差 CV = EV − AC，进度偏差 SV = EV − PV；成本绩效 CPI = EV ÷ AC（AC 为 0 记 0），进度绩效 SPI = EV ÷ PV（PV 为 0 记 0）；完工估算 EAC = BAC ÷ CPI（CPI ≤ 0 时取 BAC），完工尚需 ETC = EAC − AC，完工偏差 VAC = BAC − EAC；完成率 = EV ÷ BAC × 100%；预测总工期 = 计划总天数 ÷ SPI（SPI ≤ 0 取计划天数），预计完工日期 = 今天 + 预测天数</div>
-      <div class="formula-desc tb-bi"><span class="t-zh">输入各周期的计划值(PV)、挣值(EV)、实际成本(AC)，自动计算挣值管理指标并生成S曲线</span><span class="t-en"></span></div>
+      <div class="formula-title">📐 工作原理与说明</div> <div class="formula-eq">各期 PV / EV / AC 按“本期增量”逐期累加；成本偏差 CV = EV − AC，进度偏差 SV = EV − PV；成本绩效 CPI = EV ÷ AC（AC = 0 时不可定义），进度绩效 SPI = EV ÷ PV（PV = 0 时不可定义）；仅当 CPI、SPI 可计算时才给出 EAC = BAC ÷ CPI、ETC = EAC − AC、VAC = BAC − EAC；完成率 = EV ÷ BAC × 100%；剩余预测天数 = (计划总工期 − 状态日已过天数) ÷ SPI，预计完工日期 = 状态日期 + 剩余预测天数（无法计算时不显示精确日期）</div>
+      <div class="formula-desc tb-bi"><span class="t-zh">输入各周期的计划值(PV)、挣值(EV)、实际成本(AC)，自动计算挣值管理指标并生成S曲线</span><span class="t-en">Enter planned value (PV), earned value (EV) and actual cost (AC) for each period to calculate earned value metrics and draw the S-curve automatically.</span></div>
     </div>
 
     <div class="input-row">
@@ -162,6 +162,8 @@
 <label for="projName">项目名称</label><input type="text" id="projName" placeholder="如：官网改版项目" value="默认项目"></div>
       <div><label for="bac">项目总预算 BAC（元）</label><input type="number" id="bac" value="100000" step="0.01" min="0" placeholder="如 100000"></div>
       <div><label for="totalDays">计划总工期（天）</label><input type="number" id="totalDays" value="90" step="1" min="1" placeholder="如 90"></div>
+      <div><label for="startDate">项目开始日期</label><input type="date" id="startDate"></div>
+      <div><label for="statusDate">状态日期（累计截至）</label><input type="date" id="statusDate"></div>
     </div>
     <div class="toolbar">
       <button type="button" class="btn primary" onclick="calcEVM()">计算挣值指标</button>
@@ -175,7 +177,7 @@
 
   <div class="card">
     <h3>周期数据输入</h3>
-    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">PV=计划值(应完成工作的预算)，EV=挣值(已完成工作的预算)，AC=实际成本(已发生成本)，单位：元</p>
+    <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px;">PV=计划值(应完成工作的预算)，EV=挣值(已完成工作的预算)，AC=实际成本(已发生成本)，单位：元。<br>各期填<b>本期增量</b>（不要填截至本期的累计值），工具会逐期累加；累计 PV 超过 BAC 时会给出提示。<br>日期按自然日计（含周末与节假日）；若按工作日管理，请先把总工期折算为自然日。</p>
     <div id="periodList"></div>
   </div>
 
@@ -227,7 +229,7 @@
 <li>里程碑汇报与 S 曲线评审：把各期累计 PV、EV、AC 绘制成 S 曲线，向甲方或管理层展示「计划—实际—挣值」三线偏差，支撑变更审批与进度款支付决策。</li>
 <li>完工预测（EAC/ETC/VAC）：当中途发现 CPI 持续偏低，用典型偏差法 EAC=BAC/CPI 预测项目总成本，估算是否超预算、还需投入多少、完工偏差多少，辅助高层决策。</li>
 </ul>
-<div class="dd-example"><div class="dd-ex-title">算例：BAC 150 万、计划 100 天、3 期累计</div><div class="dd-ex-body">输入：BAC=1,500,000 元、计划总工期 100 天；3 期数据 PV=300,000/450,000/450,000、EV=280,000/420,000/400,000、AC=320,000/470,000/460,000（单位：元）。累计 PV=1,200,000、EV=1,100,000、AC=1,250,000。CV=EV-AC=-150,000 元（成本超支）；SV=EV-PV=-100,000 元（进度滞后）；CPI=EV/AC=0.88（成本效率低）；SPI=EV/PV=0.92（进度效率低）；EAC=BAC/CPI=1,704,545 元（预算 1,500,000，将超支 204,545）；ETC=EAC-AC=454,545 元；VAC=BAC-EAC=-204,545 元；挣值完成率 EV/BAC=73.3%；按 SPI 预测总工期约 109 天（计划 100 天）。结论：成本与进度双偏低，应优先通过赶工追回 SPI，并分析 AC 超支根因。</div></div>
+<div class="dd-example"><div class="dd-ex-title">算例：BAC 10 万、计划 90 天、3 期增量</div><div class="dd-ex-body">输入：BAC=100,000 元、计划总工期 90 天、开始日期 2026-01-01、状态日期 2026-03-02（已过 60 天）；3 期增量 PV=30,000/35,000/35,000、EV=25,000/33,000/34,000、AC=30,000/36,000/38,000。累计 PV=100,000、EV=92,000、AC=104,000；CV=-12,000 元、SV=-8,000 元、CPI=0.88、SPI=0.92；EAC=113,043 元、ETC=9,043 元、VAC=-13,043 元，完成率 92.0%。剩余计划 30 天，按 SPI 还需约 33 天，预测总工期约 93 天；若 AC 为 0，CPI 无定义，EAC/ETC/VAC 显示不可用，进度日期仍按 SPI 推算。</div></div>
 <h3>❓ 常见问题（FAQ）</h3>
 <dl class="dd-faq">
 <dt>CPI 和 SPI 都小于 1，项目还有救吗？应该怎么解读？</dt><dd>CPI&lt;1 表示单位成本挣到的价值低于实际花费（超支），SPI&lt;1 表示实际进度落后于计划。两者都低于 1 说明项目「又超支又滞后」。一般 CPI 比 SPI 更不可逆——钱花出去难收回，而进度可通过赶工、增加资源部分追回。经验上 CPI/SPI&lt;0.9 即触发纠偏：先查 AC 超支是单价上涨还是工程量失控，再查 EV 偏低是效率问题还是范围变更未计入。</dd>
@@ -276,12 +278,32 @@
 <script>
 var KEY = 'tb_evm_project';
 var periods = [
-  { name: '第1期', pv: 20000, ev: 18000, ac: 22000 },
-  { name: '第2期', pv: 40000, ev: 35000, ac: 38000 },
-  { name: '第3期', pv: 60000, ev: 50000, ac: 55000 }
+  { name: '第1期', pv: 30000, ev: 25000, ac: 30000 },
+  { name: '第2期', pv: 35000, ev: 33000, ac: 36000 },
+  { name: '第3期', pv: 35000, ev: 34000, ac: 38000 }
 ];
 
-function save() { try { localStorage.setItem(KEY, JSON.stringify({ name: document.getElementById('projName').value, bac: +document.getElementById('bac').value, totalDays: +document.getElementById('totalDays').value, periods: periods })); } catch(e) {} }
+function localDate(offset){
+  var d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  d.setDate(d.getDate() + (offset || 0));
+  return d.toISOString().slice(0, 10);
+}
+function initDates(){
+  var sd=document.getElementById('startDate'), td=document.getElementById('statusDate');
+  if(sd && !sd.value) sd.value=localDate(-30);
+  if(td && !td.value) td.value=localDate(0);
+}
+function parseDateVal(id){
+  var el=document.getElementById(id); if(!el) return null;
+  var v=el.value;
+  if(!v) return null;
+  var d=new Date(v+'T00:00:00');
+  return isNaN(d.getTime())?null:d;
+}
+function daysBetween(a,b){ return Math.round((b-a)/86400000); }
+function addDays(d,n){ if(!d) return null; var x=new Date(d.getTime()); x.setDate(x.getDate()+n); return x; }
+
+function save() { try { localStorage.setItem(KEY, JSON.stringify({ name: document.getElementById('projName').value, bac: +document.getElementById('bac').value, totalDays: +document.getElementById('totalDays').value, periods: periods, startDate: document.getElementById('startDate').value, statusDate: document.getElementById('statusDate').value })); } catch(e) {} }
 
 function loadProjectData() {
   try {
@@ -290,6 +312,8 @@ function loadProjectData() {
       document.getElementById('projName').value = d.name || '默认项目';
       document.getElementById('bac').value = d.bac ?? 100000;
       document.getElementById('totalDays').value = d.totalDays ?? 90;
+      if (d.startDate) document.getElementById('startDate').value = d.startDate;
+      if (d.statusDate) document.getElementById('statusDate').value = d.statusDate;
       if (d.periods && d.periods.length) periods = d.periods;
       return true;
     }
@@ -321,9 +345,9 @@ function renderPeriodInputs() {
   periods.forEach(function(p, i) {
     html += '<div class="period-row">';
     html += '<div><label>周期名称</label><input type="text" value="' + ToolBox.escHtml(p.name) + '" onchange="updatePeriod(' + i + ',\'name\',this.value)" aria-label="周期名称"></div>';
-    html += '<div><label>PV 计划值</label><input type="number" value="' + p.pv + '" step="0.01" min="0" onchange="updatePeriod(' + i + ',\'pv\',this.value)" placeholder="如 ' + p.pv + '" aria-label="PV 计划值"></div>';
-    html += '<div><label>EV 挣值</label><input type="number" value="' + p.ev + '" step="0.01" min="0" onchange="updatePeriod(' + i + ',\'ev\',this.value)" placeholder="如 ' + p.ev + '" aria-label="EV 挣值"></div>';
-    html += '<div><label>AC 实际成本</label><input type="number" value="' + p.ac + '" step="0.01" min="0" onchange="updatePeriod(' + i + ',\'ac\',this.value)" placeholder="如 ' + p.ac + '" aria-label="AC 实际成本"></div>';
+    html += '<div><label>PV 计划值（本期增量）</label><input type="number" value="' + ToolBox.escHtml(String(p.pv)) + '" step="0.01" min="0" oninput="updatePeriod(' + i + ',\'pv\',this.value)" placeholder="本期新增，如 30000" aria-label="PV 计划值（本期增量）"></div>';
+    html += '<div><label>EV 挣值（本期增量）</label><input type="number" value="' + ToolBox.escHtml(String(p.ev)) + '" step="0.01" min="0" oninput="updatePeriod(' + i + ',\'ev\',this.value)" placeholder="本期新增，如 28000" aria-label="EV 挣值（本期增量）"></div>';
+    html += '<div><label>AC 实际成本（本期增量）</label><input type="number" value="' + ToolBox.escHtml(String(p.ac)) + '" step="0.01" min="0" oninput="updatePeriod(' + i + ',\'ac\',this.value)" placeholder="本期新增，如 32000" aria-label="AC 实际成本（本期增量）"></div>';
     html += '<div class="del-btn" onclick="delPeriod(' + i + ')" title="删除">×</div>';
     html += '</div>';
   });
@@ -331,10 +355,10 @@ function renderPeriodInputs() {
 }
 
 function updatePeriod(i, field, val) {
+  if (!periods[i]) return;
   if (field === 'name') { periods[i].name = val; return; }
-  var n = Number(val);
-  if(!isFinite(n) || n < 0){ calcEVM(); return; } // 负数/非法值不入库，保留上次有效输入
-  periods[i][field] = n;
+  periods[i][field] = val; // 原样保存，由 __evmValid 统一拦截空值/负数/非数字
+  calcEVM();
 }
 function __evmValid(){
   var bad=[];
@@ -343,10 +367,15 @@ function __evmValid(){
   var td=Number(tdRaw);
   if(!isFinite(bac)||bac<=0) bad.push('BAC 须大于 0');
   if(String(tdRaw).trim()===''||!isFinite(td)||!Number.isInteger(td)||td<=0) bad.push('计划总工期须为正整数');
+  var sd=parseDateVal('startDate'), st=parseDateVal('statusDate');
+  if(!sd) bad.push('请填写项目开始日期');
+  if(!st) bad.push('请填写状态日期');
+  if(sd&&st&&st<sd) bad.push('状态日期不得早于项目开始日期');
   for(var i=0;i<periods.length;i++){
     ['pv','ev','ac'].forEach(function(k){
-      var v=Number(periods[i][k]);
-      if(!isFinite(v)||v<0) bad.push('第'+(i+1)+'期 '+k.toUpperCase()+' 须为非负数');
+      var raw=periods[i][k];
+      var v=Number(raw);
+      if(String(raw).trim()===''||!isFinite(v)||v<0) bad.push('第'+(i+1)+'期 '+k.toUpperCase()+' 须填写非负数');
     });
   }
   return bad;
@@ -379,6 +408,7 @@ function calcEVM() {
   }
   var bac = Number(document.getElementById('bac').value);
   var totalDays = Number(document.getElementById('totalDays').value);
+  periods.forEach(function(p){ p.pv=Number(p.pv); p.ev=Number(p.ev); p.ac=Number(p.ac); });
 
   // 计算累计值
   var cumPV = 0, cumEV = 0, cumAC = 0;
@@ -396,41 +426,57 @@ function calcEVM() {
   // EVM 指标
   var cv = ev - ac;
   var sv = ev - pv;
-  var cpi = ac > 0 ? ev / ac : 0;
-  var spi = pv > 0 ? ev / pv : 0;
-  var eac = cpi > 0 ? bac / cpi : bac;
-  var etc = eac - ac;
-  var vac = bac - eac;
+  var cpi = ac > 0 ? ev / ac : null;
+  var spi = pv > 0 ? ev / pv : null;
+  var eac = (cpi !== null && cpi > 0) ? bac / cpi : null;
+  var etc = eac !== null ? eac - ac : null;
+  var vac = eac !== null ? bac - eac : null;
 
-  // 预测完工日期
-  var elapsedDays = Math.round(totalDays * periods.length / periods.length); // 当前已用天数估算
-  var progressRate = pv > 0 ? ev / pv : 0; // 进度完成率
-  var remainingDays = totalDays - Math.round(totalDays * (pv / bac));
-  var forecastDays = spi > 0 ? Math.round(totalDays / spi) : totalDays;
-  var forecastDate = new Date();
-  forecastDate.setDate(forecastDate.getDate() + forecastDays);
+  // 以“状态日期”为基准预测剩余工期，避免把已过去工期重复加到今天之后
+  var startD = parseDateVal('startDate'), statusD = parseDateVal('statusDate');
+  var elapsedDays = (startD && statusD) ? Math.max(0, daysBetween(startD, statusD)) : 0;
+  var remainingPlan = Math.max(0, totalDays - elapsedDays);
+  var forecastRemaining = spi !== null ? Math.max(0, Math.round(remainingPlan / spi)) : null;
+  var forecastTotal = forecastRemaining !== null ? elapsedDays + forecastRemaining : null;
+  var forecastDate = forecastRemaining !== null ? addDays(statusD, forecastRemaining) : null;
+
+  var en = (typeof TBKit !== 'undefined' && TBKit.util.isEn());
+  var dash = en ? 'N/A' : '不可用';
+  var naReasonCpi = en ? 'AC is 0, CPI is undefined' : 'AC 为 0，CPI 无定义';
+  var naReasonSpi = en ? 'PV is 0, SPI is undefined' : 'PV 为 0，SPI 无定义';
 
   // 渲染 KPI
   var kpiHtml = '';
-  kpiHtml += kpiCard('CV', '¥' + fmt(cv), '成本偏差', cv >= 0 ? 'status-green' : (cv >= -bac * 0.05 ? 'status-yellow' : 'status-red'), cv >= 0 ? '成本节约' : '成本超支');
-  kpiHtml += kpiCard('SV', '¥' + fmt(sv), '进度偏差', sv >= 0 ? 'status-green' : (sv >= -bac * 0.05 ? 'status-yellow' : 'status-red'), sv >= 0 ? '进度超前' : '进度滞后');
-  kpiHtml += kpiCard('CPI', cpi.toFixed(2), '成本绩效指数', cpi >= 1 ? 'status-green' : (cpi >= 0.9 ? 'status-yellow' : 'status-red'), cpi >= 1 ? '成本效率良好' : '成本效率低');
-  kpiHtml += kpiCard('SPI', spi.toFixed(2), '进度绩效指数', spi >= 1 ? 'status-green' : (spi >= 0.9 ? 'status-yellow' : 'status-red'), spi >= 1 ? '进度效率良好' : '进度效率低');
-  kpiHtml += kpiCard('EAC', '¥' + fmt(eac), '完工估算', eac <= bac ? 'status-green' : (eac <= bac * 1.1 ? 'status-yellow' : 'status-red'), '预计总成本');
-  kpiHtml += kpiCard('ETC', '¥' + fmt(etc), '完工尚需估算', '', '还需投入成本');
-  kpiHtml += kpiCard('VAC', '¥' + fmt(vac), '完工偏差', vac >= 0 ? 'status-green' : (vac >= -bac * 0.05 ? 'status-yellow' : 'status-red'), vac >= 0 ? '预算内' : '将超预算');
-  kpiHtml += kpiCard('完成率', ((ev / bac) * 100).toFixed(1) + '%', '挣值完成率', '', 'EV/BAC');
+  kpiHtml += kpiCard('CV', '¥' + fmt(cv), en?'Cost variance':'成本偏差', cv >= 0 ? 'status-green' : (cv >= -bac * 0.05 ? 'status-yellow' : 'status-red'), cv >= 0 ? (en?'Under budget':'成本节约') : (en?'Over budget':'成本超支'));
+  kpiHtml += kpiCard('SV', '¥' + fmt(sv), en?'Schedule variance':'进度偏差', sv >= 0 ? 'status-green' : (sv >= -bac * 0.05 ? 'status-yellow' : 'status-red'), sv >= 0 ? (en?'Ahead of schedule':'进度超前') : (en?'Behind schedule':'进度滞后'));
+  kpiHtml += kpiCard('CPI', cpi === null ? dash : cpi.toFixed(2), en?'Cost performance index':'成本绩效指数', cpi === null ? '' : (cpi >= 1 ? 'status-green' : (cpi >= 0.9 ? 'status-yellow' : 'status-red')), cpi === null ? naReasonCpi : (cpi >= 1 ? (en?'Cost efficient':'成本效率良好') : (en?'Cost inefficient':'成本效率低')));
+  kpiHtml += kpiCard('SPI', spi === null ? dash : spi.toFixed(2), en?'Schedule performance index':'进度绩效指数', spi === null ? '' : (spi >= 1 ? 'status-green' : (spi >= 0.9 ? 'status-yellow' : 'status-red')), spi === null ? naReasonSpi : (spi >= 1 ? (en?'Schedule efficient':'进度效率良好') : (en?'Schedule inefficient':'进度效率低')));
+  kpiHtml += kpiCard('EAC', eac === null ? dash : '¥' + fmt(eac), en?'Estimate at completion':'完工估算', eac === null ? '' : (eac <= bac ? 'status-green' : (eac <= bac * 1.1 ? 'status-yellow' : 'status-red')), eac === null ? (en?'Cannot compute without CPI':'无法由 CPI 计算') : (en?'Forecast total cost':'预计总成本'));
+  kpiHtml += kpiCard('ETC', etc === null ? dash : '¥' + fmt(etc), en?'Estimate to complete':'完工尚需估算', '', etc === null ? (en?'Cannot compute without EAC':'无法由 EAC 计算') : (en?'Remaining cost':'还需投入成本'));
+  kpiHtml += kpiCard('VAC', vac === null ? dash : '¥' + fmt(vac), en?'Variance at completion':'完工偏差', vac === null ? '' : (vac >= 0 ? 'status-green' : (vac >= -bac * 0.05 ? 'status-yellow' : 'status-red')), vac === null ? (en?'Cannot compute without EAC':'无法由 EAC 计算') : (vac >= 0 ? (en?'Within budget':'预算内') : (en?'Over budget':'将超预算')));
+  kpiHtml += kpiCard(en?'Completion':'完成率', ((ev / bac) * 100).toFixed(1) + '%', en?'Earned value completion':'挣值完成率', '', 'EV/BAC');
   const __h1=kpiHtml;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('kpiGrid').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('kpiGrid').innerHTML=__h1;
 
   // 预测
   var fcHtml = '<div class="tip-box tip-info" style="margin-top:16px;">';
-  fcHtml += '<strong>项目预测</strong><br>';
-  fcHtml += '预计完工总成本：<strong>¥' + fmt(eac) + '</strong>（预算 ¥' + fmt(bac) + '，偏差 ¥' + fmt(vac) + '）<br>';
-  fcHtml += '尚需投入成本：<strong>¥' + fmt(etc) + '</strong><br>';
-  fcHtml += '按当前进度效率(SPI=' + spi.toFixed(2) + ')，预计总工期约 <strong>' + forecastDays + ' 天</strong>（计划 ' + totalDays + ' 天）<br>';
-  fcHtml += '预计完工日期：<strong>' + forecastDate.toLocaleDateString('zh-CN') + '</strong>';
-  if (cpi < 0.9) fcHtml += '<br>⚠ 成本绩效偏低，建议分析超支原因并调整资源分配。';
-  if (spi < 0.9) fcHtml += '<br>⚠ 进度绩效偏低，建议加快关键路径任务或增加资源。';
+  fcHtml += '<strong>'+(en?'Project forecast':'项目预测')+'</strong><br>';
+  if (eac === null) {
+    fcHtml += (en?'Forecast total cost: unavailable (AC is 0, CPI undefined).<br>':'预计完工总成本：不可用（AC 为 0，CPI 无定义）。<br>');
+    fcHtml += (en?'Remaining cost and VAC: unavailable.<br>':'尚需投入成本与完工偏差：不可用。<br>');
+  } else {
+    fcHtml += (en?'Forecast total cost: ':'预计完工总成本：')+'<strong>¥' + fmt(eac) + '</strong>（'+(en?'budget ':'预算 ')+'¥' + fmt(bac)+'，'+(en?'variance ':'偏差 ')+'¥' + fmt(vac) + '）<br>';
+    fcHtml += (en?'Remaining cost: ':'尚需投入成本：')+'<strong>¥' + fmt(etc) + '</strong><br>';
+  }
+  if (forecastRemaining === null) {
+    fcHtml += (en?'Forecast completion date: unavailable (PV is 0, SPI undefined).':'预计完工日期：不可用（PV 为 0，SPI 无定义）。');
+  } else {
+    fcHtml += (en?'Elapsed: ':'状态日已过 ')+elapsedDays+(en?' days; remaining plan: ':' 天，剩余计划 ')+remainingPlan+(en?' days. At SPI=':' 天；按当前进度效率 SPI=')+spi.toFixed(2)+(en?', about ':'，还需约 ')+forecastRemaining+(en?' more days (forecast total ':' 天（预测总工期 ')+forecastTotal+(en?' days, plan ':' 天，计划 ')+totalDays+(en?' days).<br>':' 天）。<br>');
+    fcHtml += (en?'Forecast completion date: ':'预计完工日期：')+'<strong>' + forecastDate.toLocaleDateString(en?'en-US':'zh-CN') + '</strong>';
+  }
+  if (cpi !== null && cpi < 0.9) fcHtml += (en?'<br>⚠ Cost performance is low; analyze the overrun and adjust resources.':'<br>⚠ 成本绩效偏低，建议分析超支原因并调整资源分配。');
+  if (spi !== null && spi < 0.9) fcHtml += (en?'<br>⚠ Schedule performance is low; expedite critical-path work or add resources.':'<br>⚠ 进度绩效偏低，建议加快关键路径任务或增加资源。');
+  if (cumPV > bac) fcHtml += (en?'<br>⚠ Cumulative PV exceeds BAC. If you pasted cumulative values, switch to period increments to avoid double counting.':'<br>⚠ 累计 PV 已超过 BAC。若粘贴的是截至各期的累计值，请改为本期增量，否则会重复累加。');
+  if (cumEV > bac) fcHtml += (en?'<br>⚠ Cumulative EV exceeds BAC; check period increments and BAC.':'<br>⚠ 累计 EV 已超过 BAC，请核对各期增量与 BAC。');
   fcHtml += '</div>';
   const __h2=fcHtml;if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){document.getElementById('forecastBox').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('forecastBox').innerHTML=__h2;
 
@@ -440,7 +486,7 @@ function calcEVM() {
   var tBody = '';
   cumData.forEach(function(d) {
     var cv = d.ev - d.ac, sv = d.ev - d.pv;
-    var cpi = d.ac > 0 ? d.ev / d.ac : 0, spi = d.pv > 0 ? d.ev / d.pv : 0;
+    var cpi = d.ac > 0 ? d.ev / d.ac : null, spi = d.pv > 0 ? d.ev / d.pv : null;
     tBody += '<tr>';
     tBody += '<td>' + ToolBox.escHtml(d.name) + '</td>';
     tBody += '<td>¥' + fmt(d.pv) + '</td>';
@@ -448,8 +494,8 @@ function calcEVM() {
     tBody += '<td>¥' + fmt(d.ac) + '</td>';
     tBody += '<td style="color:' + (cv >= 0 ? 'var(--success)' : 'var(--danger)') + ';">¥' + fmt(cv) + '</td>';
     tBody += '<td style="color:' + (sv >= 0 ? 'var(--success)' : 'var(--danger)') + ';">¥' + fmt(sv) + '</td>';
-    tBody += '<td>' + cpi.toFixed(2) + '</td>';
-    tBody += '<td>' + spi.toFixed(2) + '</td>';
+    tBody += '<td>' + (cpi === null ? '—' : cpi.toFixed(2)) + '</td>';
+    tBody += '<td>' + (spi === null ? '—' : spi.toFixed(2)) + '</td>';
     tBody += '</tr>';
   });
   const __h3=tBody;if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){document.getElementById('evTableBody').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('evTableBody').innerHTML=__h3;
@@ -470,6 +516,7 @@ function kpiCard(name, val, lbl, statusCls, desc) {
 }
 
 function renderSCurve(cumData, bac) {
+  if(!cumData || !cumData.length) return;
   var W = 600, H = 320, padL = 60, padR = 20, padT = 20, padB = 40;
   var plotW = W - padL - padR, plotH = H - padT - padB;
   var maxVal = Math.max(bac, bac * 1.2);
@@ -542,19 +589,22 @@ function loadProject() {
 function resetAll() {
   if (!confirm('确定重置所有数据？')) return;
   periods = [
-    { name: '第1期', pv: 20000, ev: 18000, ac: 22000 },
-    { name: '第2期', pv: 40000, ev: 35000, ac: 38000 },
-    { name: '第3期', pv: 60000, ev: 50000, ac: 55000 }
+    { name: '第1期', pv: 30000, ev: 25000, ac: 30000 },
+    { name: '第2期', pv: 35000, ev: 33000, ac: 36000 },
+    { name: '第3期', pv: 35000, ev: 34000, ac: 38000 }
   ];
   document.getElementById('projName').value = '默认项目';
   document.getElementById('bac').value = 100000;
   document.getElementById('totalDays').value = 90;
+  document.getElementById('startDate').value = localDate(-30);
+  document.getElementById('statusDate').value = localDate(0);
   renderPeriodInputs();
   document.getElementById('resultCard').style.display = 'none';
   document.getElementById('chartCard').style.display = 'none';
   ToolBox.showToast(i18nText());
 }
 
+initDates();
 renderPeriodInputs();
 calcEVM();
 
@@ -564,6 +614,7 @@ function __evmExport(){
   if(__evmValid().length){ ToolBox.showToast(en?'Fix invalid inputs before export':'请先修正无效输入再导出','warning'); return; }
   var bac = Number(document.getElementById('bac').value);
   var totalDays = Number(document.getElementById('totalDays').value);
+  periods.forEach(function(p){ p.pv=Number(p.pv); p.ev=Number(p.ev); p.ac=Number(p.ac); });
   var cumPV=0, cumEV=0, cumAC=0; var cumData=[];
   periods.forEach(function(p){
     cumPV += p.pv; cumEV += p.ev; cumAC += p.ac;
@@ -571,23 +622,35 @@ function __evmExport(){
   });
   var last = cumData[cumData.length-1];
   var pv=last.pv, ev=last.ev, ac=last.ac;
-  var cv=ev-ac, sv=ev-pv, cpi=ac>0?ev/ac:0, spi=pv>0?ev/pv:0;
-  var eac=cpi>0?bac/cpi:bac, etc=eac-ac, vac=bac-eac;
-  var forecastDays = spi>0?Math.round(totalDays/spi):totalDays;
-  var tbody = document.querySelector('#evmHidden tbody');
+  var cv=ev-ac, sv=ev-pv, cpi=ac>0?ev/ac:null, spi=pv>0?ev/pv:null;
+  var eac=(cpi!==null&&cpi>0)?bac/cpi:null, etc=eac!==null?eac-ac:null, vac=eac!==null?bac-eac:null;
+  var startD=parseDateVal('startDate'), statusD=parseDateVal('statusDate');
+  var elapsedDays=(startD&&statusD)?Math.max(0,daysBetween(startD,statusD)):0;
+  var remainingPlan=Math.max(0,totalDays-elapsedDays);
+  var forecastRemaining=spi!==null?Math.max(0,Math.round(remainingPlan/spi)):null;
+  var table=document.querySelector('#evmHidden');
+  var headers = en
+    ? ['Period','Cum PV','Cum EV','Cum AC','CV','SV','CPI','SPI','BAC','EAC','ETC','VAC','Completion','Forecast Remaining Days']
+    : ['周期','累计 PV','累计 EV','累计 AC','成本偏差 CV','进度偏差 SV','CPI','SPI','BAC','EAC','ETC','VAC','完成率','剩余预测天数'];
+  table.querySelector('thead tr').innerHTML = headers.map(function(h){ return '<th scope="col">'+h+'</th>'; }).join('');
+  var tbody=table.querySelector('tbody');
   tbody.innerHTML='';
+  var dash='—';
   cumData.forEach(function(d){
-    var pcv=d.ev-d.ac, psv=d.ev-d.pv, pcpi=d.ac>0?d.ev/d.ac:0, pspi=d.pv>0?d.ev/d.pv:0;
+    var pcv=d.ev-d.ac, psv=d.ev-d.pv, pcpi=d.ac>0?d.ev/d.ac:null, pspi=d.pv>0?d.ev/d.pv:null;
+    var completion=bac>0?((d.ev/bac*100).toFixed(1)+'%'):dash;
     tbody.innerHTML += '<tr><td>'+ToolBox.escHtml(d.name)+'</td>'
       + '<td>'+fmt(d.pv)+'</td><td>'+fmt(d.ev)+'</td><td>'+fmt(d.ac)+'</td>'
-      + '<td>'+fmt(pcv)+'</td><td>'+fmt(psv)+'</td><td>'+pcpi.toFixed(2)+'</td><td>'+pspi.toFixed(2)+'</td>'
-      + '<td></td><td></td><td></td><td></td><td></td><td></td></tr>';
+      + '<td>'+fmt(pcv)+'</td><td>'+fmt(psv)+'</td>'
+      + '<td>'+(pcpi===null?dash:pcpi.toFixed(2))+'</td><td>'+(pspi===null?dash:pspi.toFixed(2))+'</td>'
+      + '<td></td><td></td><td></td><td></td><td>'+completion+'</td><td></td></tr>';
   });
-  tbody.innerHTML += '<tr><td>Summary</td>'
+  tbody.innerHTML += '<tr><td>'+(en?'Summary':'汇总')+'</td>'
     + '<td>'+fmt(pv)+'</td><td>'+fmt(ev)+'</td><td>'+fmt(ac)+'</td>'
-    + '<td>'+fmt(cv)+'</td><td>'+fmt(sv)+'</td><td>'+cpi.toFixed(2)+'</td><td>'+spi.toFixed(2)+'</td>'
-    + '<td>'+fmt(bac)+'</td><td>'+fmt(eac)+'</td><td>'+fmt(etc)+'</td><td>'+fmt(vac)+'</td>'
-    + '<td>'+(bac>0&&isFinite(ev/bac)?(ev/bac*100).toFixed(1)+'%':'')+'</td><td>'+forecastDays+'</td></tr>';
+    + '<td>'+fmt(cv)+'</td><td>'+fmt(sv)+'</td>'
+    + '<td>'+(cpi===null?dash:cpi.toFixed(2))+'</td><td>'+(spi===null?dash:spi.toFixed(2))+'</td>'
+    + '<td>'+fmt(bac)+'</td><td>'+(eac===null?dash:fmt(eac))+'</td><td>'+(etc===null?dash:fmt(etc))+'</td><td>'+(vac===null?dash:fmt(vac))+'</td>'
+    + '<td>'+(bac>0?((ev/bac*100).toFixed(1)+'%'):dash)+'</td><td>'+(forecastRemaining===null?dash:forecastRemaining)+'</td></tr>';
   TBKit.util.exportTable('#evmHidden', en?'evm-report.csv':'挣值管理明细.csv');
 }
 </script>
