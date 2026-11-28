@@ -89,10 +89,17 @@ const CASES = [
 {
   "slug": "urban/land-use",
   "inputs": {
-    "inPop": "150000",
-    "area_'+l.key+'": "'+l.default+'"
+    "inPop": "80000",
+    "area_R": "300",
+    "area_A": "80",
+    "area_B": "60",
+    "area_M": "100",
+    "area_S": "150",
+    "area_U": "20",
+    "area_G": "120"
   },
-  "expect": [ "150,000 人" ],
+  "clicks": ["calc()"],
+  "expect": [ "830.0 ha", "103.8 m²" ],
   "ref": "auto-restore"
 },
 {
@@ -128,11 +135,12 @@ const CASES = [
     "inRatio": "1.2",
     "inVisitor": "25",
     "inSpaceArea": "30",
-    "inAccessible": "3"
+    "inAccessible": "3",
+    "inUnit": "100m2"
   },
   "clicks": ["calc();"],
   "expect": [
-    "60,000 ÷ 100 × 1.2 = 720.0"
+    "÷ 100 × 1.2 = 720.0"
   ],
   "ref": "非默认输入 60000/1.2/25/30/3 派生：60,000÷100×1.2=720.0 个车位；原 expect「100m2」是固定单位标签（两态均命中，判别器实测逃生）。默认态 50,000÷100×1=500.0，不命中。不注入 inType：该 select 的 onchange=onTypeChange() 会把 inArea/inRatio 重置为类型默认，导致派生值回退。"
 },

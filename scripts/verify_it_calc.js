@@ -3135,6 +3135,7 @@ const CASES = [
     ref: "独立复算：两个 h1 拼接为 `<h1>HeadA</h1><h1>HeadB</h1>`；压缩模式下代码面板不插换行（美化模式为 `</h1>\\n<h1>`，collectStrings 归一后带空格，本 expect 不含空格 ⇒ 精确区分两种模式）。默认 md 是 `# 标题` 示例，不命中。",
   },
   {
+  clicks: ["calc()"],
     slug: "it/emoji-picker",
     inputs: { q: "cat" },
     expect: ["共 1 个 emoji（点击复制） 🐱"],
@@ -10733,6 +10734,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"input\":\"abc123测试\"}，输出区含「abc123测试\n❌ 无效邮箱\n缺少 @ 符号，不是有效邮箱\nabc123测试」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。G06-S1 首屏自跑改变了元素创建序 ⇒ blob 字段序随之改变，expect 容忍新旧两种字段序；判别力不变。"
   },
   {
+  clicks: ["calc()"],
     "slug": "it/emoji-picker",
     "inputs": {
       "q": "abc123测试"
@@ -13773,12 +13775,14 @@ const CASES = [
     ref: "第726批：历史快照默认不得保存 testText（可能含日志或凭据），仅在显式勾选 regexSaveText 后才纳入；pattern 仍默认保存。",
   },
   {
+  clicks: ["calc()"],
     slug: "it/regex-cheatsheet",
     inputs: { rxPattern: "(\\w+)@(\\w+)\\.[a-z]{2,}", rxText: "Contact: dev@example.com or support@test.cn; invalid: not-an-email" },
     expect: ["共 2 处匹配", "默认示例"],
     ref: "正则速查测试器：默认模式命中 dev@example.com 与 support@test.cn 两处，mark 节点 2 个，默认标识为「默认示例」。旧页无输入/高亮 ⇒ 该串不存在。",
   },
   {
+  clicks: ["calc()"],
     slug: "it/regex-cheatsheet",
     inputs: { rxPattern: "(", rxText: "abc" },
     expect: ["正则无效"],
@@ -13792,6 +13796,7 @@ const CASES = [
     ref: "GFM 转义竖线：单元格 a\\|b 必须还原为 a|b，不能被拆成 3 列；修复后 CSV 含 \"A\",\"B\" 与 \"a|b\",\"c\"。默认表格无转义竖线 ⇒ 强判别。",
   },
   {
+  clicks: ["calc()"],
     "slug": "it/regex-cheatsheet",
     "inputs": {
       "searchInput": "abc123测试"
@@ -16737,6 +16742,7 @@ const CASES = [
     ref: "IT-N434 修复：旧实现仅 trim+去前导点即拼记录，带协议/路径的域名原样生成非法 CAA。新实现先校验裸域名正则，不合规即清空并报错 ⇒ 必含「请填写裸域名」。默认空域名走另一分支不命中。",
   },
   {
+  clicks: ["calc()"],
     slug: "it/emoji-picker",
     inputs: {},
     expect: ['共 192 个'],

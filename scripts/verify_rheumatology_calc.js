@@ -383,12 +383,14 @@ const CASES = [
 
 { slug:"rheumatology/das28", clicks:["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/rheumatology/das28.html','utf8');var fn=h.slice(h.indexOf('function calc(){'),h.indexOf('function copyResult(){'));var ok=fn.indexOf(\"document.getElementById('resultRefBar').innerHTML=''\")>=0;document.getElementById('__tbProbe').textContent='B616DAS '+(ok?'OK':'BAD');"], expect:["B616DAS OK"], ref:"第1362批：DAS28 缺参分支必须清空独立 resultRefBar；旧实现只换结果提示，缓解/活动度标尺继续显示上一轮值。桩内 TBKit.chart 不保证绘制标尺，故按项目先例用源码守卫断言 calc 起始清空 resultRefBar。" },
 {
+  clicks: ["calc()"],
   slug: "rheumatology/detector-8",
   inputs: { screen: "45", confirm: "32", normal: "35", mixing: "corrected", aptt: "40", apttNormal: "32" },
   expect: ["因子缺乏（非LA）"],
   ref: "恢复第356–358批旧页（非默认检验值）：筛查 45 s/对照 35 s=129% 延长、比值 1.41 阳性但 1:1 混合纠正 ⇒ 因子缺乏而非 LA；lupus-anticoagulant 无混合试验输入。"
 },
 {
+  clicks: ["calc()"],
   slug: "rheumatology/detector-8",
   inputs: { screen: "42", confirm: "33", normal: "35", mixing: "uncorrected", aptt: "38", apttNormal: "32" },
   expect: ["狼疮抗凝物（LA）阳性"],

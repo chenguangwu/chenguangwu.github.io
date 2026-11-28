@@ -79,6 +79,7 @@ const CASES = [
 }
 ,
 {
+  clicks: ["calc()"],
   "slug": "chess/xiangqi-endgame",
   "inputs": {},
   "expect": [

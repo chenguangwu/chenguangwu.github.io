@@ -41,6 +41,7 @@ const CASES = [
   "ref": "12-G3：速度 0 旧版提示泄露内部键名「v1」，修复后分母提示使用中文标签；默认态无该提示。"
 },
 {
+  clicks: ["calc()"],
   "slug": "railway/brake-distance",
   "inputs": { "v": "80", "tr": "2", "a": "0.8", "g": "0", "m": "400" },
   "expect": ["353.1", "0.082"],

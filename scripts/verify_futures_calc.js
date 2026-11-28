@@ -33,6 +33,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  clicks: ["calc()"],
   "slug": "futures/margin-calc",
   "inputs": {
     "price": "5700",
@@ -106,6 +107,7 @@ const CASES = [
   "ref": "第1063批：清空相关系数不得按 0 生成零对冲结果，必须提示并清空结果。"
 },
 {
+  clicks: ["calc()"],
   "slug": "futures/margin-calc",
   "inputs": { "price": "", "multiplier": "300", "marginRate": "12", "capital": "200000", "lots": "0", "fee": "10" },
   "expect": ["请填写价格、合约乘数、保证金比例和资金"],
@@ -169,18 +171,21 @@ const CASES = [
     "ref": "理论 h*=1.4571（145.7%），整数 1 手覆盖 1,140,000/1,000,000=114.0%；理论效果与整数执行分开显示。"
   },
   {
+  clicks: ["calc()"],
     "slug": "futures/margin-calc",
     "inputs": {"price":"1000","multiplier":"1","marginRate":"100","capital":"1000","lots":"","fee":"10"},
     "expect": ["最大可开仓（含手续费）","0 手","每手占用现金 = 保证金 1,000 + 手续费 10"],
     "ref": "资金 1000、每手保证金 1000、手续费 10：计入手续费后最多 0 手，不能显示 1 手后剩余 -10。"
   },
   {
+  clicks: ["calc()"],
     "slug": "futures/margin-calc",
     "inputs": {"price":"3800","multiplier":"300","marginRate":"12","capital":"200000","lots":"0","fee":"10"},
     "expect": ["最大可开仓（含手续费）","最大可开仓手数 = 200,000 ÷ 136,810 = 1 手","当前手数为 0 或留空"],
     "ref": "零手必须按未开仓处理，不再被替换为满仓；最大 1 手按 136,810 元/手（含 10 元手续费）计算。"
   },
   {
+  clicks: ["calc()"],
     "slug": "futures/margin-calc",
     "inputs": {"price":"3800","multiplier":"300","marginRate":"12","capital":"200000","lots":"1.5","fee":"10"},
     "expect": ["手数须为非负整数"],

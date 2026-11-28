@@ -67,6 +67,7 @@ const CASES = [
   "ref": "负光束角：旧实现得到负半径与负面积；现拦截。"
 },
 {
+  clicks: ["calc()"],
   "slug": "stage/power-load",
   "inputs": {
     "powerFactor": "0.9",

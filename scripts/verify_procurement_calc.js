@@ -75,6 +75,7 @@ const CASES = [
   "ref": "第1119批：年采购次数为 0 且有单次节约时不得除零或给 0 年回收期。"
 },
 {
+  clicks: ["calc()"],
   "slug": "procurement/wuliu-yunshufangshi-yunfei-bidui",
   "inputs": {"v0":"500","v1":"200","roadRate":"0.5","railRate":"0.25"},
   "expect": ["50.00", "25.00", "0.5000 元/(t·km)", "0.2500 元/(t·km)"],

@@ -1861,7 +1861,7 @@ const CASES = [
   // ── 第1190批：课程表可视化排课率、检测记录与闭区间口径复核 ──
   {
     slug: "edu2/schedule-conflict",
-    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8');var ok=h.indexOf('可视化课表')>=0&&h.indexOf('无冲突排课率')>=0&&h.indexOf('conflictCells[d+\\'-\\'+p] = true')>=0&&h.indexOf('var scheduleRate =')>=0;document.getElementById('__tbProbe').textContent='J169 '+(ok?'OK':'BAD');"],
+    clicks: ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/schedule-conflict.html','utf8');var ok=h.indexOf('可视化课表')>=0&&h.indexOf('occupiedConflictRate')>=0&&h.indexOf('conflictCells[d+\\'-\\'+p] = true')>=0&&h.indexOf('conflictSlotCount')>=0;document.getElementById('__tbProbe').textContent='J169 '+(ok?'OK':'BAD');"],
     expect: ["J169 OK"],
     ref: "EL-J169：旧版只有四张统计卡与冲突表，无周×节次网格与排课率。现结果区渲染可视化课表并高亮冲突格，排课率=(总时片−冲突时片)/总时片。源码哨兵：旧版无 grid/rate 实现 ⇒ 必红。",
   },

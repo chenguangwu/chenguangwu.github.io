@@ -112,6 +112,7 @@ const CASES = [
   "ref": "重做后真实预算：利润=收入-成本=800-500=300.00；利润率=300/800=37.50%（默认 270/324 得 54.00/16.67%，注入失败即不命中）"
 },
 {
+  clicks: ["calc()"],
   "slug": "property/cycle-elevator",
   "inputs": {},
   "expect": [
@@ -139,6 +140,7 @@ const CASES = [
   "ref": "5 台 × 14.39 kWh/台日 × 365 ≈ 26255 kWh；含默认速度 1.6、启停附加 10%、无再生"
 },
 {
+  clicks: ["calc()"],
   "slug": "property/energy",
   "inputs": {
     "v0": "9600",
@@ -306,6 +308,7 @@ const CASES = [
     "ref": "人数 0 不再被 max(1,输入) 静默兜底为 1；结果区必须点名「保洁人数：必须大于 0」且不生成分配。"
   },
   {
+  clicks: ["calc()"],
     "slug": "property/irrigation-schedule",
     "inputs": { "days": "10", "seed": "7", "rainProb": "80" },
     "dynDom": true,
@@ -313,6 +316,7 @@ const CASES = [
     "ref": "seed=7 + rainProb=80% 固定序列下 10 天总水量 3384 L；同时断言标题随天数变为「10 日浇灌排程」而非硬编码 14 日，以及模拟天气横幅明确种子与概率。默认 seed=42/25%/14 天三项均不同 ⇒ 注入失败必 FAIL。"
   },
   {
+  clicks: ["calc()"],
     "slug": "property/irrigation-schedule",
     "inputs": { "days": "7", "startDate": "2024-06-15", "weatherMode": "manual", "manualWeather": "1,晴,32,0\n2,多云,31,0\n3,小雨,26,0.6\n4,晴,33,0\n5,晴,34,0\n6,阴,28,0.1\n7,大雨,24,1.2" },
     "dynDom": true,
@@ -320,6 +324,7 @@ const CASES = [
     "ref": "手动逐日天气覆盖 7 天；第 3、7 天有效降雨跳过且不顺延，草坪/灌木间隔 4 天，实际浇灌只剩第 1、5 天，跳过原因含「雨天 2 天」。随机模式无法产出该组合 ⇒ 强判别。"
   },
   {
+  clicks: ["calc()"],
     "slug": "property/irrigation-schedule",
     "inputs": { "startDate": "" },
     "dynDom": true,
@@ -327,6 +332,7 @@ const CASES = [
     "ref": "起始日期清空后必须显式报错，不再隐式取当天。"
   },
   {
+  clicks: ["calc()"],
     "slug": "property/irrigation-schedule",
     "inputs": { "days": "0" },
     "dynDom": true,

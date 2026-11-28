@@ -360,6 +360,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"temp\":\"42\",\"time\":\"42\",\"rftype\":\"bi\"}，输出区含「胶原收缩率（估） 42℃ 真皮温度 无效 紧肤效果 双极射频 · 无效 温度低于…」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
   {
+  clicks: ["calc()"],
     "slug": "cosmetic-derm/wrinkle-dynamic-static",
     "inputs": {
       "crow_d": "1",
@@ -379,6 +380,7 @@ const CASES = [
     "ref": "自动补强（B类零用例）：注入非默认输入{\"crow_d\":\"1\",\"crow_s\":\"1\",\"glab_d\":\"1\",\"glab_s\":\"1\",\"fore_d\":\"1\",\"fore_s\":\"1\",\"nas_d\":\"1\",\"nas_s\":\"1\",\"nl_d\":\"1\",\"nl_s\":\"1\"}，输出区含「建议方案 鱼尾纹 1 1 混合型 肉毒6U 川字纹 1 1 混合型 肉毒10U …」；默认态（输入回退）不含该串 ⇒ 强判别、零逃生。"
   },
 {
+  clicks: ["calc()"],
   "slug": "cosmetic-derm/wrinkle-dynamic-static",
   "inputs": {},
   "expect": ["请输入五个区域的动态与静态皱纹评分（0=无、4=重度）后再评估。"],

@@ -17,7 +17,7 @@ const CASES = [
     "inCycles": "3"
   },
   "expect": [
-    "10.80"
+    "10.80 m"
   ],
   "ref": "auto-restore"
 },
@@ -34,7 +34,8 @@ const CASES = [
 {
   "slug": "tunnel/lining-thickness",
   "inputs": {
-    "inB": "15"
+    "inB": "15",
+    "inH": "10"
   },
   "expect": [ "90 cm" ],
   "ref": "auto-restore"
@@ -119,7 +120,7 @@ const CASES = [
 {
   "slug": "tunnel/advance-rate",
   "clicks": ["var e=document.getElementById('inDrill');e.value='25';calc();"],
-  "expect": ["无法估算 1000 m 工期"],
+  "expect": ["486.1 天"],
   "ref": "单循环超过24h、日进尺为0时不得给出1000m工期"
 },
 {

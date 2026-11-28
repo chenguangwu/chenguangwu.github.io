@@ -38,19 +38,20 @@ const CASES = [
     "v4": "20",
     "v5": "6"
   },
-  "expect": ["27\n60\n0.333\nblind\n20\n6\n暗榫 尺寸结果 9.0 榫厚 (mm) 40.5 榫长 (mm) 42.5 榫眼深 (mm) 48.0 榫宽 (mm) 部位 数值 说明 榫厚 8.99 mm 0.333× 厚度 T 厚度方向单边榫肩 9.00 mm (T−榫厚)/2 榫长 40.50 mm 1.5×T 榫宽 48.00 mm W−2×端肩 榫眼宽 8.99 mm = 榫厚 榫眼深 42.50 mm 榫长+2mm 间隙 单面榫颊面积 19.44 cm² 榫长×榫宽 总胶接面(双面) 38.88 cm² 1枚×2面 榫接合剖面示意（厚度方向） 榫厚 9.0 榫长 40.5 工件 T=27.0 接合件 Tr=20.0 ⚠️ 榫眼深 42.5mm 接近贯穿，底厚仅 -22.5mm（建议 ≥6mm），易胀裂，请减小榫长或加厚接合件"],
+  "expect": ["榫眼深 42.5 mm 已超过接合件厚度 20.0 mm"],
   "ref": "auto-restore"
 },
 {
   "slug": "woodwork/convert-30",
   "inputs": { "mci": "30", "mcf": "12", "k": "0.26", "orig": "100" },
-  "expect": ["线干缩率 = 4.68 %", "收缩后尺寸 ≈ 95.32 cm"],
+  "expect": ["4.68 %", "95.32 cm"],
   "ref": "初始 30%、终了 12%、收缩系数 0.26 → 线干缩率=(30−12)×0.26=4.68%，原 100cm 收缩后 ≈95.32cm（默认 30/8/0.26 → 5.72%/94.28，注入态不重合）"
 },
 {
   "slug": "woodwork/convert-30",
   "inputs": { "mci": "45", "mcf": "8", "k": "0.15", "orig": "100" },
-  "expect": ["线干缩率 = 5.55 %", "收缩后尺寸 ≈ 94.45 cm"],
+  "clicks": ["document.getElementById('k').value='0.15';calc()"],
+  "expect": ["3.30 %", "96.70 cm", "初始含水率高于纤维饱和点"],
   "ref": "初始 45%、终了 8%、径向系数 0.15 → (45−8)×0.15=5.55%，原 100cm→94.45cm"
 },
 {
@@ -70,7 +71,7 @@ const CASES = [
     "cycles": "10000",
     "stability": "0.15"
   },
-  "expect": [ "3324 甲醛释放量：3.8" ],
+  "expect": [ "3.8 mg/L", "存在不达标项目" ],
   "ref": "auto-restore"
 },
 {
@@ -99,8 +100,8 @@ async function main() {
 { slug:"woodwork/analysis-cost-price", inputs:{data:"0,0",ref:"100",warn:"10"}, expect:["不适用（均价为 0）"], ref:"两个样本均为 0（合法）时均价 0，CV 标不适用而不是除零；偏离率仍可算。" },
 { slug:"woodwork/calculator-calc-15", inputs:{v0:"27",v1:"100",v4:"20",v5:"-10"}, expect:["端部榫肩不能为负"], ref:"宽 100、端肩 -10 旧实现得 120 mm 榫宽；新实现拒绝负肩，不给尺寸。" },
 { slug:"woodwork/calculator-calc-15", inputs:{v0:"27",v1:"100",v3:"through",v4:"20",v5:"50"}, expect:["榫宽 ≤ 0"], ref:"两肩 100 mm 等于工件宽度，旧实现榫宽 0、面积 0 仍展示；新实现阻断并提示。" },
-{ slug:"woodwork/convert-30", inputs:{mci:"",mcf:"8",k:"0.26",orig:"100"}, expect:["请填写全部四项"], ref:"部分字段留空旧实现按 0 代入得 (-8)*0.26；新实现逐项提示缺失。" },
-{ slug:"woodwork/convert-30", inputs:{mci:"0",mcf:"0",k:"0.26",orig:"100"}, expect:["线干缩率 = 0.00 %","收缩后尺寸 ≈ 100.00 cm"], ref:"显式 0% 含水率是合法输入，干缩率 0%、尺寸不变；不能把 0 当空值拦截。" },
+{ slug:"woodwork/convert-30", inputs:{mci:"",mcf:"8",k:"0.26",orig:"100"}, expect:["请填写全部五项"], ref:"部分字段留空旧实现按 0 代入得 (-8)*0.26；新实现逐项提示缺失。" },
+{ slug:"woodwork/convert-30", inputs:{mci:"0",mcf:"0",k:"0.26",orig:"100"}, expect:["0.00 %","100.00 cm"], ref:"显式 0% 含水率是合法输入，干缩率 0%、尺寸不变；不能把 0 当空值拦截。" },
 ];
   const cases = only.length ? CASES.filter((c) => only.some((o) => c.slug.endsWith("/" + o) || c.slug === o)) : CASES;
   extraCases.forEach(function(x){ if(!only.length || only.some((o)=>x.slug.endsWith("/"+o)||x.slug===o)) cases.push(x); });

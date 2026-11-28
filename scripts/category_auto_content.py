@@ -153,8 +153,8 @@ def render_body(c, count):
         en = rep_en[i] if i < len(rep_en) else nm
         out.append('        <li><span class="t-zh">%s</span><span class="t-en">%s</span></li>\n' % (_esc(nm), _esc(en)))
     out.append('      </ul>\n')
-    out.append('      <p><span class="t-zh">这些工具帮助你快速完成%s相关的常见任务，无需记忆复杂公式或手动换算，输入即可得结果。</span>'
-               '<span class="t-en">These tools help you complete %s tasks quickly — no formulas to memorise and no manual conversion, just enter your values and get the result.</span></p>\n'
+    out.append('      <p><span class="t-zh">这些工具帮助你快速完成%s相关的常见任务，无需记忆复杂公式或手动换算，输入即可得结果。每款工具都提供示例参数与常见场景预设，可一键填入后再按需调整。</span>'
+               '<span class="t-en">These tools help you complete %s tasks quickly — no formulas to memorise and no manual conversion, just enter your values and get the result. Every tool includes example parameters and common-scene presets that you can load and adjust.</span></p>\n'
                % (_esc(ind_name), _esc(en_name)))
     out.append('      <h4><span class="h4-icon">❓</span><span data-i18n="cat.h_faq" data-i18n-fb="常见问题">常见问题</span></h4>\n')
     for f in c['faq']:

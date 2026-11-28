@@ -66,6 +66,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/detector-17",
   "inputs": {
     "defSize": "5.5",
@@ -98,6 +99,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/roll-length",
   "inputs": {
     "outerDia": "1500",
@@ -198,24 +200,28 @@ const CASES = [
   "ref": "v0=750,v1=80 → 撕裂指数=750/80=9.375 mN·m²/g、每 100 g/m² 归一化 937.5 mN、相对 8.0 基准 (9.375-8)/8×100=17.19%（默认 500/60 → 8.333/833.3/4.17%；swap 0.120/12.0/-98.50%，均不重合）"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/roll-length",
   "inputs": { "targetLen": "500", "coreDia2": "-76", "paperThk2": "0.1" },
   "expect": ["纸芯外径不能留空，且需为 ≥0 的数值"],
   "ref": "12-K6：负纸芯内径旧实现仍算 D=263.5 mm、壁厚 169.8 mm、层数 1698；现在拒绝。默认纸芯 76 合法不出现该文案。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/roll-length",
   "inputs": { "targetLen": "600", "coreDia2": "100", "paperThk2": "0.15" },
   "expect": ["353.0 mm"],
   "ref": "12-K6 回归（避开默认 500/76/0.1）：D=√(4×0.15×600000/π+100²)=√124591.56=353.0 mm。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/roll-length",
   "inputs": { "outerDia": "100", "coreDia": "-10", "paperThk": "0.1" },
   "expect": ["纸芯外径需≥0"],
   "ref": "12-K6 续：calcLen 旧实现只校验 D>d 与 t>0，负纸芯照样算出长度；现拒绝并提示纸芯内径 ≥0。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/roll-length",
   "inputs": { "outerDia": "100", "coreDia": "99.5", "paperThk": "1" },
   "expect": ["无法形成有效缠绕层数"],
@@ -309,12 +315,14 @@ const CASES = [
 
 
 {
+  clicks: ["calc()"],
   "slug": "paper/detector-17",
   "inputs": {"defSize":"2.5","defPerSqm":"8","area":"10"},
   "expect": ["两项均超出参考阈值"],
   "ref": "尺寸与密度均超阈值时提示两项均超出，不再写不合格品。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/detector-17",
   "inputs": {"defSize":"5","defPerSqm":"3","area":"10"},
   "expect": ["单项超出参考阈值"],
@@ -322,6 +330,7 @@ const CASES = [
 },
 
 {
+  clicks: ["calc()"],
   "slug": "paper/roll-length",
   "inputs": {"outerDia":"1000","coreDia":"100","paperThk":"0.1"},
   "expect": ["7775442"],
@@ -364,18 +373,21 @@ const CASES = [
   "ref": "直接 ECT 模式完全忽略三项环压；环压留空仍可算 BCT。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/detector-17",
   "inputs": {"defState":"measured","defSize":"2.5","defPerSqm":"0","area":"10"},
   "expect": ["相互矛盾"],
   "ref": "尺寸>0 而密度=0 必须拒绝，不生成等级。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/detector-17",
   "inputs": {"defState":"none","defSize":"0","defPerSqm":"0","area":"10"},
   "expect": ["不生成参考等级","未检出"],
   "ref": "未检出明确记录 0/0，只说明未检出，不生成等级。"
 },
 {
+  clicks: ["calc()"],
   "slug": "paper/detector-17",
   "inputs": {"defState":"unknown","defSize":"0","defPerSqm":"12","area":"10"},
   "expect": ["尺寸未知","不生成参考等级"],

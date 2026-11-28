@@ -334,6 +334,7 @@ const CASES = [
 },
 {
   // FTND 6 题（q0-q5，动态 id）注入 3/1/1/3/1/1 → 总分 10 → 极高依赖
+  clicks: ["calc()"],
   "slug": "pulmonology/self-assess-3",
   "inputs": {
     "q0": "3",
@@ -531,6 +532,7 @@ const CASES = [
   "ref": "03-117 核销：三处间距任一空值即拦截，不再按 0 输出「0% 少量气胸，可观察吸氧」。"
 },
 {
+  clicks: ["calc()"],
   "slug": "pulmonology/self-assess-3",
   "expect": ["当前为默认评分（6 题均为默认选项）"],
   "ref": "03-152 核销：默认未作答时只显示「当前为默认评分…请按实际修改后查看解读」，不再直接输出 7 分「高度依赖」与戒烟处方。"

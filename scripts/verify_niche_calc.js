@@ -36,7 +36,8 @@ const CASES = [
     "fireType": "glaze"
   },
   "expect": [
-    "过石英转变点573°C"
+    "573→600°C",
+    "跨过 573℃ 石英晶型转变点"
   ],
   "ref": "auto-restore"
 },

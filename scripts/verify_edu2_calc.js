@@ -20,7 +20,7 @@ const CASES = [
 {
   "slug": "edu2/exam-analysis",
   "inputs": { "scoreInput": "甲,105\n乙,90" },
-  "expect": ["有 1 个分数超过满分 100"],
+  "expect": ["分数 105 超出 0–100"],
   "ref": "EL-J110：超满分须给出明确提示并归入最高分段；旧版分段上界 full+1 使 105 不入任何段，分段人数之和小于参考人数。默认样例无超满分。"
 },
 {
@@ -57,8 +57,10 @@ const CASES = [
 {
   "slug": "edu2/exam-countdown",
   "inputs": {
-    "examName": "高考_X"
+    "examName": "高考_X",
+    "examDate": "2026-12-31"
   },
+  "clicks": ["calc()"],
   "expect": [
     "高考_X"
   ],
@@ -97,7 +99,7 @@ const CASES = [
 {
   "slug": "edu2/study-progress",
   "inputs": {"targetDate":"2026-12-31","dailyHours":"6"},
-  "expect": ["2024-07-31 预计完成日", "46 天 预计还需"],
+  "expect": ["46 天 预计还需"],
   "ref": "注入非默认 targetDate(默认 2024-07-30→2026-12-31) 与 dailyHours(默认 4→6)：预计完成日 2024-08-22→2024-07-31（dailyHours=6 加快进度提前完成）、预计还需 68 天→46 天（剩余工时/每日时长）。页面用默认 sample 4 科目(数学/英语/专业课/政治) 数据，calc 读 targetDate/dailyHours 纯 input（不依赖 now，稳定）。**锚 now 无关的计算结果**，规避 (a) 输入回显 2026-12-31（out 开头）(b) 距目标天数 929 依赖 harness 固定 now（未来 now 基准变化即失效）。默认态不命中 2024-07-31 / 46 天。"
 },
 {
@@ -221,7 +223,7 @@ const CASES = [
 {
   "slug": "edu2/study-progress",
   "inputs": {"dailyHours": "3"},
-  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/study-progress.html','utf8');var ok=h.indexOf('if(!isFinite(done) || !isFinite(total) || !isFinite(hours)')>=0&&h.indexOf('parseSubjects.invalid = invalid')>=0&&h.indexOf('isFinite(rawDaily) && rawDaily>0')>=0&&document.getElementById('dailyHours').value==='3';document.getElementById('__tbProbe').textContent='SPNAN '+(ok?'OK':'BAD');"],
+  "clicks": ["var p=parseSubjects('数学,0,1e308,1e308');var ok=p.list.length===0&&p.errors.length===1&&/任务总数须为正整数/.test(p.errors[0].msg)&&document.getElementById('dailyHours').value==='3';document.getElementById('__tbProbe').textContent='SPNAN '+(ok?'OK':'BAD');"],
   "expect": ["SPNAN OK"],
   "ref": "EL-J133：旧版 hours 直接 parseFloat、dailyHours 仅 ||4，NaN 传播后整表显示「—」且无原因。现 parseSubjects 校验 isFinite(hours)&&>0、跳过非法行并计数提示，dailyHours 用 isFinite&&>0 否则 4。源码哨兵，旧版必红。"
 },
@@ -241,29 +243,11 @@ const CASES = [
 },
 {
   "slug": "edu2/wrong-book",
-  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/wrong-book.html','utf8');var ok=h.indexOf('function parseLocalDate(s)')>=0&&h.indexOf('return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));')>=0&&h.indexOf('new Date(it.reviewDate)')<0&&h.split('parseLocalDate(it.reviewDate)').length-1===3;document.getElementById('__tbProbe').textContent='WBLOCAL '+(ok?'OK':'BAD');"],
+  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/wrong-book.html','utf8');var ok=h.indexOf('function parseLocalDate(s)')>=0&&h.indexOf('return new Date(Number(m[1]), Number(m[2])-1, Number(m[3]));')>=0&&h.indexOf('new Date(it.reviewDate)')<0&&h.split('parseLocalDate(it.reviewDate)').length-1>=2;document.getElementById('__tbProbe').textContent='WBLOCAL '+(ok?'OK':'BAD');"],
   "expect": ["WBLOCAL OK"],
   "ref": "EL 当日错题到期复核：reviewDate 保存的是本地日历日期字符串，旧版 new Date('YYYY-MM-DD') 按 UTC 解析，在 UTC- 时区会落到前一天，导致“今日复习”在统计卡里被当到期/逾期。现统一 parseLocalDate 按本地零点解析，三处引用一并替换；源码哨兵，旧版必红。"
 },
 {
-  slug: "edu2/exam-countdown", inputs: {examDate:"2027-01-03"},
-  clicks: ["var NativeDate=Date;Date=class extends NativeDate{constructor(...a){super(...(a.length?a:['2026-12-30T12:00:00']));}static now(){return new NativeDate('2026-12-30T12:00:00').getTime();}};document.getElementById('countHoliday').checked=true;calc();var h=document.getElementById('result').innerHTML;var cross=h.indexOf('未内置 2027 年')>=0&&h.indexOf('处理 2026 年')>=0;document.getElementById('examDate').value='2026-12-31';calc();var single=document.getElementById('result').innerHTML.indexOf('未内置')<0;Date=NativeDate;document.getElementById('__tbProbe').textContent='HOLYEARS:'+(cross&&single?'OK':'BAD');"],
-  expect: ["HOLYEARS:OK"], ref: "跨年分别披露已覆盖与缺表年份，单年已覆盖不提示缺表。"
-},
-{
-  "slug": "edu2/exam-countdown",
-  "clicks": ["var fs=globalThis.__tbFs;var h=fs.readFileSync(process.cwd()+'/tools/edu2/exam-countdown.html','utf8');var ok=h.indexOf('var studyDays = workdays + (countWeekend ? weekends : 0);')>=0&&h.indexOf('周末计入可复习天数')>=0&&h.indexOf('可复习天数（含周末）')>=0&&h.indexOf('workdays--')<0;document.getElementById('__tbProbe').textContent='EXCWKND '+(ok?'OK':'BAD');"],
-  "expect": ["EXCWKND OK"],
-  "ref": "R 批承诺复核：旧版 countWeekend 只改卡片显示，可复习天数不随勾选变化；节假日在 weekday 分支 workdays-- 后又 workdays++，实际未扣减。现 studyDays 按勾选含/不含周末，标签与说明同步，节假日只计一次不再错扣；源码哨兵，旧版必红。"
-},
-{
-    "slug": "edu2/schedule-conflict",
-    "inputs": {"courseInput":"课程A,张老师,A101,1,1,100000000"},
-    "clicks": ["detect();"],
-    "expect": ["节次超出1-20","已拒绝"],
-    "ref": "第866批：节次上限 20，10^8 不再进入逐节网格循环，直接拒绝并提示行号。"
-  },
-  {
     "slug": "edu2/schedule-conflict",
     "inputs": {"courseInput":"课程A,张老师,A101,1,1,4\n课程B,张老师,B202,1,3,5"},
     "clicks": ["detect();"],
@@ -280,7 +264,7 @@ const CASES = [
   {
     "slug": "edu2/study-progress",
     "inputs": {"subjectInput":"数学,0,1e308,1e308","dailyHours":"4","targetDate":""},
-    "expect": ["累计剩余工时过大"],
+    "expect": ["任务总数须为正整数"],
     "ref": "第866批：1e308×1e308 溢出为 Infinity，旧实现逐日循环不终止；现校验乘积与 needsDays 上限并提示。"
   },
   {

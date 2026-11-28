@@ -77,6 +77,7 @@ const CASES = [
   "ref": "语音合成：harness 无 speechSynthesis ⇒ supported=false ⇒ loadVoices() 首行即 return，音色列表永远为空、无从锚定；唯一不依赖该分支的派生量是 updateCharCount() 写入的 #charCount（注入 abcde ⇒ 5 字，默认 23 字）。旧锚 expect [\"zh\"] 是 langFilter 输入值回显、零判别力，已替换。"
 },
 {
+  clicks: ["calc()"],
   "slug": "accessibility/ramp-slope",
   "inputs": { "height": "90", "ratio": "10", "sceneSel": "resident" },
   "expect": ["10.80 水平长度(m)", "该坡度下单段最大高差为 75cm"],
@@ -113,6 +114,7 @@ const CASES = [
   "ref": "输入失效清空：先用 90/1:10/居住区算出旧提示与图形，再把高差清空并 calc ⇒ 结果区只显示“请输入有效的高差与坡度比”，tipBox、grid、rampSvg 全部清空，旧“符合无障碍坡道规范要求”不得残留。旧实现只替换 #result 后 return，探针必红。"
 },
 {
+  clicks: ["calc()"],
   "slug": "accessibility/ramp-slope",
   "inputs": {"height":"40","ratio":"12","sceneSel":"general"},
   "expect": ["只校核坡度与单段高差", "未校核项：净宽、扶手"],

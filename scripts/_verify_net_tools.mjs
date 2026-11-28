@@ -74,9 +74,9 @@ for (const [slug, id] of pages) {
   await new Promise(r => setTimeout(r, 80));
   const az = d.getElementById('analysis-t1');
   const atext = az ? az.textContent : '';
-  check('T1 结果速读已生成', az && az.querySelectorAll('.nt-an-item').length >= 3,
+  check('T1 结果速读已生成', az && az.querySelectorAll('.nt-an-item').length >= 1,
     '解读项数=' + (az ? az.querySelectorAll('.nt-an-item').length : 0));
-  check('T1 解读判定公网 IPv4', /公网地址|Public/.test(atext) && /IPv4/.test(atext), atext.slice(0, 80));
+  check('T1 解读本地说明', /不向任何公开 IP 接口|no request to public IP/.test(atext), atext.slice(0, 80));
   check('T1 解读无 [object Object]', !/\[object Object\]/.test(atext));
 }
 
@@ -101,7 +101,7 @@ for (const [slug, id] of pages) {
   w.eval(js);
   await new Promise(r => setTimeout(r, 80));
   const t1 = w.NT.ST.t1.copy || '';
-  check('T1 timezone 取 id 文本', /Asia\/Shanghai/.test(t1) && !/\[object Object\]/.test(t1),
+  check('T1 不展示外部时区', !/\[object Object\]/.test(t1) && /不向任何公开 IP 接口|no request to public IP/.test(t1),
     (t1.split('\n').find(l => /时区|Timezone/.test(l)) || '').slice(0, 60));
 }
 

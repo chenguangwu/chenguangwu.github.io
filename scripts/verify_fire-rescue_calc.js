@@ -143,6 +143,7 @@ const CASES = [
   "ref": "面积回显 + 单位标签（战术模式/水枪数不随面积变化：300 与默认 200 同为「进攻」2 支水枪，无面积派生量可锚）。⚠ 原 expect '300' 为裸输入回显。默认 200 ⇒ 200 着火面积(m²)，不命中 ⇒ 无逃生（已双态实测）。"
 },
 {
+  clicks: ["calc()"],
   "slug": "fire-rescue/fire-investigation",
   "inputs": {
     "burnArea": "75"
@@ -155,6 +156,7 @@ const CASES = [
   "ref": "注入 75 m² + 勾选 t1（V 型痕迹）：统计卡回显「75 过火面积(m²)」，起火点分析给出「V型痕迹顶点指向起火点，应重点勘察V型痕迹最低点区域。」（默认无任何勾选 ⇒ 只剩勾选提示，两条均不命中 ⇒ 与空态互斥）。"
 },
 {
+  clicks: ["calc()"],
   "slug": "fire-rescue/fire-investigation",
   "inputs": {},
   "expect": [
@@ -163,6 +165,7 @@ const CASES = [
   "ref": "空态守卫（2026-11-05）：开箱无任何勾选时不再渲染「0痕迹线索 / 0原因线索」统计卡 +「自然/意外」判定 + 调查清单全套结论，只给勾选提示。默认态即本用例态 ⇒ 断言开箱交互口径；注入 t1 用例断「V型痕迹顶点指向起火点」⇒ 两态互斥。"
 },
 {
+  clicks: ["calc()"],
   "slug": "fire-rescue/fire-investigation",
   "inputs": {
     "burnArea": ""

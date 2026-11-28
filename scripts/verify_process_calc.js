@@ -94,6 +94,7 @@ const CASES = [
   "ref": "负 σ：分母守卫只拦 0，旧实现直接算 Cpk=-1.667；现显式要求 σ>0。"
 },
 {
+  clicks: ["calc()"],
   "slug": "process/defect-probability",
   "inputs": {
     "usl": "15.05",
@@ -187,6 +188,7 @@ const CASES = [
   "ref": "负标准差修复前得 Ppk≈-1.111；现拒绝"
 },
 {
+  clicks: ["calc()"],
   "slug": "process/defect-probability",
   "inputs": {
     "usl": "10.05",
@@ -376,6 +378,7 @@ const CASES = [
   "ref": "非整数件数：旧实现按 950.5 件照算 95.05%；现要求计数为非负整数，默认 950/1000 不命中。"
 },
 {
+  clicks: ["calc()"],
   "slug": "process/defect-probability",
   "inputs": { "usl": "10.05", "mu": "10.0", "sigma": "0.01" },
   "expect": ["2.867e-5", "0.287"],

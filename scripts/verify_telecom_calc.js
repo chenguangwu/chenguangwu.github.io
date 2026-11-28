@@ -78,6 +78,7 @@ const CASES = [
   "ref": "QAM 页面必须标注高 SNR 近似、Gray 映射与矩形星座假设；默认 qam64 BER=1e-5 反解 17.79 dB 同时带口径说明。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "5"
@@ -88,6 +89,7 @@ const CASES = [
   "ref": "去默认化：SNR=5dB ⇒ Eb/N0=10^0.5=3.162，BER=0.5·erfc(√3.162)=5.954e-3。默认态 snr=10 ⇒ 3.876e-6，不命中。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "15"
@@ -98,6 +100,7 @@ const CASES = [
   "ref": "去默认化：SNR=15dB ⇒ Eb/N0=10^1.5=31.62，BER=0.5·erfc(√31.62)=9.216e-16。默认态不命中。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "20"
@@ -201,6 +204,7 @@ const CASES = [
   "ref": "BPSK 在 −20 dB 时 BER=0.5·erfc(0.1)=0.4438 已是可达上限，目标 0.45 无解；旧实现会静默返回 0 dB 假答案。默认态不出现该提示。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {
     "snr": "30"
@@ -246,6 +250,7 @@ const CASES = [
   "ref": "第288批：T1 地址分类旧版只排除少量 IPv4 私网段，100.64.0.1（100.64.0.0/10 CGNAT 共享地址）与 IPv6 fc00::1（fc00::/7 ULA）被误判为「全球可路由地址」。修复后按完整保留段判定、对无法确认的地址不断言公网；注入 5 地址须 RES/RES/PUB/PUB/RES，修复前为 PUB/PUB/PUB/PUB/RES ⇒ 强判别。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/distance-power-frequency",
   "inputs": {"v0":"20","v1":"5800","v2":"3","v3":"3","v4":"-90"},
   "expect": ["最大距离处接收功率（=灵敏度，dBm）", "-90.0"],
@@ -276,12 +281,14 @@ const CASES = [
   "ref": "/32 只有一个地址，不能显示广播；首末可用均应为该地址。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {"mode":"ebn0","snr":"10"},
   "expect": ["归一化信道容量：不可用"],
   "ref": "Eb/N0 口径缺少 R/B，不能把 Eb/N0 直接代入 log2(1+x) 当带宽内 SNR 容量。"
 },
 {
+  clicks: ["calc()"],
   "slug": "telecom/convert-24",
   "inputs": {"mode":"snr","snr":"10","bitrate":"2","bandwidth":"1"},
   "expect": ["Eb/N0 = SNR − 10log10(R/B) = 6.99 dB", "归一化信道容量 = log2(1 + SNR线性) = 3.4594"],

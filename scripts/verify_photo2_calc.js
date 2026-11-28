@@ -103,7 +103,7 @@ const CASES = [
     "minutes": "0",
     "audioBitrate": "128"
   },
-  "expect": ["时长、码率与分辨率须有效"],
+  "expect": ["录制总时长须大于 0"],
   "ref": "978 零时长守卫：hours=minutes=0 时 sizeGB=0，存储卡可录时长全为 0 分；修复前照常渲染 0KB，默认 hours=1 不含该提示。"
 },
 {

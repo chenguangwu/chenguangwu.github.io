@@ -53,6 +53,7 @@ const CASES = [
   "ref": "auto-restore"
 },
 {
+  clicks: ["calc()"],
   "slug": "jewelry/ring-size",
   "inputs": {
     "circum": "55",
