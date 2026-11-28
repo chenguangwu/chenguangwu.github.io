@@ -24,7 +24,7 @@
 <link rel="canonical" href="https://chenguangwu.github.io/guides/visitor-route-guide.html">
 <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"参观流线规划 使用指南","description":"基于 Dijkstra 最短路径算法，规划多个展厅之间的最短参观流线，适用于展馆导览与路线优化。典型场景包括：馆内动线设计时，以展厅为节点、通道为带权边（距离/时长），用 Dijkstra 最短路径算法规划；限流/单向参观场景下，按通道权重调整路径，平衡各展厅客流、避开拥堵段。","author":{"@type":"Organization","name":"ToolBox"},"datePublished":"2026-09-16","dateModified":"2026-09-16","mainEntityOfPage":{"@type":"WebPage","@id":"https://chenguangwu.github.io/guides/visitor-route-guide.html"},"image":"https://chenguangwu.github.io/og-image.png","publisher":{"@type":"Organization","name":"ToolBox","logo":{"@type":"ImageObject","url":"https://chenguangwu.github.io/logo-512.png"}},"inLanguage":"zh-CN"}</script>
 <script type="application/ld+json">{"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [{"@type": "ListItem", "position": 1, "name": "ToolBox", "item": "https://chenguangwu.github.io/"}, {"@type": "ListItem", "position": 2, "name": "使用指南", "item": "https://chenguangwu.github.io/guides/index.html"}, {"@type": "ListItem", "position": 3, "name": "参观流线规划 使用指南", "item": "https://chenguangwu.github.io/guides/visitor-route-guide.html"}]}</script>
-<script type="application/ld+json">{"@context": "https://schema.org", "@type": "FAQPage", "mainEntity": [{"@type": "Question", "name": "为什么有时绕路反而更短？", "acceptedAnswer": {"@type": "Answer", "text": "Dijkstra 按边的权重（通道距离）求全局最短，并非直线近就快；经中转节点可能累计权重更小（如 A→B→C=50m < 直连 80m）。规划以算法结果为准，凭直觉易误判。"}}, {"@type": "Question", "name": "权重除了距离还能用什么？", "acceptedAnswer": {"@type": "Answer", "text": "可把边权设为通行时间、拥挤度或能耗，算法同样适用；若要考虑「必经重点馆」，可设其为中间节点分段求解再拼接路径，得到带约束的最短动线。"}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"为什么有时绕路反而更短？","acceptedAnswer":{"@type":"Answer","text":"Dijkstra 按边的权重（通道距离）求全局最短，并非直线近就快；经中转节点可能累计权重更小（如 A→B→C=50m < 直连 80m）。规划以算法结果为准，凭直觉易误判。"}},{"@type":"Question","name":"通道权重可以按哪些量填写？","acceptedAnswer":{"@type":"Answer","text":"本工具的通道权重按距离（米）填写，Dijkstra 算法本身也适用于时间或能耗等其它加权值，但本页输入口径是距离。「必经重点馆」可直接填入「必看节点」，工具会按输入顺序分段求最短并拼接，无需手工拆分。"}},{"@type":"Question","name":"通道距离留空或填负数会怎样？","acceptedAnswer":{"@type":"Answer","text":"该通道会被排除并在结果上方列出，不再把空值当成 0、也不再把负数取绝对值。未知通道若按 0 参与计算，会被误选为最短路径，因此必须先补测或删除该通道；距离为 0 的已知同址通道才可明确填 0。"}}]}</script>
 <style>
 :root{--primary:#FF6B35;--text:#1F2937;--muted:#6B7280;--border:#E5E7EB;--bg:#FFFAF7;}
 *{box-sizing:border-box;}
@@ -71,15 +71,23 @@ li{margin:8px 0;}
 <nav class="breadcrumb" aria-label="面包屑导航"><a href="https://chenguangwu.github.io/">ToolBox</a> / <a href="https://chenguangwu.github.io/guides/index.html">使用指南</a> / <span>参观流线规划 使用指南</span></nav>
 <main>
 <h1>参观流线规划 使用指南</h1>
-<p class="lead">基于 Dijkstra 最短路径算法，规划多个展厅之间的最短参观流线，适用于展馆导览与路线优化。</p>
+<p class="lead">以展厅为节点、通道距离为边权，用 Dijkstra 算法规划入口到出口的最短参观流线，并支持按顺序串联必看节点；空值、非数值与负距离会被排除并提示，不会静默当成 0。</p>
 <h2>功能说明</h2>
-<p>基于 Dijkstra 最短路径算法，规划多个展厅之间的最短参观流线，适用于展馆导览与路线优化。</p>
+<p>页面把当前展厅列表建成无向图，每条通道的距离作为非负权重。起点、必看节点与终点按输入顺序分段求最短路径后拼接，总距离为各段之和。端点已失效的通道、距离为空或为负数的通道都不会进入图，并在结果上方列出原因；这样未知通道不会因为权重 0 而被误选为最短路径。</p>
 <h2>典型使用场景</h2>
-<ul><li>馆内动线设计时，以展厅为节点、通道为带权边（距离/时长），用 Dijkstra 最短路径算法规划从入口到出口的最优参观顺序，减少折返。</li><li>限流/单向参观场景下，按通道权重调整路径，平衡各展厅客流、避开拥堵段。</li><li>多目标参观（只去重点馆）时，设定起终点与必看节点，快速得到最短串联路径与总距离。</li></ul>
+<ul><li>设计常设展动线：入口→青铜馆→陶瓷馆→书画馆→玉器馆→出口，比较不同串联顺序的总步行距离。</li><li>限流时把某段通道距离调大，观察路线是否绕开该区域。</li><li>只去重点馆时，把重点馆填入“必看节点”，按顺序分段计算。</li></ul>
+<h2>操作步骤</h2>
+<ol><li>确认展厅列表完整，修改名称后旧通道端点会标红。</li><li>逐条填写通道两端与距离（米）；已知同址通道可明确填 0，未知距离必须留待补测而不是填 0。</li><li>选择起点、终点，必要时填写逗号分隔的必看节点。</li><li>点击“规划最短流线”，查看路径、分段距离与总距离；有无效通道时先按提示修正。</li></ol>
 <h2>算例参考</h2>
-<ul><li><strong>最短动线规划示例</strong>：设展厅 A（入口）→B 通道 20 m、B→C 30 m、A→C 直连 80 m。从 A 到 C，Dijkstra 比较 A→C 直连 80 m 与 A→B→C 累计 20+30=50 m，得出最短路径 A→B→C、总距离 50 m（优于直连 80 m）。同理可编排「入口→青铜馆→陶瓷馆→书画馆→玉器馆→出口」的全程最短动线。</li></ul>
+<ul><li>A（入口）→B 20 m、B→C 30 m、A→C 直连 80 m：A→B→C 合计 50 m，短于直连 80 m。</li><li>若 B→C 距离留空，该边被排除；此时只能走 A→C 80 m，并在结果上方提示“距离为空”。</li><li>若某条通道填 −10 m，该边被拒绝，不再取绝对值 10 m 参与计算。</li></ul>
 <h2>注意事项</h2>
-<p>本工具纯前端运行，输入内容不上传服务器；结果为按上述口径得到的<strong>理论估算值</strong>。实际应用受设备参数、测量条件与当地规范影响，请以设备铭牌、检测报告与现行标准为准，重大决策建议咨询专业人士。</p>
+<p>Dijkstra 只适用于非负权重，因此负距离必须修正而不是取绝对值。距离为 0 只应出现在确实同址的通道；未知通道按 0 计算会制造一条“免费捷径”。端点名称含 HTML 字符时，页面统一转义后再显示，不会改变提示结构。路线优化只看距离，不自动考虑客流、单向限流或无障碍条件。</p>
+<dl class="faq">
+<dt>通道距离留空会怎样？</dt><dd>该通道被排除并在结果上方提示，不会当成 0 参与最短路径；请补测或删除该通道。</dt>
+<dt>负距离为什么不再自动取绝对值？</dt><dd>负权会破坏 Dijkstra 的前提，也可能造成前驱成环；工具直接拒绝并提示修正，避免给出错误路线。</dt>
+<dt>为什么有时绕路反而更短？</dt><dd>算法按累计权重求全局最短，直线近不代表总距离小；经中转节点可能累计更少。</dt>
+<dt>必看节点如何串联？</dt><dd>按输入顺序逐段求最短再拼接，不会自动重排顺序；如需优化顺序，请调整输入次序后比较总距离。</dt>
+</dl>
 <div class="related">
 <h3>相关工具</h3>
 <a class="tool-chip" href="https://chenguangwu.github.io/tools/museum/audio-guide-timer.html">导览时长匹配</a>

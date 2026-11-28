@@ -34,11 +34,13 @@
 .info-row:last-child { border-bottom: none; }
 .info-row .lbl { color: var(--text-muted); }
 .info-row .val { color: var(--text-primary); font-weight: 500; }
-.day-cell { display: inline-block; width: 32px; height: 32px; text-align: center; line-height: 32px; border-radius: 4px; font-size: 12px; cursor: pointer; }
+.day-cell { display: inline-block; width: 32px; height: 32px; text-align: center; line-height: 32px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 0; background: transparent; color: var(--text-primary); font-family: inherit; padding: 0; }
 .day-cell.header { font-weight: bold; color: var(--text-muted); cursor: default; }
 .day-cell.empty { cursor: default; }
 .day-cell.today { background: var(--primary); color: white; }
+.day-cell.selected { outline: 2px solid var(--primary); outline-offset: -2px; font-weight: 700; }
 .day-cell:hover:not(.header):not(.empty) { background: var(--bg-hover); }
+.day-cell:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .cal-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .cal-nav button { padding: 4px 12px; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; color: var(--text-primary); }
 .cal-title { font-size: 16px; font-weight: 600; color: var(--text-primary); }
@@ -103,38 +105,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "农历转换为何有年份限制？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "内置 LUNAR_INFO 仅收录约 1900–2099 的朔望月数据，超出范围的日期无法换算；更早或更晚请使用专业万年历。"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "干支和生肖按哪个「年」算？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "传统命理以「立春」为界：立春前出生算上一年干支。本工具按公历年份取整（简便口径），若需严格命理口径请自行以立春为界调整。"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "「历史上的今天」事件全吗？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "仅收录公开整理的部分代表性事件，并非 exhaustive；严谨考据请以权威史料或专业历史数据库为准。"
-      }
-    }
-  ]
-}
-</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"农历转换为何有年份限制？","acceptedAnswer":{"@type":"Answer","text":"内置 LUNAR_INFO 仅收录约 1900–2099 的朔望月数据，超出范围的日期无法换算；更早或更晚请使用专业万年历。"}},{"@type":"Question","name":"干支和生肖按哪个「年」算？","acceptedAnswer":{"@type":"Answer","text":"传统命理以「立春」为界：立春前出生算上一年干支。本工具按公历年份取整（简便口径），若需严格命理口径请自行以立春为界调整。"}},{"@type":"Question","name":"「历史上的今天」事件全吗？","acceptedAnswer":{"@type":"Answer","text":"仅收录公开整理的部分代表性事件，并非 exhaustive；严谨考据请以权威史料或专业历史数据库为准。"}},{"@type":"Question","name":"日历日期格可以用键盘操作吗？","acceptedAnswer":{"@type":"Answer","text":"可以。每个日期都是可聚焦的按钮，Tab 可移动到日期格，Enter 或空格可选中；选中日期有高亮边框，今天带 aria-current，日期格同时提供完整年月日标签，供屏幕阅读器识别。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 </head>
 <body>
@@ -176,7 +147,7 @@
           <div class="cal-title" id="cal-title"></div>
           <button onclick="navMonth(1)">下月 ›</button>
         </div>
-        <div class="cal-grid-days" id="cal-days"></div>
+        <div class="cal-grid-days" id="cal-days" role="grid" aria-label="日期选择"></div>
       </div>
       
       <div class="cal-card">
@@ -243,6 +214,7 @@
 <dt><a class="term-link" href="/tools/chinese/lunar-calendar.html">农历转换</a>为何有年份限制？</dt><dd>内置 LUNAR_INFO 仅收录约 1900–2099 的朔望月数据，超出范围的日期无法换算；更早或更晚请使用专业<a class="term-link" href="/tools/legal/calendar.html">万年历</a>。</dd>
 <dt>干支和生肖按哪个「年」算？</dt><dd>传统命理以「立春」为界：立春前出生算上一年干支。本工具按公历年份取整（简便口径），若需严格命理口径请自行以立春为界调整。</dd>
 <dt>「历史上的今天」事件全吗？</dt><dd>仅收录公开整理的部分代表性事件，并非 exhaustive；严谨考据请以权威史料或专业历史数据库为准。</dd>
+<dt>日历日期格可以用键盘操作吗？</dt><dd>可以。每个日期都是可聚焦的按钮，Tab 可移动到日期格，Enter 或空格可选中；选中日期有高亮边框，今天带 aria-current，日期格同时提供完整年月日标签，供屏幕阅读器识别。</dd>
 </dl>
 </div>
 </section>
@@ -314,6 +286,15 @@ const LUNAR_INFO = [
 
 const LUNAR_MONTH = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
 const LUNAR_DAY = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十','十一','十二','十三','十四','十五','十六','十七','十八','十九','二十','廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+const LUNAR_MONTH_EN = ['First','Second','Third','Fourth','Fifth','Sixth','Seventh','Eighth','Ninth','Tenth','Eleventh','Twelfth'];
+const LUNAR_DAY_EN = ['1st','2nd','3rd','4th','5th','6th','7th','8th','9th','10th','11th','12th','13th','14th','15th','16th','17th','18th','19th','20th','21st','22nd','23rd','24th','25th','26th','27th','28th','29th','30th'];
+const ZODIAC_EN = ['Rat','Ox','Tiger','Rabbit','Dragon','Snake','Horse','Goat','Monkey','Rooster','Dog','Pig'];
+const GAN_EN = {甲:'Jia',乙:'Yi',丙:'Bing',丁:'Ding',戊:'Wu',己:'Ji',庚:'Geng',辛:'Xin',壬:'Ren',癸:'Gui'};
+const ZHI_EN = {子:'Zi',丑:'Chou',寅:'Yin',卯:'Mao',辰:'Chen',巳:'Si',午:'Wu',未:'Wei',申:'Shen',酉:'You',戌:'Xu',亥:'Hai'};
+const SOLAR_TERM_EN = ['Minor Cold','Major Cold','Start of Spring','Rain Water','Awakening of Insects','Spring Equinox','Clear and Bright','Grain Rain','Start of Summer','Grain Buds','Grain in Ear','Summer Solstice','Minor Heat','Major Heat','Start of Autumn','End of Heat','White Dew','Autumn Equinox','Cold Dew','Frost\'s Descent','Start of Winter','Minor Snow','Major Snow','Winter Solstice'];
+const MONTH_EN = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const WEEKDAY_EN = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+function hcalEn(){ return /(?:^|[?&])lang=en(?:-US)?(?:&|$)/i.test(location.search) || /^en/i.test(document.documentElement.lang || ''); }
 
 function lYearDays(y) {
   let sum = 348;
@@ -430,19 +411,27 @@ let currentYear, currentMonth;
 
 function renderCalendar() {
   const y = currentYear, m = currentMonth;
-  document.getElementById('cal-title').textContent = `${y} 年 ${m + 1} 月`;
+  const en = hcalEn();
+  document.getElementById('cal-title').textContent = en ? `${MONTH_EN[m]} ${y}` : `${y} 年 ${m + 1} 月`;
+  document.getElementById('cal-days').setAttribute('aria-label', en ? 'Date selection' : '日期选择');
   const firstDay = new Date(y, m, 1).getDay();
   const daysInMonth = new Date(y, m + 1, 0).getDate();
   const today = new Date();
   const isCurMonth = today.getFullYear() === y && today.getMonth() === m;
   const todayDate = today.getDate();
-  
-  const headers = ['日','一','二','三','四','五','六'];
-  let html = headers.map(h => `<div class="day-cell header">${h}</div>`).join('');
-  for (let i = 0; i < firstDay; i++) html += '<div class="day-cell empty"></div>';
+  const selParts = (document.getElementById('date-input').value || '').split('-').map(Number);
+  const hasSel = selParts.length === 3 && selParts.every(Number.isFinite);
+  const isSelMonth = hasSel && selParts[0] === y && selParts[1] === m + 1;
+  const headers = en ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] : ['日','一','二','三','四','五','六'];
+  let html = headers.map(h => `<div class="day-cell header" role="columnheader" aria-label="${en?'Weekday ':'星期'}${h}">${h}</div>`).join('');
+  for (let i = 0; i < firstDay; i++) html += '<div class="day-cell empty" aria-hidden="true"></div>';
   for (let d = 1; d <= daysInMonth; d++) {
     const todayCls = (isCurMonth && d === todayDate) ? ' today' : '';
-    html += `<div class="day-cell${todayCls}" onclick="selectDate(${y}, ${m}, ${d})">${d}</div>`;
+    const selectedCls = (isSelMonth && d === selParts[2]) ? ' selected' : '';
+    const dateLabel = en ? `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}` : `${y} 年 ${m+1} 月 ${d} 日`;
+    const ariaCurrent = (isCurMonth && d === todayDate) ? ' aria-current="date"' : '';
+    const ariaPressed = selectedCls ? 'true' : 'false';
+    html += `<button type="button" class="day-cell${todayCls}${selectedCls}" role="gridcell" data-date="${y}-${m+1}-${d}" onclick="selectDate(${y}, ${m}, ${d})" aria-label="${dateLabel}" aria-pressed="${ariaPressed}"${ariaCurrent}>${d}</button>`;
   }
   const __h0=html;if((typeof __h0==='number'&&!isFinite(__h0))||/Infinity/.test(String(__h0))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h0)){document.getElementById('cal-days').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('cal-days').innerHTML=__h0;
 }
@@ -489,23 +478,34 @@ function update() {
   const ganzhi = getGanZhi(lunar.y);
   const zodiac = getZodiac(lunar.y);
   const term = getSolarTerm(y, m, d);
-  const dayOfWeek = ['日','一','二','三','四','五','六'][new Date(y, m - 1, d).getDay()];
-  
+  const en = hcalEn();
+  const dayIndex = new Date(y, m - 1, d).getDay();
+  const dayOfWeek = (en ? WEEKDAY_EN : ['日','一','二','三','四','五','六'])[dayIndex];
+  const termIndex = SOLAR_TERMS.indexOf(term);
+  const termText = en ? (termIndex >= 0 ? SOLAR_TERM_EN[termIndex] : term) : term;
+  const lunarText = en
+    ? `${lunar.isLeap ? 'Leap ' : ''}${LUNAR_MONTH_EN[lunar.m - 1]} month, ${LUNAR_DAY_EN[lunar.d - 1]} day`
+    : `${lunar.isLeap ? '闰' : ''}${LUNAR_MONTH[lunar.m - 1]}月${LUNAR_DAY[lunar.d - 1]}`;
+  const ganzhiText = en ? ganzhi.split('').map(ch => GAN_EN[ch] || ZHI_EN[ch] || ch).join(' ') + ' year' : ganzhi + '年';
+  const zodiacIndex = ZODIACS.indexOf(zodiac);
+  const zodiacText = en ? (zodiacIndex >= 0 ? ZODIAC_EN[zodiacIndex] : zodiac) : zodiac;
+  const daysDiff = Math.floor((new Date() - new Date(y, m-1, d)) / 86400000);
+
   let html = '';
-  html += `<div class="info-row"><span class="lbl">公历</span><span class="val">${y} 年 ${m} 月 ${d} 日</span></div>`;
-  html += `<div class="info-row"><span class="lbl">星期</span><span class="val">星期${dayOfWeek}</span></div>`;
-  html += `<div class="info-row"><span class="lbl">农历</span><span class="val">${lunar.isLeap ? '闰' : ''}${LUNAR_MONTH[lunar.m - 1]}月${LUNAR_DAY[lunar.d - 1]}</span></div>`;
-  html += `<div class="info-row"><span class="lbl">干支</span><span class="val">${ganzhi}年</span></div>`;
-  html += `<div class="info-row"><span class="lbl">生肖</span><span class="val">属${zodiac}</span></div>`;
-  if (term) html += `<div class="info-row"><span class="lbl">节气</span><span class="val">${term}</span></div>`;
-  html += `<div class="info-row"><span class="lbl">距今</span><span class="val">${Math.floor((new Date() - new Date(y, m-1, d)) / 86400000)} 天</span></div>`;
+  html += `<div class="info-row"><span class="lbl">${en?'Gregorian':'公历'}</span><span class="val">${en ? `${MONTH_EN[m-1]} ${d}, ${y}` : `${y} 年 ${m} 月 ${d} 日`}</span></div>`;
+  html += `<div class="info-row"><span class="lbl">${en?'Weekday':'星期'}</span><span class="val">${en ? dayOfWeek : '星期'+dayOfWeek}</span></div>`;
+  html += `<div class="info-row"><span class="lbl">${en?'Lunar':'农历'}</span><span class="val">${lunarText}</span></div>`;
+  html += `<div class="info-row"><span class="lbl">${en?'Sexagenary cycle':'干支'}</span><span class="val">${ganzhiText}</span></div>`;
+  html += `<div class="info-row"><span class="lbl">${en?'Zodiac':'生肖'}</span><span class="val">${en ? zodiacText : '属'+zodiacText}</span></div>`;
+  if (term) html += `<div class="info-row"><span class="lbl">${en?'Solar term':'节气'}</span><span class="val">${termText}</span></div>`;
+  html += `<div class="info-row"><span class="lbl">${en?'Days from today':'距今'}</span><span class="val">${en ? daysDiff + ' days' : daysDiff + ' 天'}</span></div>`;
   const __h1=html;if((typeof __h1==='number'&&!isFinite(__h1))||/Infinity/.test(String(__h1))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h1)){document.getElementById('detail-info').innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}document.getElementById('detail-info').innerHTML=__h1;
   
   const mmdd = `${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
   const events = HISTORICAL_EVENTS.filter(e => e.d === mmdd);
   const evEl = document.getElementById('events-list');
   if (events.length === 0) {
-    const __h2='<p style="text-align:center;color:var(--text-muted);">今日无重大历史事件记录</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){evEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}evEl.innerHTML=__h2;
+    const __h2='<p style="text-align:center;color:var(--text-muted);">'+(en?'No major historical event recorded for this date.':'今日无重大历史事件记录')+'</p>';if((typeof __h2==='number'&&!isFinite(__h2))||/Infinity/.test(String(__h2))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h2)){evEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}evEl.innerHTML=__h2;
   } else {
     const __h3=events.map(e => `<div class="event-item"><div class="date">${e.d}</div><div class="desc">${e.e}</div></div>`).join('');if((typeof __h3==='number'&&!isFinite(__h3))||/Infinity/.test(String(__h3))||/(^|[^A-Za-z])NaN([^A-Za-z]|$)/.test(__h3)){evEl.innerHTML='<p style="color:var(--danger)">⚠ 计算结果含无效值，请检查输入是否为有效正数。</p>';return;}evEl.innerHTML=__h3;
   }

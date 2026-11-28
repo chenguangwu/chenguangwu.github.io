@@ -5,20 +5,22 @@ const CASES = [
 {
   "slug": "museum/visitor-route",
   "inputs": {},
-  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();edges=[['A','B',-12],['B','C',7]];compute();"],
+  "clicks": ["document.getElementById('nodeInput').value='A,B,C';syncNodes();edges=[['A','B',-12],['B','C',7]];document.getElementById('startNode').value='A';document.getElementById('endNode').value='C';compute();"],
   "expect": [
-    "19 m 总距离"
+    "以下通道距离为空、非数值或负数，未纳入计算",
+    "距离为负数"
   ],
-  "ref": "负距离回归（N5-C）：通道 A–B 注入 -10 m、B–C 5 m，负权先取绝对值 ⇒ 最短流线 A→B→C 总距离 12+7=19 m；旧实现直接把负权喂给 Dijkstra，输出总距离 -5 m（且前驱回溯无访问集合，负权环会无限回溯）。19 m 不与默认展线（15 m）冲突，避开默认态。"
+  "ref": "负距离拒绝（第1147批）：旧版把 -12 m 取绝对值后参与计算，未知/错误通道可能变成最短路径。现版直接排除负距离并在结果上方列出原因；A–C 无有效路径时错误提示与无效通道提示同时出现。断言不再要求 19 m 总距离。"
 },
 {
   "slug": "museum/visitor-route",
   "inputs": {},
-  "clicks": ["document.getElementById('nodeInput').value='A,B';syncNodes();edges=[['A','B',-10],['B','A',10]];compute();"],
+  "clicks": ["document.getElementById('nodeInput').value='A,B';syncNodes();edges=[['A','B',-10],['B','A',10]];document.getElementById('startNode').value='A';document.getElementById('endNode').value='B';compute();"],
   "expect": [
+    "以下通道距离为空、非数值或负数，未纳入计算",
     "10 m 总距离"
   ],
-  "ref": "负权环终止性（N5-C）：双向边 -10/10 构成负权环，旧实现 relax 后 prev[A]=B、prev[B]=A 且回溯无访问集合 ⇒ 死循环挂死页面。修复后负距离取绝对值（均为 10）、回溯带 seen 集合与步数上限 ⇒ 正常输出 A→B 总距离 10 m。"
+  "ref": "负权环不再进入图（第1147批）：双向边 -10/10 以前会把负权取绝对值形成两条 10 m 通道；现版排除负数，仅保留显式填写的 10 m 边，A→B 总距离 10 m。负权不再进入 Dijkstra，不会因前驱成环回溯冻死页面。"
 },
 {
   "slug": "museum/visitor-route",
@@ -68,11 +70,11 @@ const CASES = [
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='3';document.getElementById('era2').value='9';compare()"],
   "expect": [
-    "建立时间相差: 839 年",
+    "建立时间相差: 838 年",
     "秦朝 15 年 vs 唐朝 289 年 (差 274 年)",
     "比值 0.25（相当于 25.0%；唐朝为秦朝的 4.00 倍）"
   ],
-  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差 |−221−618|=839、时长差 |15−289|=274；人口按万=1e4 统一换算后 2e7/8e7=0.25（相当于 25.0%，唐朝为秦朝的 4 倍）。旧实现按未换算数字 2000/8000 求 max/min=4.0 倍，断言语义已切换为前/后比值。RL-K19：源码文案早已从「时间跨度相差」改为「建立时间相差」（e98f3a7d60），旧 expect 仍是「时间跨度相差」死锚、靠另外两条假绿，本批同步为现行文案。"
+  "ref": "两个朝代 <select> 的 option 由 JS 按 ERAS 下标填充（静态无 option ⇒ clicks 赋值后调 compare()）：era1=3 秦朝(s=-221,dur=15,人口约2000万)、era2=9 唐朝(s=618,dur=289,人口约8000万) ⇒ 起始年差按无公元 0 年规则 = 618 + 221 − 1 = 838、时长差 |15−289|=274；人口按万=1e4 统一换算后 2e7/8e7=0.25（相当于 25.0%，唐朝为秦朝的 4 倍）。旧实现按未换算数字 2000/8000 求 max/min=4.0 倍，断言语义已切换为前/后比值。RL-K19：源码文案早已从「时间跨度相差」改为「建立时间相差」（e98f3a7d60），旧 expect 仍是「时间跨度相差」死锚、靠另外两条假绿，本批同步为现行文案。"
 },
 {
   "slug": "museum/era-comparator",
@@ -88,8 +90,8 @@ const CASES = [
   "inputs": {},
   "clicks": ["document.getElementById('era1').value='9';document.getElementById('era2').value='10';compare()"],
   "expect": [
-    "唐朝 约 8000 万（8000 万） vs",
-    "宋朝 约 1 亿（1 亿）",
+    "唐朝 约 8000 万（8000 万，约 公元 750 年） vs",
+    "宋朝 约 1 亿（1 亿，约 公元 1100 年）",
     "比值 0.80（相当于 80.0%；宋朝为唐朝的 1.25 倍）"
   ],
   "ref": "量纲回归（万/亿混用）：era1=9 唐朝（约 8000 万 = 8e7）、era2=10 宋朝（约 1 亿 = 1e8）⇒ 统一换算后 8e7/1e8=0.80（相当于 80.0%；按任务给的 0.08/8% 口径复算，8000 万实为 0.8 亿，正确比值为 0.8），旧实现把 8000 与 1 直接相比输出 8000 倍。断言同时校验两侧统一量纲展示（8000 万 / 1 亿）。"
@@ -281,8 +283,9 @@ const CASES = [
     "tempSwing": "2",
     "rhSwing": "5"
   },
+  "clicks": ["evalEnv();"],
   "expect": [
-    "建议降温至"
+    "温度偏高，建议降温至"
   ],
   "ref": "auto-restore"
 },
@@ -292,7 +295,7 @@ const CASES = [
     "currentMat='ceramic';document.getElementById('temp').value='40';document.getElementById('rh').value='50';evalEnv();"
   ],
   "expect": [
-    "温度偏高，建议降至 35℃ 以下"
+    "温度偏高，建议降温至 35℃ 以下"
   ],
   "ref": "范围型材质建议（RL-K38）：陶瓷/玻璃用 tempR=[5,35]、rhR=[20,60]，旧版建议分支只覆盖数组 temp 与 rhMax，40℃ 超标时 advice 为空，输出「调整建议：。」。修复后按 tempR 上下界给出降温建议；默认材质为书画（数组 temp），不命中该串。"
 },
@@ -334,9 +337,9 @@ const CASES = [
   "expect": [
     "26分50秒 讲解总时长",
     "+23分10秒",
-    "150 秒"
+    "129 秒"
   ],
-  "ref": "总时长 = 20×60 + (20−1)×20 + 30 = 1200+380+30 = 1610 秒 ⇒ fmtTime 26分50秒；可用 = 50×60 = 3000 秒 ⇒ 50分0秒；时间差 = +1390 秒 ⇒ +23分10秒（充裕）；每件可用 = floor(3000/20) = 150 秒。默认态（30 件/90 秒/移动 30/开场 60/可用 90 分钟）为 1时0分30秒 / +29分30秒 / 180 秒，三条全不命中。"
+  "ref": "总时长 = 20×60 + (20−1)×20 + 30 = 1200+380+30 = 1610 秒 ⇒ fmtTime 26分50秒；可用 = 50×60 = 3000 秒 ⇒ 50分0秒；时间差 = +1390 秒 ⇒ +23分10秒（充裕）；每件可用 = floor((3000−19×20−30)/20) = 129 秒。默认态（30 件/90 秒/移动 30/开场 60/可用 90 分钟）为 1时0分30秒 / +29分30秒 / 180 秒，三条全不命中。"
 },
 {
     dynDom: true,
@@ -377,7 +380,7 @@ const CASES = [
     "缩短单件讲解至 29 秒",
     "减少讲解展品数至 15 件"
   ],
-  "ref": "总时长 = 40×120 + 39×30 + 60 = 4800+1170+60 = 6030 秒 ⇒ 1时40分30秒；可用 = 2400 秒 ⇒ 40分0秒；时间差 = −3630 秒（< −300 ⇒ 「严重超时」）；每件可用 = floor(2400/40) = 60 秒；cutPer = floor((2400 − 39×30 − 60)/40) = 29 秒（旧实现误乘 120×2400 得 7169 秒）；展品数 = floor((2400−60)/(120+30)) = 15 件。默认态全不命中。"
+  "ref": "总时长 = 40×120 + 39×30 + 60 = 4800+1170+60 = 6030 秒 ⇒ 1时40分30秒；可用 = 2400 秒 ⇒ 40分0秒；时间差 = −3630 秒（< −300 ⇒ 「严重超时」）；每件可用 = floor((2400−39×30−60)/40) = 29 秒；cutPer = floor((2400 − 39×30 − 60)/40) = 29 秒（旧实现误乘 120×2400 得 7169 秒）；展品数 = floor((2400−60)/(120+30)) = 15 件。默认态全不命中。"
 },
 {
     dynDom: true,
@@ -412,10 +415,10 @@ const CASES = [
   ],
   "expect": [
     "× 0 段 = 0 秒",
-    "600 秒",
+    "590 秒",
     "1分0秒 讲解总时长"
   ],
-  "ref": "总时长 = 1×50 + 0（count>1 为假 ⇒ 移动 0 段）+ 10 = 60 秒 ⇒ 1分0秒；可用 = 600 秒 ⇒ 10分0秒；时间差 = +540 秒；每件可用 = floor(600/1) = 600 秒。表格里「移动时间 × 0 段 = 0 秒」是本例独有形态，默认态（29 段移动）不命中。"
+  "ref": "总时长 = 1×50 + 0（count>1 为假 ⇒ 移动 0 段）+ 10 = 60 秒 ⇒ 1分0秒；可用 = 600 秒 ⇒ 10分0秒；时间差 = +540 秒；每件可用 = floor((600−0−10)/1) = 590 秒。表格里「移动时间 × 0 段 = 0 秒」是本例独有形态，默认态（29 段移动）不命中。"
 },
 {
     dynDom: true,
@@ -431,7 +434,7 @@ const CASES = [
     "calcQuick();"
   ],
   "expect": [
-    "可用时间需大于 0，无法排程。"
+    "可用时间需大于 0 分钟，无法排程。"
   ],
   "ref": "可用时间边界（RL-K31）：可用 0 分钟旧版仍算出「每件可用 0 秒 / 缩短至 0 秒 / 减少至 -1 件」，给出物理上无法执行的建议。修复后在计算前拦截并提示，断言只在结果区出现；默认态 available=90 不命中。"
 },
@@ -468,6 +471,41 @@ const CASES = [
   "clicks": ["var h=globalThis.__tbFs.readFileSync(process.cwd()+'/tools/museum/historical-calendar.html','utf8');var deep=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/content_deepdive.json','utf8');var en=globalThis.__tbFs.readFileSync(process.cwd()+'/i18n/tools/en/museum/historical-calendar.json','utf8');var dj=JSON.parse(deep)['museum/historical-calendar'];var djx=JSON.stringify(dj);var ok=h.indexOf('1900–2100')<0&&h.indexOf('1900-2100')<0&&h.indexOf('1900–2099')>=0&&djx.indexOf('1900–2100')<0&&djx.indexOf('1900–2099')>=0&&en.indexOf('1900–2100')<0&&en.indexOf('1900–2099')>=0;document.getElementById('__tbProbe').textContent='HISTRANGE '+(ok?'OK':'BAD');"],
   "expect": ["HISTRANGE OK"],
   "ref": "第280批：历史日历实际仅支持到 2099，正文、深解源与英文词典不得再称 1900–2100。旧版三处均写 2100 ⇒ BAD。"
+}
+,{
+  "slug": "museum/era-comparator",
+  "inputs": {},
+  "clicks": ["document.getElementById('era1').value='4';document.getElementById('era2').value='9';compare()"],
+  "expect": ["存续 421 年", "建立时间相差: 819 年"],
+  "ref": "跨公元前后（RL-K36）：汉朝 −202→220 无公元 0 年 ⇒ 421 年（旧版 422）；汉唐建立差 618+202−1=819。锚选非默认汉/唐组合，默认秦/唐不命中。"
+},
+{
+  "slug": "museum/showcase-monitor",
+  "inputs": {"temp":"19","rh":"","tempSwing":"2","rhSwing":"5"},
+  "clicks": ["evalEnv();"],
+  "expect": ["请填写实测温度、实测相对湿度及两项日波动允差后再判定"],
+  "ref": "缺测守卫（RL-K37）：湿度留空不得给出瞬时达标结论；旧版把空字符串当 0 或跳过判定。锚为缺测提示整句，正常输入不命中。"
+},
+{
+  "slug": "museum/audio-guide-timer",
+  "inputs": {"exhibitCount":"2.5","perExhibit":"120","moveTime":"30","introTime":"60","available":"20"},
+  "clicks": ["calcQuick();"],
+  "expect": ["展品数量需为不小于 1 的整数。"],
+  "ref": "小数展品（RL-K38）：2.5 件不得被 parseInt 截断为 2 件继续排程；旧版不输出该提示。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {"lampCount":"1.9","lumens":"500","distance":"0.8","beamAngle":"36","utilCoef":"0.7","area":"2","trans":"92"},
+  "clicks": ["calc();"],
+  "expect": ["光源数量需为大于 0 的整数（小数不会截断为整数）。"],
+  "ref": "小数灯数（RL-K38）：1.9 盏不得截断为 1 盏；旧版 parseInt 后输出 1 盏结果，不含该提示。"
+},
+{
+  "slug": "museum/lighting-lux",
+  "inputs": {"lampCount":"4","lumens":"500","distance":"0.8","beamAngle":"180","utilCoef":"0.7","area":"2","trans":"92"},
+  "clicks": ["calc();"],
+  "expect": ["光束角需大于 0 且小于 180 度"],
+  "ref": "180° 边界（RL-K38）：tan(90°) 无有限值，必须拒绝并提示，不得输出 Infinity/NaN 光斑。"
 }
 ];
 async function main() {

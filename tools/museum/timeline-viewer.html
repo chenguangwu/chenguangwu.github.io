@@ -101,38 +101,7 @@
 
 <script src="/js/tool-kit.js" defer></script>
 <!-- TOOLBOX-TOOL-KIT -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": [
-    {
-      "@type": "Question",
-      "name": "时间轴数据来源？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "公开整理的常识性重大事件清单，用于建立学习脉络，并非学术全量；深入研究所请以权威通史或史料为准。"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "公元前年份怎么排序？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "内部用负数表示公元前，数值越小越早（−221 早于 −202），渲染时自动前置，无需手动换算。"
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "能导出或自定义事件吗？",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "当前为只读浏览；如需自定义事件清单，建议把事件导出到表格自行编辑与可视化。"
-      }
-    }
-  ]
-}
-</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"时间轴数据来源？","acceptedAnswer":{"@type":"Answer","text":"公开整理的常识性重大事件清单，用于建立学习脉络，并非学术全量；深入研究所请以权威通史或史料为准。"}},{"@type":"Question","name":"公元前年份怎么排序？","acceptedAnswer":{"@type":"Answer","text":"内部用负数表示公元前，数值越小越早（−221 早于 −202），渲染时自动前置，无需手动换算。"}},{"@type":"Question","name":"能导出或自定义事件吗？","acceptedAnswer":{"@type":"Answer","text":"可以导出当前筛选结果：先选主题、世纪和关键词，再点导出，CSV 只包含屏幕上匹配的事件；若当前筛选无结果，工具会提示且不生成空文件。事件清单本身仍为只读，如需增删可导出后自行编辑。"}}]}</script>
 <meta property="og:site_name" content="ToolBox">
 </head>
 <body>
@@ -213,7 +182,7 @@
 <ul class="dd-list">
 <li>复习中考/高考历史时按时间线梳理中外大事件，例如前 221 秦统一、476 西罗马灭亡、1453 君士坦丁堡陷落。</li>
 <li>做中西对比：把同一世纪中国与世界的事件并置，例如 18 世纪工业革命 vs 清朝康乾盛世。</li>
-<li>内容创作或汇报排期时，把事件按年份排序生成可视化时间线脉络。</li>
+<li>内容创作或汇报排期时，把事件按年份排序生成可视化时间线脉络；导出 CSV 会严格沿用当前主题、世纪与关键词筛选。</li>
 </ul>
 <div class="dd-example"><div class="dd-ex-title">方法</div><div class="dd-ex-body">事件以「年份（负数表公元前）+ 标题 + 简述」结构化存储，渲染时按年份升序排列；支持中西对照筛选。内部统一用整数年排序，公元前自动前置（−221 早于 −202）。</div></div>
 <div class="dd-example"><div class="dd-ex-title">算例</div><div class="dd-ex-body">筛选「公元前 3 世纪」可得前 221 秦统一六国、前 202 楚汉相争结束（汉建立）等；筛选「15 世纪」可得 1405 郑和下西洋始航、1453 奥斯曼灭拜占庭等；筛选「19 世纪」可得 1840 鸦片战争、1861 洋务运动、1894 甲午战争等。</div></div>
@@ -221,7 +190,7 @@
 <dl class="dd-faq">
 <dt>时间轴数据来源？</dt><dd>公开整理的常识性重大事件清单，用于建立学习脉络，并非学术全量；深入研究所请以权威通史或史料为准。</dd>
 <dt>公元前年份怎么排序？</dt><dd>内部用负数表示公元前，数值越小越早（−221 早于 −202），渲染时自动前置，无需手动换算。</dd>
-<dt>能导出或自定义事件吗？</dt><dd>当前为只读浏览；如需自定义事件清单，建议把事件导出到表格自行编辑与可视化。</dd>
+<dt>能导出或自定义事件吗？</dt><dd>可以导出当前筛选结果：先选主题、世纪和关键词，再点导出，CSV 只包含屏幕上匹配的事件；若当前筛选无结果，工具会提示且不生成空文件。事件清单本身仍为只读，如需增删可导出后自行编辑。</dd>
 </dl>
 </div>
 </section>
@@ -384,14 +353,13 @@ window.addEventListener('toolbox:langchange', syncTimelineFiltersLanguage);
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncTimelineFiltersLanguage);
 else syncTimelineFiltersLanguage();
 
-function renderTimeline() {
-  // RL-K48：世纪 / 关键词筛选（世纪：1–100=1 世纪；公元前 3 世纪 = −300…−201）
+function getFilteredEvents() {
   var centurySel = document.getElementById('tlCentury');
   var kwEl = document.getElementById('tlKeyword');
   var cen = centurySel ? centurySel.value : '';
   var kw = kwEl ? String(kwEl.value || '').trim().toLowerCase() : '';
   var centuryOf = function (y) { return y > 0 ? Math.ceil(y / 100) : -Math.ceil(-y / 100); };
-  var events = TIMELINES[currentTheme].slice().filter(function (e) {
+  return TIMELINES[currentTheme].slice().filter(function (e) {
     if (cen === 'b3') { if (!(e.y >= -300 && e.y <= -201)) return false; }
     else if (/^\d+$/.test(cen)) { if (centuryOf(e.y) !== parseInt(cen, 10)) return false; }
     if (kw) {
@@ -399,7 +367,12 @@ function renderTimeline() {
       if (hay.indexOf(kw) < 0) return false;
     }
     return true;
-  }).sort((a, b) => a.y - b.y);
+  }).sort(function(a, b){ return a.y - b.y; });
+}
+
+function renderTimeline() {
+  // 世纪 / 关键词筛选：世纪 1–100=1 世纪；公元前 3 世纪 = −300…−201
+  var events = getFilteredEvents();
   const el = document.getElementById('timeline');
   const __h1=events.map(e => {
     const yearStr = e.y < 0 ? `前 ${-e.y}` : `${e.y}`;
@@ -421,15 +394,22 @@ renderTimeline();
 function __tlExport(){
   if(typeof TBKit==='undefined')return;
   var en=TBKit.util.isEn();
+  var events=getFilteredEvents();
+  if(!events.length){
+    alert(en?'No events match the current filters, so no file was generated.':'当前筛选没有匹配事件，未生成 CSV。');
+    return;
+  }
   var tbody=document.querySelector('#tlHidden tbody');
   tbody.innerHTML='';
   function row(arr){var tr=document.createElement('tr');arr.forEach(function(v){var td=document.createElement('td');td.textContent=v;tr.appendChild(td);});tbody.appendChild(tr);}
-  var events=TIMELINES[currentTheme].slice().sort(function(a,b){return a.y-b.y;});
+  if(tbody){
+    document.getElementById('tlHidden').setAttribute('data-filtered','1');
+  }
   events.forEach(function(e){
     var yearStr=e.y<0?en?('BCE '+(-e.y)):'前'+(-e.y):String(e.y);
     row([yearStr, e.t, e.cat, e.desc]);
   });
-  TBKit.util.exportTable('#tlHidden', en?('timeline-'+currentTheme+'.csv'):('时间轴-'+currentTheme+'.csv'));
+  TBKit.util.exportTable('#tlHidden', en?('timeline-'+currentTheme+'-filtered.csv'):('时间轴-'+currentTheme+'-当前筛选.csv'));
 }</script><script>
 // tool-intro折叠交互
 document.addEventListener('DOMContentLoaded',function(){
